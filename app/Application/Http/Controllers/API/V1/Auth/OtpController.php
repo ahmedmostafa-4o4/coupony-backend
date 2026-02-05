@@ -8,7 +8,6 @@ use App\Domain\User\Enums\OtpPurposes;
 use App\Domain\User\Models\User;
 use App\Domain\User\Services\OtpService;
 use App\Domain\User\Services\AuthenticationService;
-use App\Application\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;

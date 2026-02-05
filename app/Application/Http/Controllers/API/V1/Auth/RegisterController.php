@@ -4,15 +4,10 @@ namespace App\Application\Http\Controllers\API\V1\Auth;
 
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\registerUserRequest;
-use App\Application\Http\Resources\UserResource;
-use App\Domain\Store\Models\Store;
-use App\Domain\Store\Models\StoreVerification;
 use App\Domain\User\Actions\RegisterUser;
 use App\Domain\User\DTOs\UserData;
 use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
-use App\Domain\User\Listeners\SendWelcomeEmail;
-use App\Domain\User\Models\User;
 use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Services\OtpService;
 

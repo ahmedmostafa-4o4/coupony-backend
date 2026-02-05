@@ -4,14 +4,10 @@ namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\createStoreRequest;
-use App\Application\Http\Resources\NotificationResource;
-use App\Domain\Notification\Models\Notification;
 use App\Domain\Store\DTOs\StoreData;
 use App\Domain\Store\Services\StoreService;
 use App\Domain\Store\Actions\CreateStore;
-use App\Domain\User\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {

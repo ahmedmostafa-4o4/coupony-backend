@@ -4,7 +4,6 @@ namespace App\Application\Http\Controllers\API\V1\Auth;
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\loginUserRequest;
 use App\Application\Http\Resources\UserResource;
-use App\Domain\User\Models\User;
 use App\Domain\User\Services\AuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
