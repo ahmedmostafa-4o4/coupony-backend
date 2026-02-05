@@ -84,8 +84,8 @@ return new class extends Migration {
 
         Schema::create('sessions', function (Blueprint $table) {
             // Primary key (UUID)
-            $table->string('id')->primary();
-
+            $table->uuid('id')->primary();
+            $table->uuid('user_id')->nullable();
             // Session data
             $table->string('token')->unique();
             $table->text('user_agent')->nullable();
@@ -95,7 +95,7 @@ return new class extends Migration {
             $table->string('device_type')->nullable();
 
             // Activity & lifecycle
-            $table->integer('last_activity')->index();
+            $table->unsignedInteger('last_activity')->index();
             $table->timestamp('expires_at');
             $table->timestamp('verified_at')->nullable();
             $table->timestamp('revoked_at')->nullable(); // manual / forced logout
@@ -107,7 +107,7 @@ return new class extends Migration {
             $table->index('token', 'idx_token');
 
             // Foreign key
-            $table->foreignId('user_id')->nullable()->index();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 

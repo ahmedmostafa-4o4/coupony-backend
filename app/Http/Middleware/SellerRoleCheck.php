@@ -16,11 +16,11 @@ class SellerRoleCheck
     public function handle(Request $request, Closure $next): Response
     {
 
-        // if (!$request->user()?->hasRole('seller')) {
-        //     return response()->json([
-        //         'message' => 'Forbidden: Seller role required.'
-        //     ], 403);
-        // }
+        if (!$request->user()?->hasRole('seller')) {
+            return response()->json([
+                'message' => 'Forbidden: Seller role required.'
+            ], 403);
+        }
         return $next($request);
     }
 }

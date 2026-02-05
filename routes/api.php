@@ -4,8 +4,11 @@ use App\Application\Http\Controllers\API\V1\Auth\LoginController;
 use App\Application\Http\Controllers\Api\V1\Auth\OtpController;
 use App\Application\Http\Controllers\API\V1\Auth\RefreshTokenController;
 use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
+use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\Api\V1\NotificationController;
 use App\Application\Http\Controllers\Api\V1\StoreController;
+use App\Domain\Notification\Models\Notification;
+use App\Domain\User\Models\User;
 use App\Http\Middleware\SellerRoleCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -53,4 +56,24 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/store/create', [StoreController::class, 'create'])->name('store.create');
     });
+
+    //Test
+    Route::get('/test-mail', function () {
+        Mail::to('lofylofy56@gmail.com')->send(
+            new \App\Domain\Notification\Mail\NotificationEmail(
+                Notification::first(),
+                User::first()
+            )
+        );
+
+        return 'sent';
+    });
+
+    Route::get('/mail-check', function () {
+        return config('mail.from.address');
+    });
+
+    //Web Contact Us
+    Route::post('/contact-us/seller', [ContactUsController::class, 'submit_seller'])->middleware('throttle:contact-us-seller');
+    Route::post('/contact-us/customer', [ContactUsController::class, 'submit_customer'])->middleware('throttle:contact-us-customer');
 });

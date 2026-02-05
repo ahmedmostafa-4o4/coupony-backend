@@ -111,7 +111,6 @@ class OtpController extends Controller
                 'purpose' => $validated['purpose'],
             ];
 
-            // If OTP was for login, issue tokens
             if ($validated['purpose'] === OtpPurposes::VERIFY_EMAIL->value) {
                 $context = [
                     'ip_address' => $request->ip(),

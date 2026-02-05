@@ -5,6 +5,7 @@ namespace App\Domain\Store\Models;
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreHours;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -135,20 +136,7 @@ class Store extends Model
     //         });
     // }
 
-    private function createDefaultStoreHours(Store $store): void
-    {
-        $defaultHours = [
-            ['day_of_week' => 1, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => false],
-            ['day_of_week' => 2, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => false],
-            ['day_of_week' => 3, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => false],
-            ['day_of_week' => 4, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => false],
-            ['day_of_week' => 5, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => false],
-            ['day_of_week' => 6, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => true],
-            ['day_of_week' => 0, 'open_time' => '09:00', 'close_time' => '17:00', 'is_closed' => true],
-        ];
 
-        $store->hours()->createMany($defaultHours);
-    }
 
     /**
      * Get free plan ID.
@@ -167,5 +155,10 @@ class Store extends Model
     public function followers()
     {
         return $this->hasMany(StoreFollowers::class, 'store_id');
+    }
+
+    public function userRoles()
+    {
+        return $this->hasMany(UserRoles::class, 'store_id');
     }
 }

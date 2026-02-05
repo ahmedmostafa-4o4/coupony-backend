@@ -5,6 +5,7 @@ namespace App\Domain\User\Actions;
 use App\Domain\User\DTOs\UserData;
 use App\Domain\User\Enums\UserStatus;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserRoles;
 use App\Domain\User\Repositories\UserRepository;
 use App\Domain\User\Events\UserRegistered;
 use DB;
@@ -41,7 +42,14 @@ class RegisterUser
                     // 'avatar_url' => $data->avatarUrl,
                 ]);
             }
+            if ($data->role === 'seller')
+                $user->assignRole('seller');
             $user->assignRole('customer');
+
+            UserRoles::create([
+                'user_id' => $user->id,
+                'role_id' => $user->roles()->where('name', $data->role)->first()->id,
+            ]);
 
             // $user->points->create(["points" => 0]);
 

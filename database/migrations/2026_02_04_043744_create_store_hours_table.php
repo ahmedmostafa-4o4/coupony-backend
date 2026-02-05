@@ -24,6 +24,10 @@ return new class extends Migration {
 
             $table->unique(['store_id', 'day_of_week'], 'unique_store_day');
 
+            $table->timestamps();
+
+
+
             $table->foreign('store_id')
                 ->references('id')
                 ->on('stores')

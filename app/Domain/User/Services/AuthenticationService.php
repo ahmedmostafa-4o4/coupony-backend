@@ -68,7 +68,7 @@ class AuthenticationService
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
             'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
-            'last_activity' => now(),
+            'last_activity' => now()->timestamp,
         ]);
 
 
@@ -106,7 +106,7 @@ class AuthenticationService
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
             'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
-            'last_activity' => now(),
+            'last_activity' => now()->timestamp,
         ]);
 
         event(new UserLoggedIn($user, $context));
