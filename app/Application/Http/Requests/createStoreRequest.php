@@ -28,8 +28,8 @@ class createStoreRequest extends FormRequest
             'address_line1' => ['required_without:latitude,longitude', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
             'city' => ['required_without:latitude,longitude', 'string', 'max:100'],
-            'latitude' => ['required_without:address_line1,city', 'nullable', 'numeric'],
-            'longitude' => ['required_without:address_line1,city', 'nullable', 'numeric'],
+            'latitude' => ['required', 'nullable', 'numeric'],
+            'longitude' => ['required', 'nullable', 'numeric'],
             'label' => ['nullable', 'string', 'max:50'],
             // Optional fields
             'categories' => ['required', 'array', 'min:1'],
