@@ -22,6 +22,7 @@ class LoginController extends Controller
             'user_agent' => $request->userAgent(),
             // 'currency' => $request->header('X-Currency', 'USD'),
             'device_name' => $request->input('device_name'),
+            'role' => $request->input('role'),
         ];
 
         try {
@@ -64,8 +65,6 @@ class LoginController extends Controller
                     ],
                 ], 200);
             }
-
-
 
 
             return response()->json([

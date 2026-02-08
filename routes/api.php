@@ -6,8 +6,9 @@ use App\Application\Http\Controllers\API\V1\Auth\OtpController;
 use App\Application\Http\Controllers\API\V1\Auth\RefreshTokenController;
 use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
-use App\Application\Http\Controllers\API\V1\NotificationController;
+use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
+use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Enums\BudgetCategory;
 use App\Domain\User\Enums\InterestingOfferCategory;
@@ -15,7 +16,6 @@ use App\Domain\User\Enums\ShoppingStyleCategory;
 use App\Domain\User\Models\User;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Http\Middleware\ContactUsThrottle;
-use App\Http\Middleware\SellerRoleCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
@@ -133,43 +133,53 @@ Route::prefix('v1')->group(function () {
                 'success' => true,
                 'message' => 'Onboarding completed successfully',
             ], 200);
-        })->name('onBoarding');
-        Route::post('/on-boarding/seller', function (Request $request) {
-            $data = $request->validate([
-                'interesting_offers' => ['required', 'array', 'min:1'],
-                'interesting_offers.*' => [
-                    'string',
-                    Rule::in(InterestingOfferCategory::values()),
-                ],
+        })->name('onBoarding.customer');
+        // Route::post('/on-boarding/seller', function (Request $request) {
+        //     $data = $request->validate([
+        //         'interesting_offers' => ['required', 'array', 'min:1'],
+        //         'interesting_offers.*' => [
+        //             'string',
+        //             Rule::in(InterestingOfferCategory::values()),
+        //         ],
 
-                'shopping_style' => ['required', 'array', 'min:1'],
-                'shopping_style.*' => [
-                    'string',
-                    Rule::in(ShoppingStyleCategory::values()),
-                ],
+        //         'shopping_style' => ['required', 'array', 'min:1'],
+        //         'shopping_style.*' => [
+        //             'string',
+        //             Rule::in(ShoppingStyleCategory::values()),
+        //         ],
 
-                'budget' => ['required', 'string', Rule::in(BudgetCategory::values())],
-            ]);
+        //         'budget' => ['required', 'string', Rule::in(BudgetCategory::values())],
+        //     ]);
 
-            DB::transaction(function () use ($data, $request) {
+        //     DB::transaction(function () use ($data, $request) {
 
-                DB::table('interests')->updateOrInsert(
-                    ['user_id' => $request->user()->id],
-                    [
-                        'interesting_offers' => json_encode($data['interesting_offers']),
-                        'shopping_style' => json_encode($data['shopping_style']),
-                        'budget' => $data['budget'],
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
-                );
-            });
+        //         DB::table('interests')->updateOrInsert(
+        //             ['user_id' => $request->user()->id],
+        //             [
+        //                 'interesting_offers' => json_encode($data['interesting_offers']),
+        //                 'shopping_style' => json_encode($data['shopping_style']),
+        //                 'budget' => $data['budget'],
+        //                 'updated_at' => now(),
+        //                 'created_at' => now(),
+        //             ]
+        //         );
+        //     });
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Onboarding completed successfully',
-            ], 200);
-        })->name('onBoarding');
+        //     return response()->json([
+        //         'success' => true,
+        //         'message' => 'Onboarding completed successfully',
+        //     ], 200);
+        // })->name('onBoarding.seller');
 
     });
+
+    //StoreCategory
+    Route::prefix('admin')->group(function () {
+        Route::get('/store-category', [StoreCategoryController::class, 'index'])->name('storeCategory.index');
+        Route::post('/store-category', [StoreCategoryController::class, 'store'])->name('storeCategory.store');
+        Route::put('/store-category/{category}', [StoreCategoryController::class, 'update'])->name('storeCategory.update'); // بالـ id
+        Route::delete('/store-category/{category}', [StoreCategoryController::class, 'destroy'])->name('storeCategory.destroy'); // بالـ id
+    });
+
+    Route::get('store-categories', [UserStoreCategoryController::class, 'index'])->name('userStoreCategory.index');
 });

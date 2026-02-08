@@ -23,17 +23,23 @@ class createStoreRequest extends FormRequest
         return [
             // Basic store info
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:20'],
-
+            'phone' => ['required', 'string', 'max:20'],
+            //addresses
+            'address_line1' => ['required_without:latitude,longitude', 'string', 'max:255'],
+            'address_line2' => ['nullable', 'string', 'max:255'],
+            'city' => ['required_without:latitude,longitude', 'string', 'max:100'],
+            'latitude' => ['required_without:address_line1,city', 'nullable', 'numeric'],
+            'longitude' => ['required_without:address_line1,city', 'nullable', 'numeric'],
+            'label' => ['nullable', 'string', 'max:50'],
             // Optional fields
-            'logo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'banner' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:4096'],
-
+            'categories' => ['required', 'array', 'min:1'],
+            'categories.*' => ['exists:store_categories,id'],
             // Verification docs
-            'verification_docs' => ['nullable', 'array'],
-            'verification_docs.commercial_register' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'verification_docs.tax_card' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'verification_docs.id_card' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'verification_docs' => ['required', 'array'],
+            'verification_docs.commercial_register' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'verification_docs.tax_card' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'verification_docs.id_card_front' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'verification_docs.id_card_back' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
     }
 

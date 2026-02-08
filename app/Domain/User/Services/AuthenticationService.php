@@ -52,6 +52,13 @@ class AuthenticationService
             ]);
         }
 
+        if ($context['role'] === "admin" && !$user->hasRole($context['role'])) {
+            throw ValidationException::withMessages([
+                'role' => ['You are not authorized to access this resource.'],
+            ]);
+        }
+
+
         // Generate tokens
         $accessToken = $this->generateAccessToken($user, $context);
         $refreshToken = $this->generateRefreshToken($user);

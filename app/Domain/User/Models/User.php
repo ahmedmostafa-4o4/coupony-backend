@@ -173,4 +173,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(StoreFollowers::class, 'user_id');
     }
+
+    public function addresses()
+    {
+        return $this->morphToMany(Address::class, 'owner', 'addressables')
+            ->withPivot([
+                'label',
+                'is_default_shipping',
+                'is_default_billing',
+            ])
+            ->withTimestamps();
+    }
 }

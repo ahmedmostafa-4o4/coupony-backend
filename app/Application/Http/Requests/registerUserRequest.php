@@ -46,7 +46,7 @@ class registerUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.unique' => $this->input('role') == 'seller' ? 'please login to continue your seller registration.' : 'This email is already registered.',
+            'email.unique' => $this->input('role') == 'seller' ? 'This email is already registered as a customer account. Please log in and switch to a seller account to continue.' : 'This email is already registered.',
             'phone_number.unique' => 'This phone number is already registered.',
             'password.confirmed' => 'Password confirmation does not match.',
             'role.in' => 'Invalid role selected.',

@@ -4,6 +4,7 @@ namespace App\Domain\Store\Models;
 
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreHours;
+use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +22,7 @@ class Store extends Model
      *
      * @var list<string>
      */
-    protected $guard_name = 'web'; // <-- matches your role
+    // protected $guard_name = 'web'; // <-- matches your role
 
     protected $table = 'stores';
 
@@ -160,5 +161,24 @@ class Store extends Model
     public function userRoles()
     {
         return $this->hasMany(UserRoles::class, 'store_id');
+    }
+
+    public function addresses()
+    {
+        return $this->morphToMany(Address::class, 'owner', 'addressables')
+            ->withPivot([
+                'label',
+                'is_default_shipping',
+                'is_default_billing',
+            ])
+            ->withTimestamps();
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(
+            StoreCategory::class,
+            'store_store_category'
+        );
     }
 }

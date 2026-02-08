@@ -43,7 +43,9 @@ class RegisterUser
                     // 'avatar_url' => $data->avatarUrl,
                 ]);
             }
-            $this->assignUserRole($user, $data->role);
+            if ($data->role !== 'seller') {
+                $this->assignUserRole($user, $data->role);
+            }
 
 
 

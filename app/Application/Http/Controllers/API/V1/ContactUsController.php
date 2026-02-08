@@ -3,10 +3,12 @@
 namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
+use App\Mail\ContactUs;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 
 class ContactUsController extends Controller implements HasMiddleware
@@ -49,6 +51,14 @@ class ContactUsController extends Controller implements HasMiddleware
         DB::table('contact_us_customer')->insert([
             array_merge($validatedData, ['created_at' => now(), 'updated_at' => now()]),
         ]);
+
+        Mail::to('info@coupony.shop')
+            ->queue(new ContactUs([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'message' => $request->message,
+            ]));
 
         return response()->json([
             'message' => 'Your message has been sent successfully.',
