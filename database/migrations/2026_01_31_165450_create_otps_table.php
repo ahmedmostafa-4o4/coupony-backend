@@ -19,6 +19,7 @@ return new class extends Migration {
 
             // OTP data
             $table->string('phone_or_email');
+
             $table->string('otp_hash');
             $table->string('purpose');
 

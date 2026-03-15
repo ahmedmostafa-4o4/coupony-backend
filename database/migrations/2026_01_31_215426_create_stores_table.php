@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -32,7 +33,7 @@ return new class extends Migration {
 
             // Business rules
             $table->decimal('commission_rate', 5, 4)->default(0.1500);
-            $table->enum('status', ['pending', 'active', 'suspended', 'closed'])
+            $table->enum('status', ['pending', 'active', 'rejected', 'suspended', 'closed'])
                 ->default('pending');
             $table->enum('subscription_tier', ['free', 'basic', 'premium', 'enterprise'])
                 ->default('free');
@@ -48,20 +49,38 @@ return new class extends Migration {
             // Sharding
             $table->string('shard_key', 50)->nullable();
 
+            // Approval fields
+            $table->timestamp('approved_at')->nullable();
+            $table->char('approved_by', 36)->nullable();
+            $table->timestamp('rejected_at')->nullable();
+            $table->char('rejected_by', 36)->nullable();
+            $table->text('rejection_reason')->nullable();
+            $table->text('admin_notes')->nullable();
+
             // Timestamps & soft deletes
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes
-            $table->index('owner_user_id', 'idx_owner');
+            $table->index('owner_user_id');
             // $table->index('status', 'idx_status');
             $table->index('subscription_tier', 'idx_subscription');
 
-            // Foreign key
+            // Foreign keys
             $table->foreign('owner_user_id')
                 ->references('id')
                 ->on('users')
                 ->restrictOnDelete();
+
+            $table->foreign('approved_by')
+                ->references('id')
+                ->on('users')
+                ->nullOnDelete();
+
+            $table->foreign('rejected_by')
+                ->references('id')
+                ->on('users')
+                ->nullOnDelete();
         });
 
         Schema::create('store_verifications', function (Blueprint $table) {
@@ -76,8 +95,8 @@ return new class extends Migration {
             $table->enum('status', ['pending', 'approved', 'rejected'])
                 ->default('pending');
 
-            $table->uuid('reviewed_by')->nullable();
-            $table->timestamp('reviewed_at')->nullable();
+            $table->char('verified_by', 36)->nullable();
+            $table->timestamp('verified_at')->nullable();
             $table->text('rejection_reason')->nullable();
 
             $table->timestamps();

@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Get the migration connection name.
      */
@@ -26,6 +25,7 @@ return new class extends Migration
             $table->uuid('uuid');
             $table->uuid('batch_id');
             $table->string('family_hash')->nullable();
+
             $table->boolean('should_display_on_index')->default(true);
             $table->string('type', 20);
             $table->longText('content');

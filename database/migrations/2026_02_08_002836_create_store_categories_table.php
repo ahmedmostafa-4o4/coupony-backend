@@ -14,7 +14,8 @@ return new class extends Migration {
             $table->bigIncrements('id');
 
             $table->string('name');
-
+            $table->string('slug')->nullable();
+            $table->Integer('sort_order')->nullable();
             $table->boolean('is_active')->default(true);
 
             $table->timestamps();

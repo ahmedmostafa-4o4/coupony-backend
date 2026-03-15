@@ -29,11 +29,10 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->unique(
-                ['owner_type', 'owner_id', 'address_id'],
+            ['owner_type', 'owner_id', 'address_id'],
                 'unique_owner_address'
             );
 
-            $table->index(['owner_type', 'owner_id'], 'idx_owner');
             $table->index('address_id', 'idx_address');
         });
     }
