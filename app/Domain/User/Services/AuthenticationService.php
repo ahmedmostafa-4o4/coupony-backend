@@ -9,8 +9,11 @@ use App\Domain\User\Events\UserLoggedIn;
 use App\Domain\User\Events\UserLoggedOut;
 use App\Domain\User\Models\User;
 use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\NewAccessToken;
+use Spatie\Permission\Models\Role;
 
 class AuthenticationService
 {
@@ -27,8 +30,9 @@ class AuthenticationService
     public function login(string $email, string $password, array $context = [])
     {
         $user = User::where('email', $email)->first();
-
+        Log::info('', [$user]);
         if (!$user || !$this->hasher->check($password, $user->password_hash)) {
+            Log::info('password check', [!$this->hasher->check($password, $user->password_hash)]);
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -78,7 +82,14 @@ class AuthenticationService
             'last_activity' => now()->timestamp,
         ]);
 
-
+        if ($context['role'] === "customer" && !$user->hasRole($context['role'])) {
+            $user->assignRole($context['role']);
+            $user->userRoles()->updateOrCreate([
+                'role_id' => Role::where('name', $context['role'])->first()->id,
+                'user_id' => $user->id,
+                'role' => $context['role'],
+            ]);
+        }
 
         event(new UserLoggedIn($user, $context));
 
@@ -234,7 +245,7 @@ class AuthenticationService
     {
         $hashedToken = hash('sha256', explode('|', $token)[1] ?? '');
 
-        return \DB::table('personal_access_tokens')
+        return DB::table('personal_access_tokens')
             ->where('token', $hashedToken)
             ->where(function ($query) {
                 $query->whereNull('expires_at')
@@ -243,7 +254,7 @@ class AuthenticationService
             ->exists();
     }
 
-    public function logout(User $user, string $currentToken = null): void
+    public function logout(User $user, ?string $currentToken = null): void
     {
         // Revoke specific token or all tokens
         if ($currentToken) {

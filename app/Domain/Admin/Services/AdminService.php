@@ -30,7 +30,7 @@ class AdminService
 
     public function register(UserData $data, array $context)
     {
-        $admin = $this->registerUser->excute($data, $context);
+        $admin = $this->registerUser->execute($data, $context);
 
         return $admin;
     }

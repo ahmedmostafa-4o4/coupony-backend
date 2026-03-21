@@ -227,18 +227,6 @@
                   ]
                 },
                 {
-                  "name": "Events",
-                  "type": "folder",
-                  "icon": "📁",
-                  "children": [
-                    {
-                      "name": "NotificationSent.php",
-                      "type": "file",
-                      "icon": "📄"
-                    }
-                  ]
-                },
-                {
                   "name": "Mail",
                   "type": "folder",
                   "icon": "📁",
@@ -296,6 +284,18 @@
                   "children": [
                     {
                       "name": "NotificationService.php",
+                      "type": "file",
+                      "icon": "📄"
+                    }
+                  ]
+                },
+                {
+                  "name": "events",
+                  "type": "folder",
+                  "icon": "📁",
+                  "children": [
+                    {
+                      "name": "NotificationSent.php",
                       "type": "file",
                       "icon": "📄"
                     }
@@ -1463,11 +1463,6 @@
       "icon": "📝"
     },
     {
-      "name": "Project-Structure.json",
-      "type": "file",
-      "icon": "⚙️"
-    },
-    {
       "name": "README.md",
       "type": "file",
       "icon": "📝"
@@ -1504,7 +1499,7 @@
     }
   ],
   "metadata": {
-    "generated": "2026-02-05T11:56:09.455Z",
+    "generated": "2026-02-05T06:18:59.456Z",
     "generator": "FileTree Pro Extension",
     "version": "0.2.0",
     "showIcons": true,

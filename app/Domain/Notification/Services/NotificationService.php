@@ -7,11 +7,10 @@ use App\Domain\Notification\Events\NotificationSent;
 use App\Domain\Notification\Mail\notifyMe;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Models\User;
-use DB;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Mail;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -34,7 +33,8 @@ class NotificationService
         array $data = [],
         ?string $referenceType = null,
         ?string $referenceId = null
-    ): Notification {
+        ): Notification
+    {
         // Create notification record
         $notification = Notification::create([
             'user_id' => $user->id,
@@ -54,7 +54,8 @@ class NotificationService
             $notification->markAsSent();
 
             event(new NotificationSent($notification, $user));
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('Notification Send Failed', [
                 'notification_id' => $notification->id,
                 'channel' => $channel,
@@ -77,7 +78,8 @@ class NotificationService
         string $message,
         string $channel = 'in_app',
         array $data = []
-    ): array {
+        ): array
+    {
         $sent = [];
         $failed = [];
 
@@ -92,7 +94,8 @@ class NotificationService
                     $data
                 );
                 $sent[] = $notification->id;
-            } catch (\Exception $e) {
+            }
+            catch (\Exception $e) {
                 $failed[] = [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
@@ -117,7 +120,8 @@ class NotificationService
         string $message,
         array $data = [],
         string $channel = 'in_app'
-    ): void {
+        ): void
+    {
         $admins = User::role('admin')->get();
 
         $this->sendBulk($admins, $type, $title, $message, $channel, $data);
@@ -130,7 +134,8 @@ class NotificationService
         Notification $notification,
         User $user,
         string $channel
-    ): void {
+        ): void
+    {
         // Check user preferences
         if (!$this->canSendToChannel($user, $channel)) {
             throw new \Exception("User has disabled {$channel} notifications");
@@ -161,11 +166,11 @@ class NotificationService
         }
 
         return match ($channel) {
-            'email' => $preferences->email_order_updates ?? true,
-            'sms' => $preferences->sms_notifications ?? false,
-            'push' => $preferences->push_notifications ?? true,
-            default => false,
-        };
+                'email' => $preferences->email_order_updates ?? true,
+                'sms' => $preferences->sms_notifications ?? false,
+                'push' => $preferences->push_notifications ?? true,
+                default => false,
+            };
     }
 
     /**

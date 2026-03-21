@@ -60,4 +60,12 @@ class Profile extends Model
             ? $this->date_of_birth->age
             : null;
     }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\ProfileFactory::new ();
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Domain\User\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Store\Models\StoreFollowers;
+use App\Domain\User\Models\UserPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -90,7 +91,7 @@ class User extends Authenticatable
         static::creating(function ($user) {
             // Generate UUID if not set
             if (empty($user->id)) {
-                $user->id = (string) \Illuminate\Support\Str::uuid();
+                $user->id = (string)\Illuminate\Support\Str::uuid();
             }
 
             // Generate shard key for partitioning
@@ -131,7 +132,10 @@ class User extends Authenticatable
 
     public function getFullNameAttribute()
     {
-        return $this->profile->first_name . ' ' . $this->profile->last_name;
+        if ($this->profile) {
+            return $this->profile->first_name . ' ' . $this->profile->last_name;
+        }
+        return null;
     }
 
     public function getIsVerifiedAttribute()
@@ -141,7 +145,7 @@ class User extends Authenticatable
 
     public function getAvatarAttribute()
     {
-        return $this->profile->avatar_url ?? null;
+        return optional($this->profile)->avatar_url;
     }
 
     public function profile()
@@ -161,7 +165,7 @@ class User extends Authenticatable
 
     public function stores()
     {
-        return $this->hasMany(\App\Domain\Store\Models\Store::class, 'owner_user_id');
+        return $this->hasMany(\App\Domain\Store\Models\Store::class , 'owner_user_id');
     }
 
     public function userRoles()
@@ -171,17 +175,44 @@ class User extends Authenticatable
 
     public function storeFollowers()
     {
-        return $this->hasMany(StoreFollowers::class, 'user_id');
+        return $this->hasMany(StoreFollowers::class , 'user_id');
     }
 
     public function addresses()
     {
-        return $this->morphToMany(Address::class, 'owner', 'addressables')
+        return $this->morphToMany(Address::class , 'owner', 'addressables')
             ->withPivot([
-                'label',
-                'is_default_shipping',
-                'is_default_billing',
-            ])
+            'label',
+            'is_default_shipping',
+            'is_default_billing',
+        ])
             ->withTimestamps();
+    }
+
+    public function preferences()
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\UserFactory::new ();
+    }
+
+    public function markEmailAsVerified(): void
+    {
+        $this->forceFill([
+            'email_verified_at' => now(),
+        ])->save();
+    }
+
+    public function markPhoneAsVerified(): void
+    {
+        $this->forceFill([
+            'phone_verified_at' => now(),
+        ])->save();
     }
 }

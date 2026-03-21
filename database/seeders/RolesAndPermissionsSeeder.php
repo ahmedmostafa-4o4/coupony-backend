@@ -18,6 +18,7 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         // Create roles
         $seller = Role::create(['name' => 'seller']);
+        $seller_pending = Role::create(['name' => 'seller_pending']);
         $storeManager = Role::create(['name' => 'store_manager']);
         $storeStaff = Role::create(['name' => 'store_staff']);
         $admin = Role::create(['name' => 'admin']);
@@ -79,5 +80,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ])->assignRole($admin);
 
         $admin->profile()->create(['first_name' => 'Coupony', 'last_name' => 'App']);
+
+        $admin->userRoles()->create(['user_id' => $admin->id, 'role_id' => $admin->roles()->where('name', 'admin')->first()->id, 'granted_by_user_id' => $admin->id]);
     }
 }

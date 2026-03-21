@@ -7,6 +7,7 @@ use App\Domain\User\Models\Otp;
 use App\Domain\User\Models\User;
 use App\Domain\User\Events\OtpGenerated;
 use App\Domain\Notification\Services\NotificationService;
+use Illuminate\Support\Facades\Log;
 
 class OtpService
 {
@@ -242,7 +243,7 @@ class OtpService
 
         // Implementation depends on WhatsApp Business API
         // This is a placeholder
-        \Log::info("WhatsApp OTP: {$code} to {$user->phone_number}");
+        Log::info("WhatsApp OTP: {$code} to {$user->phone_number}");
     }
 
     /**

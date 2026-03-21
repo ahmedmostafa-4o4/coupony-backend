@@ -10,6 +10,7 @@ use App\Domain\User\Services\OtpService;
 use App\Domain\User\Services\AuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class OtpController extends Controller
@@ -63,7 +64,7 @@ class OtpController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('OTP Send Error', [
+            Log::error('OTP Send Error', [
                 'user_id' => $user->id,
                 'purpose' => $validated['purpose'],
                 'error' => $e->getMessage(),
@@ -128,7 +129,7 @@ class OtpController extends Controller
                         'expires_in' => $tokens['expires_in'],
                     ]);
                 } catch (\Throwable $e) {
-                    \Log::error('Failed to issue tokens after OTP verify', [
+                    Log::error('Failed to issue tokens after OTP verify', [
                         'user_id' => $user->id,
                         'error' => $e->getMessage(),
                     ]);

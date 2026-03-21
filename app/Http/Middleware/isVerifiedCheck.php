@@ -15,9 +15,9 @@ class isVerifiedCheck
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user()?->is_verified) {
+        if (!$request->user()?->email_verified_at) {
             return response()->json([
-                'message' => 'Forbidden: User account is not verified.'
+                'message' => 'User account is not verified.'
             ], 403);
         }
         return $next($request);

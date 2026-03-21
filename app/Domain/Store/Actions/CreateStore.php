@@ -2,38 +2,57 @@
 
 namespace App\Domain\Store\Actions;
 
-use App\Application\Http\Resources\StoreResource;
 use App\Domain\Store\DTOs\StoreData;
 use App\Domain\Store\Events\StoreCreated;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Repositories\StoreRepository;
 use App\Domain\User\Models\User;
-use DB;
-use Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Spatie\Permission\Models\Role;
 
 class CreateStore
 {
     /**
      * Create a new class instance.
      */
-    public function __construct(
-        private StoreRepository $stores,
-    ) {
+    public function __construct(private
+        StoreRepository $stores,
+        )
+    {
 
     }
 
-    public function execute(User $owner, StoreData $data): StoreResource
+    public function execute(User $owner, StoreData $data): Store
     {
         return DB::transaction(function () use ($data, $owner) {
+
+            // ✅ توحيد الـ owner: استخدم $owner->id بدل $data->ownerUserId (أأمن)
             $store = $this->stores->create([
-                'owner_user_id' => $data->ownerUserId,
+                'owner_user_id' => $owner->id,
                 'name' => $data->name,
                 'email' => $data->email,
                 'phone' => $data->phone,
-                'status' => StoreStatus::PENDING
+                'status' => StoreStatus::PENDING,
             ]);
 
+            // ✅ categories
+            $store->categories()->sync($data->categories);
+
+            // ✅ Address: بما إن العلاقة morphToMany + pivot addressables
+            // ماينفعش create() من العلاقة. بنعمل Address::create وبعدين attach على الـ pivot
+            $store->addBranchAddress(
+            [
+                'address_line1' => $data->address_line1,
+                'city' => $data->city,
+                'address_line2' => $data->address_line2,
+                'latitude' => $data->latitude,
+                'longitude' => $data->longitude,
+            ]
+            );
+
+            // ✅ Documents / Verifications
             $docs = [
                 'commercial_register' => $data->commercial_register,
                 'tax_card' => $data->tax_card,
@@ -41,50 +60,41 @@ class CreateStore
                 'id_card_back' => $data->id_card_back,
             ];
 
-            $store->categories()->sync($data->categories);
-
-            $address = $store->addresses()->create([
-                'address_line1' => $data->address_line1,
-                'city' => $data->city,
-                'address_line2' => $data->address_line2,
-                'latitude' => $data->latitude,
-                'longitude' => $data->longitude,
-            ]);
-
-            $store->addresses()->syncWithoutDetaching([
-                $address->id => ['label' => 'branch']
-            ]);
-
             foreach ($docs as $type => $path) {
-                if ($path) {
+                if (!empty($path)) {
                     $store->verifications()->create([
-                        'store_id' => $store->id,
                         'document_type' => $type,
                         'document_path' => $path,
-                        'status' => 'pending',
+                'status' => 'pending',
                     ]);
                 }
             }
-            if (!$owner->hasRole('seller')) {
-                $owner->assignRole('seller');
+
+            // ✅ Roles: تقليل التكرار + جلب role id مرة واحدة
+            $sellerRoleId = Role::where('name', 'seller')->value('id');
+
+            // لو مش seller ولا seller_pending -> خليه seller_pending
+            if (!$owner->hasAnyRole(['seller', 'seller_pending'])) {
+                $owner->assignRole('seller_pending');
             }
 
             $store->userRoles()->create([
-                'user_id' => $data->ownerUserId,
-                'role_id' => $owner->roles()->where('name', 'seller')->first()->id,
-                'role' => 'seller',
+                'user_id' => $owner->id,
+                'role_id' => $sellerRoleId,
                 'store_id' => $store->id,
             ]);
 
+            // ✅ default hours
             $this->createDefaultStoreHours($store);
 
             event(new StoreCreated($store));
-            Log::info('StoreAddressResource');
 
-            // 🔹 reload relationships before returning
-            $store->load(['addresses', 'categories', 'verifications']);
+            Log::info('Store created', [
+                'store_id' => $store->id,
+                'owner_id' => $owner->id,
+            ]);
 
-            return new StoreResource($store);
+            return $store;
         });
     }
     private function createDefaultStoreHours(Store $store): void

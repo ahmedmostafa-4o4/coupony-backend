@@ -13,7 +13,6 @@ class StoreCategory extends Model
 
     protected $fillable = [
         'name',
-        'slug',
         'is_active',
     ];
 
@@ -33,8 +32,16 @@ class StoreCategory extends Model
     public function stores()
     {
         return $this->belongsToMany(
-            Store::class,
+            Store::class ,
             'store_store_category'
         );
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\StoreCategoryFactory::new ();
     }
 }

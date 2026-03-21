@@ -7,6 +7,7 @@ use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Services\AuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
@@ -20,7 +21,6 @@ class LoginController extends Controller
         $context = [
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            // 'currency' => $request->header('X-Currency', 'USD'),
             'device_name' => $request->input('device_name'),
             'role' => $request->input('role'),
         ];
@@ -31,18 +31,20 @@ class LoginController extends Controller
                 password: $request->input('password'),
                 context: $context
             );
+            
             $role = $request->input('role');
+            
             if ($role === 'seller') {
                 $is_store_owner = $result['user']->stores()->exists();
                 return response()->json([
-                    'message' => 'Login successful',
+                    'message' => 'Login successful.',
                     'data' => [
                         'user' => new UserResource($result['user']->load('stores')),
                         'role' => $role,
                         'is_store_owner' => $is_store_owner,
                         'next' => $is_store_owner ? null : [
-                            'url' => route('store.create'),   // API endpoint to call
-                            'method' => 'POST',               // HTTP method
+                            'url' => route('store.create'),
+                            'method' => 'POST',
                             'fields' => [
                                 'name' => 'string',
                                 'description' => 'string',
@@ -66,9 +68,8 @@ class LoginController extends Controller
                 ], 200);
             }
 
-
             return response()->json([
-                'message' => 'Login successful',
+                'message' => 'Login successful.',
                 'data' => [
                     'user' => new UserResource($result['user']),
                     'role' => $role,
@@ -81,12 +82,19 @@ class LoginController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Invalid credentials',
+                'message' => $e->getMessage(),
                 'errors' => $e->errors(),
             ], 401);
+        } catch (\Exception $e) {
+            Log::error('Login failed', [
+                'email' => $request->input('email'),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Login failed. Please try again later.',
+            ], 500);
         }
-
-
     }
 
     public function logout(Request $request): JsonResponse

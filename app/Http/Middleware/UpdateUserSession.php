@@ -16,11 +16,15 @@ class UpdateUserSession
     public function handle($request, Closure $next)
     {
         if ($user = $request->user()) {
-            Session::where('user_id', $user->id)
-                ->where('token', optional($user->currentAccessToken()))
-                ->update([
-                    'last_activity' => now(),
+            $currentToken = $user->currentAccessToken();
+
+            if ($currentToken) {
+                Session::where('user_id', $user->id)
+                    ->where('token', hash('sha256', $currentToken->token))
+                    ->update([
+                    'last_activity' => now()->timestamp,
                 ]);
+            }
         }
 
         return $next($request);

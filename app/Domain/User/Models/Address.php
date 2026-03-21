@@ -10,6 +10,11 @@ class Address extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\AddressFactory::new();
+    }
+
     protected $fillable = [
         'first_name',
         'last_name',

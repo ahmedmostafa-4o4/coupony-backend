@@ -3,7 +3,8 @@
 namespace App\Domain\Store\DTOs;
 
 use App\Application\Http\Requests\createStoreRequest;
-use Str;
+use App\Application\Http\Requests\updateStoreRequest;
+use Illuminate\Support\Str;
 
 class StoreData
 {
@@ -14,7 +15,7 @@ class StoreData
     public function __construct(
         public readonly string $name,
         public readonly string $description,
-        public readonly string $ownerUserId,
+        public readonly ?string $ownerUserId = null,
         public readonly ?string $address_line1 = null,
         public readonly ?string $address_line2 = null,
         public readonly ?string $city = null,
@@ -22,6 +23,7 @@ class StoreData
         public readonly ?string $longitude = null,
         public readonly ?string $label = null,
         public readonly ?string $subscriptionTier = null,
+        public readonly ?string $subscription_tier = null,
         public readonly ?string $status = null,
         public readonly ?string $phone = null,
         public readonly ?string $email = null,
@@ -32,40 +34,16 @@ class StoreData
         public readonly ?string $tax_card = null,
         public readonly ?string $id_card_front = null,
         public readonly ?string $id_card_back = null,
-        public readonly ?array $categories = []
+        public readonly ?array $categories = [],
+        public readonly ?array $category_ids = [],
+        public readonly ?array $address = null
 
     ) {
     }
 
     public static function fromRequest(createStoreRequest $request): self
     {
-        // عمل slug من اسم المتجر لتجنب المسافات والرموز
-        $storeNameSlug = Str::slug($request->input('name'));
-
-        // الملفات
-        $logoPath = $request->file('logo_url')
-            ? $request->file('logo_url')->store("stores/{$request->user()->id}/{$storeNameSlug}/logo", 'public')
-            : null;
-
-        $bannerPath = $request->file('banner_url')
-            ? $request->file('banner_url')->store("stores/{$request->user()->id}/{$storeNameSlug}/banner", 'public')
-            : null;
-
-        $commercialRegisterPath = $request->file('verification_docs.commercial_register')
-            ? $request->file('verification_docs.commercial_register')->store("stores/verifications/{$request->user()->id}/{$storeNameSlug}/commercial_register", 'public')
-            : null;
-
-        $taxCardPath = $request->file('verification_docs.tax_card')
-            ? $request->file('verification_docs.tax_card')->store("stores/verifications/{$request->user()->id}/{$storeNameSlug}/tax_card", 'public')
-            : null;
-
-        $idCardFrontPath = $request->file('verification_docs.id_card_front')
-            ? $request->file('verification_docs.id_card_front')->store("stores/verifications/{$request->user()->id}/{$storeNameSlug}/id_card_front", 'public')
-            : null;
-
-        $idCardBackPath = $request->file('verification_docs.id_card_back')
-            ? $request->file('verification_docs.id_card_back')->store("stores/verifications/{$request->user()->id}/{$storeNameSlug}/id_card_back", 'public')
-            : null;
+        // Don't upload files yet - will be handled after store creation
         return new self(
             name: $request->input('name'),
             description: $request->input('description', ''),
@@ -82,12 +60,12 @@ class StoreData
             phone: $request->input('phone'),
             email: $request->user()->email,
             tax_id: $request->input('tax_id'),
-            logo_url: $logoPath,
-            banner_url: $bannerPath,
-            commercial_register: $commercialRegisterPath,
-            tax_card: $taxCardPath,
-            id_card_front: $idCardFrontPath,
-            id_card_back: $idCardBackPath,
+            logo_url: null,
+            banner_url: null,
+            commercial_register: null,
+            tax_card: null,
+            id_card_front: null,
+            id_card_back: null,
         );
     }
 
@@ -117,5 +95,33 @@ class StoreData
             'id_card_front' => $this->id_card_front,
             'id_card_back' => $this->id_card_back,
         ];
+    }
+
+    public static function fromUpdateRequest(updateStoreRequest $request, ?string $storeId = null): self
+    {
+        $logoPath = null;
+        $bannerPath = null;
+
+        if ($request->hasFile('logo') && $storeId) {
+            $logoPath = $request->file('logo')->store("stores/{$storeId}/logo", 'public');
+        }
+
+        if ($request->hasFile('banner') && $storeId) {
+            $bannerPath = $request->file('banner')->store("stores/{$storeId}/banner", 'public');
+        }
+
+        return new self(
+            name: $request->input('name', ''),
+            description: $request->input('description', ''),
+            ownerUserId: $request->user()->id,
+            subscription_tier: $request->input('subscription_tier'),
+            address: $request->input('address'),
+            category_ids: $request->input('category_ids'),
+            phone: $request->input('phone'),
+            email: $request->input('email'),
+            tax_id: $request->input('tax_id'),
+            logo_url: $logoPath,
+            banner_url: $bannerPath,
+        );
     }
 }

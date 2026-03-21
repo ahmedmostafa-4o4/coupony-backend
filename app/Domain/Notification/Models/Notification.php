@@ -15,6 +15,11 @@ class Notification extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\NotificationFactory::new();
+    }
+
     protected $fillable = [
         'user_id',
         'type',

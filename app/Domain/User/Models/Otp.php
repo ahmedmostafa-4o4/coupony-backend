@@ -15,6 +15,11 @@ class Otp extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\OtpFactory::new();
+    }
+
     protected $table = 'otps';
 
     protected $fillable = [

@@ -15,13 +15,28 @@ class StoreAddressResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        Log::info('StoreAddressResource');
         return [
+            'id' => $this->id,
+
             'address_line1' => $this->address_line1,
             'address_line2' => $this->address_line2,
             'city' => $this->city,
+            'state_province' => $this->state_province,
+            'postal_code' => $this->postal_code,
+            'country_code' => $this->country_code,
+            'phone_number' => $this->phone_number,
+
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
+            'delivery_instructions' => $this->delivery_instructions,
+
+            // ✅ pivot fields (flattened)
+            'label' => $this->pivot->label ?? null,
+            'is_default_shipping' => (bool) ($this->pivot->is_default_shipping ?? false),
+            'is_default_billing' => (bool) ($this->pivot->is_default_billing ?? false),
+
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

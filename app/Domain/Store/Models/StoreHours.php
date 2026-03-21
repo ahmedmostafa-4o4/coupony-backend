@@ -11,6 +11,11 @@ class StoreHours extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\StoreHoursFactory::new();
+    }
+
     protected $fillable = [
         'store_id',
         'day_of_week',

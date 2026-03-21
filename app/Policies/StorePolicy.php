@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Policies;
+
+use App\Domain\Store\Enums\StoreStatus;
+use App\Domain\Store\Models\Store;
+use App\Domain\User\Models\User;
+
+class StorePolicy
+{
+    /**
+     * Determine if the user can view the store.
+     */
+    public function view(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id
+            || $user->hasRole(['admin', 'super_admin']);
+    }
+
+    /**
+     * Determine if the user can update the store.
+     */
+    public function update(User $user, Store $store): bool
+    {
+        // Only owner can update
+        if ($store->owner_user_id !== $user->id) {
+            return false;
+        }
+
+        // Cannot update approved/active stores
+        return $store->status !== StoreStatus::ACTIVE;
+    }
+
+    /**
+     * Determine if the user can update verification documents.
+     */
+    public function updateVerificationDocuments(User $user, Store $store): bool
+    {
+        // Only owner can update
+        if ($store->owner_user_id !== $user->id) {
+            return false;
+        }
+
+        // Cannot update documents for approved stores
+        return $store->status !== StoreStatus::ACTIVE;
+    }
+
+    /**
+     * Determine if the user can delete the store.
+     */
+    public function delete(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id
+            || $user->hasRole(['admin', 'super_admin']);
+    }
+}

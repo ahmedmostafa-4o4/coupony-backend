@@ -5,6 +5,7 @@ namespace App\Domain\User\Repositories;
 use App\Domain\User\Models\User;
 use Cache;
 use DB;
+use Log;
 
 class UserRepository implements UserRepositoryInterface
 {
@@ -44,7 +45,7 @@ class UserRepository implements UserRepositoryInterface
 
     public function find(string $id): ?User
     {
-        DB::transaction(function () use ($id) {
+        return DB::transaction(function () use ($id) {
             $cacheKey = "user.by_id.{$id}";
 
             $user = Cache::get($cacheKey);
@@ -65,15 +66,16 @@ class UserRepository implements UserRepositoryInterface
 
     public function findByEmail(string $email): ?User
     {
-        DB::transaction(function () use ($email) {
+        return DB::transaction(function () use ($email) {
             $cacheKey = "user.by_email.{$email}";
 
             $user = Cache::get($cacheKey);
+
             if ($user !== null) {
                 return $user;
             }
 
-            $user = User::where($email, 'email')->first();
+            $user = User::where('email', $email)->first();
 
             if ($user) {
                 Cache::put($cacheKey, $user, now()->addHour());

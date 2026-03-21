@@ -11,6 +11,11 @@ class StoreVerification extends Model
 {
     use HasFactory, Notifiable;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\StoreVerificationFactory::new();
+    }
+
     protected $table = 'store_verifications';
 
     protected $keyType = 'string';
@@ -22,8 +27,8 @@ class StoreVerification extends Model
         'document_type',
         'document_path',
         'status',
-        'reviewed_by',
-        'reviewed_at',
+        'verified_by',
+        'verified_at',
         'rejection_reason',
     ];
 

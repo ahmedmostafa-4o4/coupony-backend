@@ -36,6 +36,7 @@ class AdminRegisterController extends Controller implements HasMiddleware
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'device_name' => $request->input('device_name'),
+            'admin_id' => $request->user()->id,
         ];
         $user = $this->registerUser->excute(
             UserData::fromRequest($request),

@@ -13,5 +13,9 @@ enum NotificationTypes: string
     case PRICE_DROP = 'price_drop';
     case BACK_IN_STOCK = 'back_in_stock';
     case COUPON_EXPIRING = 'coupon_expiring';
+    case STORE_APPROVED = 'store_approved';
+    case STORE_REJECTED = 'store_rejected';
+    case STORE_DOCUMENT_APPROVED = 'store_document_approved';
+    case STORE_DOCUMENT_REJECTED = 'store_document_rejected';
 }
 
