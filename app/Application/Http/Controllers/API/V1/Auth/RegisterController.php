@@ -10,6 +10,8 @@ use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
 use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Services\OtpService;
+use Illuminate\Container\Attributes\DB;
+use Illuminate\Support\Facades\DB as FacadesDB;
 use Illuminate\Support\Facades\Log;
 
 class RegisterController extends Controller
@@ -22,7 +24,8 @@ class RegisterController extends Controller
 
     public function __invoke(registerUserRequest $request)
     {
-        try {
+        return FacadesDB::transaction(function () use ($request) {
+                    try {
             $context = [
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -79,5 +82,6 @@ class RegisterController extends Controller
                 'message' => 'Registration failed. Please try again later.',
             ], 500);
         }
+        });
     }
 }
