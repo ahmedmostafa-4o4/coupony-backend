@@ -15,7 +15,9 @@ use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Enums\BudgetCategory;
 use App\Domain\User\Enums\InterestingOfferCategory;
+use App\Domain\User\Enums\OffersTypeCategory;
 use App\Domain\User\Enums\ShoppingStyleCategory;
+use App\Domain\User\Enums\TargetAudienceCategory;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
 use Illuminate\Http\Request;
@@ -109,6 +111,30 @@ Route::prefix('v1')->group(function () {
                 'message' => 'Onboarding completed successfully',
             ], 200);
         })->name('onBoarding.customer');
+        Route::post('/on-boarding/seller', function (Request $request) {
+            $data = $request->validate([
+                'offers_type' => ['array'],
+                'offers_type.*' => ['string', Rule::in(OffersTypeCategory::values())],
+                'target_audience' => ['nullable', Rule::in(TargetAudienceCategory::values())],
+            ]);
+
+            DB::transaction(function () use ($data, $request) {
+                DB::table('shop_interests')->updateOrInsert(
+                    ['user_id' => $request->user()->id],
+                    [
+                        'offers_type' => $data['offers_type'] ? json_encode($data['offers_type']) : null,
+                        'target_audience' => $data['target_audience'] ?? null,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Onboarding completed successfully',
+            ], 200);
+        })->name('onBoarding.seller');
     });
 
     /*
@@ -136,7 +162,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/admin/register', AdminRegisterController::class)->name('admin.register');
 
     Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
-        
+
         // Store Categories Management
         Route::prefix('store-category')->name('storeCategory.')->group(function () {
             Route::get('/', [StoreCategoryController::class, 'index'])->name('index');
@@ -153,7 +179,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{store}', [StoreManagementController::class, 'show'])->name('show');
             Route::post('/{store}/approve', [StoreManagementController::class, 'approve'])->name('approve');
             Route::post('/{store}/reject', [StoreManagementController::class, 'reject'])->name('reject');
-            
+
             // Verification Documents
             Route::get('/{store}/verifications', [StoreManagementController::class, 'verificationDocuments'])->name('verifications');
             Route::post('/{store}/verifications/{verification}/approve', [StoreManagementController::class, 'approveDocument'])->name('verifications.approve');

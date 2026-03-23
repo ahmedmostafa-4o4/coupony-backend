@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureTokenIsValid;
 use App\Http\Middleware\PerformanceMonitoring;
+use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\UpdateUserSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,8 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(PerformanceMonitoring::class);
         $middleware->append(UpdateUserSession::class);
+        $middleware->append(SetLocale::class);
         // $middleware->append(EnsureTokenIsValid::class);
-        
+    
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

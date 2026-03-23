@@ -83,6 +83,7 @@ return new class extends Migration {
                 ->nullOnDelete();
         });
 
+
         Schema::create('store_verifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
@@ -95,8 +96,11 @@ return new class extends Migration {
             $table->enum('status', ['pending', 'approved', 'rejected'])
                 ->default('pending');
 
-            $table->char('verified_by', 36)->nullable();
+            $table->uuid('verified_by')->nullable();
             $table->timestamp('verified_at')->nullable();
+
+            $table->uuid('rejected_by')->nullable();
+            $table->timestamp('rejected_at')->nullable();
             $table->text('rejection_reason')->nullable();
 
             $table->timestamps();
@@ -108,7 +112,6 @@ return new class extends Migration {
 
             // Prevent duplicate documents per store
             $table->unique(['store_id', 'document_type']);
-
             // Foreign key
             $table->foreign('store_id')
                 ->references('id')
