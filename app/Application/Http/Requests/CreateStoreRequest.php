@@ -19,7 +19,7 @@ class CreateStoreRequest extends FormRequest
             'phone' => 'required|string|max:20',
             'tax_id' => 'nullable|string|max:50',
             'subscription_tier' => 'nullable|string|in:free,basic,premium,enterprise',
-            
+
             // Address
             'address_line1' => 'required_without:latitude,longitude|string|max:255',
             'address_line2' => 'nullable|string|max:255',
@@ -27,20 +27,20 @@ class CreateStoreRequest extends FormRequest
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'label' => 'nullable|string|max:50',
-            
+
             // Categories
             'categories' => 'required|array|min:1',
             'categories.*' => 'exists:store_categories,id',
-            
+
             // Files
             'logo_url' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
             'banner_url' => 'nullable|file|image|mimes:jpg,jpeg,png|max:5120',
-            
+
             // Verification documents
-            'verification_docs.commercial_register' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'verification_docs.tax_card' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'verification_docs.id_card_front' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'verification_docs.id_card_back' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'verification_docs.commercial_register' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'verification_docs.tax_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'verification_docs.id_card_front' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'verification_docs.id_card_back' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
 
@@ -49,8 +49,8 @@ class CreateStoreRequest extends FormRequest
         return [
             'name.required' => __('validation.custom.store_name.required'),
             'categories.required' => __('validation.custom.categories.required'),
-            'verification_docs.*.required' => __('validation.custom.verification_docs.required'),
-            
+            // 'verification_docs.*.required' => __('validation.custom.verification_docs.required'),
+
         ];
     }
 }
