@@ -22,10 +22,10 @@ class VerifyPasswordResetOtpRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Email address is required.',
-            'email.email' => 'Please provide a valid email address.',
-            'code.required' => 'Verification code is required.',
-            'code.digits' => 'Verification code must be 6 digits.',
+            'email.required' => __('validation.custom.email.required'),
+            'email.email' => __('validation.custom.email.email'),
+            'code.required' => __('validation.custom.code.required'),
+            'code.digits' => __('validation.custom.code.digits'),
         ];
     }
 }

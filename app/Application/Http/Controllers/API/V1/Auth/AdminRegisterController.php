@@ -32,6 +32,8 @@ class AdminRegisterController extends Controller implements HasMiddleware
 
     public function __invoke(registerUserRequest $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         $context = [
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
@@ -44,7 +46,7 @@ class AdminRegisterController extends Controller implements HasMiddleware
         );
         return response()->json([
             'success' => true,
-            'message' => 'Admin Registered successfully',
+            'message' => __('api.auth.admin_registered'),
         ], 200);
     }
 }

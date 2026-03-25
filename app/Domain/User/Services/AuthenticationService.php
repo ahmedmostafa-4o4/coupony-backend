@@ -34,13 +34,13 @@ class AuthenticationService
         if (!$user || !$this->hasher->check($password, $user->password_hash)) {
             Log::info('password check', [!$this->hasher->check($password, $user->password_hash)]);
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [__('api.auth.invalid_credentials')],
             ]);
         }
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => ['Your account has been suspended. Please contact support.'],
+                'email' => [__('api.auth.account_suspended')],
             ]);
         }
 
@@ -52,13 +52,13 @@ class AuthenticationService
             );
 
             throw ValidationException::withMessages([
-                'otp' => ['A verification code has been sent to your registered email. Please verify to proceed.'],
+                'otp' => [__('api.auth.verification_code_sent')],
             ]);
         }
 
         if ($context['role'] === "admin" && !$user->hasRole($context['role'])) {
             throw ValidationException::withMessages([
-                'role' => ['You are not authorized to access this resource.'],
+                'role' => [__('api.common.unauthorized')],
             ]);
         }
 
@@ -73,7 +73,7 @@ class AuthenticationService
             'last_ip' => $context['ip_address'] ?? null,
         ]);
 
-        $user->sessions()->create([
+        $session = $user->sessions()->create([
             'token' => hash('sha256', $accessToken->plainTextToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
@@ -96,6 +96,7 @@ class AuthenticationService
         return [
             // 'user' => new UserResource($user->load('profile', 'preferences')),
             'user' => new UserResource($user),
+            'session' => $session,
             'access_token' => $accessToken->plainTextToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
@@ -118,7 +119,7 @@ class AuthenticationService
             'last_ip' => $context['ip_address'] ?? null,
         ]);
 
-        $user->sessions()->create([
+        $session = $user->sessions()->create([
             'token' => hash('sha256', $accessToken->plainTextToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
@@ -130,7 +131,8 @@ class AuthenticationService
         event(new UserLoggedIn($user, $context));
 
         return [
-            'user' => new UserResource($user->load('profile')),
+            'user' => new UserResource($user),
+            'session' => $session,
             'access_token' => $accessToken->plainTextToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',

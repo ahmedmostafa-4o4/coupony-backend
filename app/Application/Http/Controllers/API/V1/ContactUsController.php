@@ -22,38 +22,42 @@ class ContactUsController extends Controller implements HasMiddleware
             new Middleware('auth:sanctum', except: ['submit_customer', 'submit_seller']),
         ];
     }
-    public function index_customer()
+    public function index_customer(Request $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $customers = DB::table('contact_us_customer')->orderBy('created_at', 'desc')->get();
             
             return response()->json([
-                'message' => 'Customer contacts retrieved successfully.',
+                'message' => __('api.contact.customer_contacts_retrieved'),
                 'data' => $customers,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve customer contacts', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Unable to retrieve customer contacts. Please try again later.',
+                'message' => __('api.contact.customer_contacts_failed'),
             ], 500);
         }
     }
 
-    public function index_seller()
+    public function index_seller(Request $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $sellers = DB::table('contact_us_seller')->orderBy('created_at', 'desc')->get();
             
             return response()->json([
-                'message' => 'Seller contacts retrieved successfully.',
+                'message' => __('api.contact.seller_contacts_retrieved'),
                 'data' => $sellers,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve seller contacts', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Unable to retrieve seller contacts. Please try again later.',
+                'message' => __('api.contact.seller_contacts_failed'),
             ], 500);
         }
     }
@@ -84,7 +88,7 @@ class ContactUsController extends Controller implements HasMiddleware
                 ]));
 
             return response()->json([
-                'message' => 'Your message has been sent successfully. We will get back to you soon.',
+                'message' => __('api.contact.customer_submitted'),
                 'data' => [
                     'ip_address' => $ip,
                     'attempts' => $attempts,
@@ -93,14 +97,14 @@ class ContactUsController extends Controller implements HasMiddleware
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to submit customer contact', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Failed to send your message. Please try again later.',
+                'message' => __('api.contact.customer_submit_failed'),
             ], 500);
         }
     }
@@ -122,7 +126,7 @@ class ContactUsController extends Controller implements HasMiddleware
             ]);
 
             return response()->json([
-                'message' => 'Your request has been submitted successfully. We will contact you soon.',
+                'message' => __('api.contact.seller_submitted'),
                 'data' => [
                     'ip_address' => $ip,
                     'attempts' => $attempts,
@@ -131,14 +135,14 @@ class ContactUsController extends Controller implements HasMiddleware
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to submit seller contact', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Failed to submit your request. Please try again later.',
+                'message' => __('api.contact.seller_submit_failed'),
             ], 500);
         }
     }

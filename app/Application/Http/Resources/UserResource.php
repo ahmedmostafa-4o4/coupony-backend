@@ -34,6 +34,7 @@ class UserResource extends JsonResource
                 'balance' => $this->points?->balance,
             ]),
 
+
             'stores' => $this->whenLoaded('stores'),
 
             'created_at' => $this->created_at?->toISOString(),

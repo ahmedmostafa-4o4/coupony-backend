@@ -4,6 +4,7 @@ namespace App\Application\Http\Requests;
 
 use App\Domain\User\Repositories\UserRepository;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class registerUserRequest extends FormRequest
 {
@@ -38,17 +39,18 @@ class registerUserRequest extends FormRequest
             if ($user) {
                 if (($this->role ?? null) === 'seller') {
                     if ($user->email_verified_at !== null || $user->phone_verified_at !== null)
-                        return $fail('This email is already registered. Please log in to continue seller onboarding.');
+                        return $fail(__('validation.custom.email.already_registered_seller_onboarding'));
                     else
-                        return $fail('This email is already registered. Please login to verify your email.');
+                        return $fail(__('validation.custom.email.already_registered_verify'));
                 }
-                return $fail('This email is already registered. Please log in.');
+                return $fail(__('validation.custom.email.already_registered'));
             }
         },
             ],
             'phone_number' => 'nullable|string|max:20|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|in:customer,seller,admin',
+            'language' => ['nullable', 'string', Rule::in(array_keys(config('localization.supported_locales', [])))],
         ];
     }
 
@@ -58,18 +60,20 @@ class registerUserRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'first_name' => 'First Name',
-            'last_name' => 'Last Name',
-            'phone_number' => 'Phone Number',
+            'first_name' => __('validation.attributes.first_name'),
+            'last_name' => __('validation.attributes.last_name'),
+            'phone_number' => __('validation.attributes.phone_number'),
+            'language' => __('validation.attributes.language'),
         ];
     }
 
     public function messages(): array
     {
         return [
-            'phone_number.unique' => 'This phone number is already registered.',
-            'password.confirmed' => 'Password confirmation does not match.',
-            'role.in' => 'Invalid role selected.',
+            'phone_number.unique' => __('validation.custom.phone_number.unique'),
+            'password.confirmed' => __('validation.custom.password.confirmed'),
+            'role.in' => __('validation.custom.role.in'),
+            'language.in' => __('validation.custom.language.in'),
         ];
     }
 

@@ -35,7 +35,7 @@ class PasswordResetController extends Controller
                 // Don't reveal if user exists for security
                 return response()->json([
                     'success' => true,
-                    'message' => 'If an account exists with this email, you will receive a password reset code.',
+                    'message' => __('api.password_reset.email_sent_if_exists'),
                 ], 200);
             }
 
@@ -53,7 +53,7 @@ class PasswordResetController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Password reset code sent to your email.',
+                'message' => __('api.password_reset.code_sent'),
                 'data' => [
                     'expires_at' => $otp->expires_at->toIso8601String(),
                     'expires_in_minutes' => now()->diffInMinutes($otp->expires_at, false),
@@ -69,7 +69,7 @@ class PasswordResetController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send password reset code. Please try again.',
+                'message' => __('api.password_reset.send_failed'),
             ], 500);
         }
     }
@@ -85,7 +85,7 @@ class PasswordResetController extends Controller
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid email or verification code.',
+                    'message' => __('api.password_reset.invalid_email_or_code'),
                 ], 422);
             }
 
@@ -114,7 +114,7 @@ class PasswordResetController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Verification code confirmed. You can now reset your password.',
+                    'message' => __('api.password_reset.code_verified'),
                     'data' => [
                         'reset_token' => $resetToken,
                         'expires_in_minutes' => 15,
@@ -145,7 +145,7 @@ class PasswordResetController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to verify code. Please try again.',
+                'message' => __('api.password_reset.verify_failed'),
             ], 500);
         }
     }
@@ -165,7 +165,7 @@ class PasswordResetController extends Controller
                 if (!$resetData) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Invalid or expired reset token. Please request a new password reset.',
+                        'message' => __('api.password_reset.invalid_or_expired_token'),
                     ], 422);
                 }
 
@@ -174,7 +174,7 @@ class PasswordResetController extends Controller
                 if (!$user || $user->email !== $resetData['email']) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Invalid reset token.',
+                        'message' => __('api.password_reset.invalid_token'),
                     ], 422);
                 }
 
@@ -196,7 +196,7 @@ class PasswordResetController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Password reset successfully. You can now login with your new password.',
+                    'message' => __('api.password_reset.reset_successful'),
                 ], 200);
             });
 
@@ -208,7 +208,7 @@ class PasswordResetController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to reset password. Please try again.',
+                'message' => __('api.password_reset.reset_failed'),
             ], 500);
         }
     }
@@ -225,7 +225,7 @@ class PasswordResetController extends Controller
                 // Don't reveal if user exists for security
                 return response()->json([
                     'success' => true,
-                    'message' => 'If an account exists with this email, you will receive a password reset code.',
+                    'message' => __('api.password_reset.email_sent_if_exists'),
                 ], 200);
             }
 
@@ -265,7 +265,7 @@ class PasswordResetController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to resend code. Please try again.',
+                'message' => __('api.password_reset.resend_failed'),
             ], 500);
         }
     }

@@ -26,14 +26,14 @@ class CheckStoreAccess
         // Check if user has access
         if (!$store->hasUser($user)) {
             return response()->json([
-                'message' => 'Unauthorized to access this store.',
+                'message' => __('api.middleware.store_unauthorized'),
             ], 403);
         }
 
         // Check specific permission if required
         if ($permission === 'manage' && !$store->canBeManageBy($user)) {
             return response()->json([
-                'message' => 'Insufficient permissions.',
+                'message' => __('api.middleware.insufficient_permissions'),
             ], 403);
         }
 

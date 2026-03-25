@@ -32,9 +32,9 @@ class ResetPasswordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reset_token.required' => 'Reset token is required.',
-            'password.required' => 'Password is required.',
-            'password.confirmed' => 'Password confirmation does not match.',
+            'reset_token.required' => __('validation.custom.reset_token.required'),
+            'password.required' => __('validation.custom.password.required'),
+            'password.confirmed' => __('validation.custom.password.confirmed'),
         ];
     }
 }

@@ -28,11 +28,11 @@ class UpdateVerificationDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'document_type.required' => 'Document type is required.',
-            'document_type.in' => 'Invalid document type.',
-            'document.required' => 'Document file is required.',
-            'document.mimes' => 'Document must be a PDF or image file.',
-            'document.max' => 'Document size must not exceed 5MB.',
+            'document_type.required' => __('validation.custom.document_type.required'),
+            'document_type.in' => __('validation.custom.document_type.in'),
+            'document.required' => __('validation.custom.document.required'),
+            'document.mimes' => __('validation.custom.document.mimes'),
+            'document.max' => __('validation.custom.document.max'),
         ];
     }
 }

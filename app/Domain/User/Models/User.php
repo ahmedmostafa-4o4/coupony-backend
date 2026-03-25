@@ -100,7 +100,7 @@ class User extends Authenticatable
             }
 
             // Set default language and timezone
-            $user->language = $user->language ?? 'ar';
+            $user->language = $user->language ?? config('app.fallback_locale', config('localization.default_locale', 'en'));
             $user->timezone = $user->timezone ?? 'Africa/Cairo';
             $user->status = $user->status ?? 'active';
         });

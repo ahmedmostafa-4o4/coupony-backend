@@ -3,58 +3,49 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
-class SetLocale
+class UseAuthenticatedUserLocale
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $allowed = array_keys(config('localization.supported_locales', []));
         $header = $request->header('Accept-Language');
-        $locale = $this->parseHeaderLocale($header, $allowed);
 
-        if (!$locale) {
-            $locale = $this->resolveAuthenticatedLocale($request);
+        if (!$this->hasSupportedHeaderLocale($header, $allowed)) {
+            $userLocale = $this->resolveUserLocale($request);
+
+            if (in_array($userLocale, $allowed, true)) {
+                App::setLocale($userLocale);
+            }
         }
 
-        if (!in_array($locale, $allowed, true)) {
-            $locale = config('app.fallback_locale', config('localization.default_locale', 'en'));
-        }
-
-        App::setLocale($locale);
-        $request->attributes->set('resolved_locale', $locale);
-
-        $response = $next($request);
-        $response->headers->set(
-            'Content-Language',
-            $request->attributes->get('resolved_locale', App::currentLocale())
-        );
-
-        return $response;
+        return $next($request);
     }
 
-    private function parseHeaderLocale(?string $header, array $allowed): ?string
+    private function hasSupportedHeaderLocale(?string $header, array $allowed): bool
     {
         if (!$header) {
-            return null;
+            return false;
         }
 
         $primaryLocale = strtolower(trim(explode(',', $header)[0]));
         $locale = explode('-', $primaryLocale)[0];
 
-        return in_array($locale, $allowed, true) ? $locale : null;
+        return in_array($locale, $allowed, true);
     }
 
-    private function resolveAuthenticatedLocale(Request $request): ?string
+    private function resolveUserLocale(Request $request): ?string
     {
+        $userLocale = $request->user()?->language;
+
+        if ($userLocale) {
+            return $userLocale;
+        }
+
         $token = $request->bearerToken();
 
         if (!$token) {
@@ -75,8 +66,6 @@ class SetLocale
             return null;
         }
 
-        $accessToken = PersonalAccessToken::findToken($token);
-
-        return $accessToken?->tokenable?->language;
+        return PersonalAccessToken::findToken($token)?->tokenable?->language;
     }
 }

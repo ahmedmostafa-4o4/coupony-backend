@@ -33,7 +33,7 @@ class UserData
             role: $request->input('role'),
             provider: $request->input('provider'),
             providerId: $request->input('provider_id'),
-            language: $request->input('language', 'ar'),
+            language: $request->input('language', app()->getLocale()),
         );
     }
 

@@ -23,12 +23,12 @@ class ContactUsThrottle
             'contactUs.seller' => $key = 'contact-us-seller:' . $request->ip(),
             'contactUs.customer' => $key = 'contact-us-customer:' . $request->ip(),
             'notifyMe.submit' => $key = 'notify-me:' . $request->ip(),
-            default => abort(400, 'Invalid contact us route'),
+            default => abort(400, __('api.contact.invalid_route')),
         };
 
         if (RateLimiter::tooManyAttempts($key, 3)) {
             return response()->json([
-                'message' => 'Too many attempts from this IP',
+                'message' => __('api.contact.rate_limited'),
                 'attempts' => RateLimiter::attempts($key),
                 'retry_after_seconds' => RateLimiter::availableIn($key),
             ], 429);

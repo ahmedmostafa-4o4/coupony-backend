@@ -17,7 +17,7 @@ class isVerifiedCheck
     {
         if (!$request->user()?->email_verified_at) {
             return response()->json([
-                'message' => 'User account is not verified.'
+                'message' => __('api.middleware.account_not_verified')
             ], 403);
         }
         return $next($request);

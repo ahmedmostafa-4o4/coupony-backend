@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureTokenIsValid;
 use App\Http\Middleware\PerformanceMonitoring;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\UpdateUserSession;
+use App\Http\Middleware\UseAuthenticatedUserLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(PerformanceMonitoring::class);
         $middleware->append(UpdateUserSession::class);
         $middleware->append(SetLocale::class);
+        $middleware->append(UseAuthenticatedUserLocale::class);
         // $middleware->append(EnsureTokenIsValid::class);
     
         $middleware->alias([

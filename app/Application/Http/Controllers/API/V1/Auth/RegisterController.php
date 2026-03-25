@@ -47,7 +47,7 @@ class RegisterController extends Controller
                 );
 
                 return response()->json([
-                    'message' => 'Registration successful. Please check your email for verification code.',
+                    'message' => __('api.auth.registration_successful'),
                     'data' => [
                         'expires_at' => $otp->expires_at->toIso8601String(),
                         'expires_in_minutes' => now()->diffInMinutes($otp->expires_at, false),
@@ -64,12 +64,12 @@ class RegisterController extends Controller
                 ]);
 
                 return response()->json([
-                    'message' => 'Registration successful but failed to send verification code. Please request a new code.',
+                    'message' => __('api.auth.registration_verification_failed'),
                 ], 201);
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
@@ -79,7 +79,7 @@ class RegisterController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Registration failed. Please try again later.',
+                'message' => __('api.auth.registration_failed'),
             ], 500);
         }
         });

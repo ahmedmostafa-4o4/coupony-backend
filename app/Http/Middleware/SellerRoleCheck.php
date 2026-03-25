@@ -18,7 +18,7 @@ class SellerRoleCheck
 
         if (!$request->user()?->hasRole('seller')) {
             return response()->json([
-                'message' => 'Forbidden: Seller role required.'
+                'message' => __('api.middleware.seller_role_required')
             ], 403);
         }
         return $next($request);

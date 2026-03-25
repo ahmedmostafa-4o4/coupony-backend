@@ -37,7 +37,7 @@ class NotifyMeController extends Controller implements HasMiddleware
             $exists = DB::table('notify_me')->where('email', $data['email'])->exists();
             if ($exists) {
                 return response()->json([
-                    'message' => 'This email is already registered for notifications.',
+                    'message' => __('api.notify_me.already_registered'),
                 ], 400);
             }
 
@@ -46,42 +46,46 @@ class NotifyMeController extends Controller implements HasMiddleware
             ]);
 
             return response()->json([
-                'message' => 'Thank you! We will notify you when new stores are available.',
+                'message' => __('api.notify_me.submitted'),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to submit notify me request', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Failed to register for notifications. Please try again later.',
+                'message' => __('api.notify_me.submit_failed'),
             ], 500);
         }
     }
 
-    public function list()
+    public function list(Request $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $data = DB::table('notify_me')->orderBy('created_at', 'desc')->get();
 
             return response()->json([
-                'message' => 'Notify me requests retrieved successfully.',
+                'message' => __('api.notify_me.list_retrieved'),
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve notify me requests', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Unable to retrieve notify me requests. Please try again later.',
+                'message' => __('api.notify_me.list_failed'),
             ], 500);
         }
     }
 
     public function notifyAll(Request $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $data = $request->validate([
                 'subject' => 'required|string|max:255',
@@ -91,19 +95,19 @@ class NotifyMeController extends Controller implements HasMiddleware
             $result = $this->notificationService->notifyAll($data);
             
             return response()->json([
-                'message' => 'Notifications sent successfully.',
+                'message' => __('api.notify_me.notifications_sent'),
                 'data' => $result,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to send notifications', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Failed to send notifications. Please try again later.',
+                'message' => __('api.notify_me.notifications_failed'),
             ], 500);
         }
     }

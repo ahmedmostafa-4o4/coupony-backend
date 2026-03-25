@@ -31,15 +31,16 @@ class LoginController extends Controller
                 password: $request->input('password'),
                 context: $context
             );
-            
+
             $role = $request->input('role');
-            
+
             if ($role === 'seller') {
                 $is_store_owner = $result['user']->stores()->exists();
-                return response()->json([
-                    'message' => 'Login successful.',
+                return $this->localizedJson([
+                    'message' => __('api.auth.login_successful'),
                     'data' => [
                         'user' => new UserResource($result['user']->load('stores')),
+                        'session' => $result['session'],
                         'role' => $role,
                         'is_store_owner' => $is_store_owner,
                         'next' => $is_store_owner ? null : [
@@ -68,10 +69,11 @@ class LoginController extends Controller
                 ], 200);
             }
 
-            return response()->json([
-                'message' => 'Login successful.',
+            return $this->localizedJson([
+                'message' => __('api.auth.login_successful'),
                 'data' => [
                     'user' => new UserResource($result['user']),
+                    'session' => $result['session'],
                     'role' => $role,
                     'access_token' => $result['access_token'],
                     'refresh_token' => $result['refresh_token'],
@@ -81,7 +83,7 @@ class LoginController extends Controller
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
+            return $this->localizedJson([
                 'message' => $e->getMessage(),
                 'errors' => $e->errors(),
             ], 401);
@@ -91,29 +93,33 @@ class LoginController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'message' => 'Login failed. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.auth.login_failed'),
             ], 500);
         }
     }
 
     public function logout(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
         $currentToken = $request->bearerToken();
 
         $this->authService->logout($user, $currentToken);
 
-        return response()->json([
-            'message' => 'Logged out successfully',
+        return $this->localizedJson([
+            'message' => __('api.auth.logout_successful'),
         ], 200);
     }
 
     public function me(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
-        return response()->json([
+        return $this->localizedJson([
             'data' => new UserResource($user),
         ], 200);
     }

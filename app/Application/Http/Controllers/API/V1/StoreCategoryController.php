@@ -24,6 +24,8 @@ class StoreCategoryController extends Controller implements HasMiddleware
 
     public function index(Request $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $categories = $request->query('active') == '1'
                 ? StoreCategory::active()->get()
@@ -32,45 +34,49 @@ class StoreCategoryController extends Controller implements HasMiddleware
                     : StoreCategory::all());
 
             return response()->json([
-                'message' => 'Store categories retrieved successfully.',
+                'message' => __('api.store_categories.retrieved'),
                 'data' => $categories,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve store categories', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Unable to retrieve store categories. Please try again later.',
+                'message' => __('api.store_categories.retrieve_failed'),
             ], 500);
         }
     }
 
     public function store(createStoreCategoryRequest $request)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $data = $request->validated();
             $category = StoreCategory::create($data);
             
             return response()->json([
-                'message' => 'Store category created successfully.',
+                'message' => __('api.store_categories.created'),
                 'data' => $category,
             ], 201);
         } catch (\Exception $e) {
             Log::error('Failed to create store category', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Failed to create store category. Please try again later.',
+                'message' => __('api.store_categories.create_failed'),
             ], 500);
         }
     }
 
     public function update(updateStoreCategoryRequest $request, StoreCategory $category)
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $data = $request->validated();
             $category->update($data);
             
             return response()->json([
-                'message' => 'Store category updated successfully.',
+                'message' => __('api.store_categories.updated'),
                 'data' => $category,
             ]);
         } catch (\Exception $e) {
@@ -80,7 +86,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
             ]);
             
             return response()->json([
-                'message' => 'Failed to update store category. Please try again later.',
+                'message' => __('api.store_categories.update_failed'),
             ], 500);
         }
     }
@@ -91,14 +97,14 @@ class StoreCategoryController extends Controller implements HasMiddleware
             // Check if category has stores
             if ($category->stores()->exists()) {
                 return response()->json([
-                    'message' => 'Cannot delete category that has stores assigned to it.',
+                    'message' => __('api.store_categories.delete_blocked'),
                 ], 400);
             }
 
             $category->delete();
             
             return response()->json([
-                'message' => 'Store category deleted successfully.',
+                'message' => __('api.store_categories.deleted'),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to delete store category', [
@@ -107,7 +113,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
             ]);
             
             return response()->json([
-                'message' => 'Failed to delete store category. Please try again later.',
+                'message' => __('api.store_categories.delete_failed'),
             ], 500);
         }
     }

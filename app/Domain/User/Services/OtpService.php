@@ -76,7 +76,7 @@ class OtpService
         if (!$otp) {
             return [
                 'success' => false,
-                'message' => 'No valid OTP found. Please request a new one.',
+                'message' => __('api.otp.not_found'),
                 'error_code' => 'OTP_NOT_FOUND',
             ];
         }
@@ -85,7 +85,7 @@ class OtpService
             $otp->markAsExpired();
             return [
                 'success' => false,
-                'message' => 'OTP has expired. Please request a new one.',
+                'message' => __('api.otp.expired'),
                 'error_code' => 'OTP_EXPIRED',
             ];
         }
@@ -93,7 +93,7 @@ class OtpService
         if ($otp->isBlocked()) {
             return [
                 'success' => false,
-                'message' => 'Too many failed attempts. Please request a new OTP.',
+                'message' => __('api.otp.blocked'),
                 'error_code' => 'OTP_BLOCKED',
                 'retry_after' => $otp->expires_at->diffInMinutes(now()),
             ];
@@ -106,7 +106,7 @@ class OtpService
 
             return [
                 'success' => true,
-                'message' => 'OTP verified successfully.',
+                'message' => __('api.otp.verified_successfully'),
             ];
         }
 
@@ -114,7 +114,7 @@ class OtpService
 
         return [
             'success' => false,
-            'message' => "Invalid OTP code. {$remainingAttempts} attempts remaining.",
+            'message' => __('api.otp.invalid', ['attempts' => $remainingAttempts]),
             'error_code' => 'OTP_INVALID',
             'remaining_attempts' => $remainingAttempts,
         ];
@@ -139,7 +139,7 @@ class OtpService
             $retryAfter = 60 - $recentOtp->created_at->diffInSeconds(now());
             return [
                 'success' => false,
-                'message' => "Please wait {$retryAfter} seconds before requesting a new OTP.",
+                'message' => __('api.otp.rate_limited', ['seconds' => $retryAfter]),
                 'error_code' => 'RATE_LIMIT',
                 'retry_after' => $retryAfter,
             ];
@@ -150,7 +150,7 @@ class OtpService
 
         return [
             'success' => true,
-            'message' => 'OTP sent successfully.',
+            'message' => __('api.otp.sent_successfully'),
             'expires_at' => $otp->expires_at->toIso8601String(),
         ];
     }
@@ -290,11 +290,11 @@ class OtpService
     private function getEmailSubject(string $purpose): string
     {
         return match ($purpose) {
-            'verify_email' => 'Verify Your Email',
-            'verify_phone' => 'Verify Your Phone Number',
-            'login' => 'Login Verification Code',
-            'reset_password' => 'Password Reset Code',
-            default => 'Verification Code',
+            'verify_email' => __('api.notification.email_subjects.verify_email'),
+            'verify_phone' => __('api.notification.email_subjects.verify_phone'),
+            'login' => __('api.notification.email_subjects.login'),
+            'reset_password' => __('api.notification.email_subjects.reset_password'),
+            default => __('api.notification.email_subjects.default'),
         };
     }
 
@@ -304,14 +304,18 @@ class OtpService
     private function getEmailMessage(string $code, string $purpose): string
     {
         $action = match ($purpose) {
-            'verify_email' => 'verify your email address',
-            'verify_phone' => 'verify your phone number',
-            'login' => 'complete your login',
-            'reset_password' => 'reset your password',
-            default => 'verify your account',
+            'verify_email' => __('api.notification.actions.verify_email'),
+            'verify_phone' => __('api.notification.actions.verify_phone'),
+            'login' => __('api.notification.actions.login'),
+            'reset_password' => __('api.notification.actions.reset_password'),
+            default => __('api.notification.actions.default'),
         };
 
-        return "Your verification code is: {$code}. Use this code to {$action}. This code will expire in " . config('otp.expiry_minutes', 10) . " minutes.";
+        return __('api.notification.messages.verification_code', [
+            'code' => $code,
+            'action' => $action,
+            'minutes' => config('otp.expiry_minutes', 10),
+        ]);
     }
 
     /**
@@ -320,7 +324,11 @@ class OtpService
     private function getSmsMessage(string $code, string $purpose): string
     {
         $appName = config('app.name');
-        return "{$appName}: Your verification code is {$code}. Valid for " . config('otp.expiry_minutes', 10) . " minutes.";
+        return __('api.notification.messages.sms_verification_code', [
+            'app' => $appName,
+            'code' => $code,
+            'minutes' => config('otp.expiry_minutes', 10),
+        ]);
     }
 
     /**

@@ -47,9 +47,9 @@ class CreateStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Store name is required.',
-            'categories.required' => 'At least one category must be selected.',
-            'verification_docs.*.required' => 'All verification documents are required.',
+            'name.required' => __('validation.custom.store_name.required'),
+            'categories.required' => __('validation.custom.categories.required'),
+            'verification_docs.*.required' => __('validation.custom.verification_docs.required'),
             
         ];
     }

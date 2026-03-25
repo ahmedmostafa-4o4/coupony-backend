@@ -34,6 +34,7 @@ class RegisterUser
                 'password_hash' => $this->hasher->make($data->password),
                 'provider' => $data->provider,
                 'provider_id' => $data->providerId,
+                'language' => $data->language,
                 'last_ip' => $context['ip_address'] ?? null,
                 'status' => UserStatus::ACTIVE,
             ]);

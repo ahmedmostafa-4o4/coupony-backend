@@ -19,7 +19,7 @@ class EnsureTokenIsValid
 
         if (!$user) {
             return response()->json([
-                'message' => 'Unauthenticated',
+                'message' => __('api.common.unauthenticated'),
             ], 401);
         }
 
@@ -28,7 +28,7 @@ class EnsureTokenIsValid
 
         if ($token && $token->expires_at && $token->expires_at->isPast()) {
             return response()->json([
-                'message' => 'Token expired. Please refresh your token.',
+                'message' => __('api.middleware.token_expired'),
                 'error_code' => 'TOKEN_EXPIRED',
             ], 401);
         }

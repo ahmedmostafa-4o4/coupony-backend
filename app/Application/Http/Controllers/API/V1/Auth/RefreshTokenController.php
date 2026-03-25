@@ -29,24 +29,24 @@ class RefreshTokenController extends Controller
             );
 
             return response()->json([
-                'message' => 'Token refreshed successfully.',
+                'message' => __('api.auth.token_refreshed'),
                 'data' => $result,
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Invalid or expired refresh token. Please login again.',
+                'message' => __('api.auth.invalid_refresh_token'),
             ], 401);
         } catch (\Exception $e) {
             Log::error('Token refresh failed', ['error' => $e->getMessage()]);
             
             return response()->json([
-                'message' => 'Failed to refresh token. Please login again.',
+                'message' => __('api.auth.refresh_failed'),
             ], 401);
         }
     }

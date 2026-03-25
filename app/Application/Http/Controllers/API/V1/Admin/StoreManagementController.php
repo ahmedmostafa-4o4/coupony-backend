@@ -31,14 +31,16 @@ class StoreManagementController extends Controller
      */
     public function pending(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $stores = Store::with(['owner', 'categories', 'verifications', 'addresses'])
                 ->where('status', StoreStatus::PENDING)
                 ->latest()
                 ->paginate($request->input('per_page', 15));
 
-            return response()->json([
-                'message' => 'Pending stores retrieved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.pending_retrieved'),
                 'data' => StoreResource::collection($stores),
                 'meta' => [
                     'current_page' => $stores->currentPage(),
@@ -50,8 +52,8 @@ class StoreManagementController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to retrieve pending stores', ['error' => $e->getMessage()]);
             
-            return response()->json([
-                'message' => 'Unable to retrieve pending stores. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.pending_failed'),
             ], 500);
         }
     }
@@ -61,6 +63,8 @@ class StoreManagementController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $query = Store::with(['owner', 'categories', 'verifications', 'addresses']);
 
@@ -85,8 +89,8 @@ class StoreManagementController extends Controller
 
             $stores = $query->latest()->paginate($request->input('per_page', 15));
 
-            return response()->json([
-                'message' => 'Stores retrieved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.retrieved'),
                 'data' => StoreResource::collection($stores),
                 'meta' => [
                     'current_page' => $stores->currentPage(),
@@ -98,8 +102,8 @@ class StoreManagementController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to retrieve stores', ['error' => $e->getMessage()]);
             
-            return response()->json([
-                'message' => 'Unable to retrieve stores. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.retrieve_failed'),
             ], 500);
         }
     }
@@ -107,13 +111,15 @@ class StoreManagementController extends Controller
     /**
      * Get single store details
      */
-    public function show(Store $store): JsonResponse
+    public function show(Request $request, Store $store): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $store->load(['owner.profile', 'categories', 'verifications', 'addresses', 'hours']);
 
-            return response()->json([
-                'message' => 'Store details retrieved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.details_retrieved'),
                 'data' => new StoreResource($store),
             ]);
         } catch (\Exception $e) {
@@ -122,8 +128,8 @@ class StoreManagementController extends Controller
                 'error' => $e->getMessage()
             ]);
             
-            return response()->json([
-                'message' => 'Unable to retrieve store details. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.details_failed'),
             ], 500);
         }
     }
@@ -133,29 +139,31 @@ class StoreManagementController extends Controller
      */
     public function approve(Request $request, Store $store): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $validated = $request->validate([
             'notes' => 'nullable|string|max:500',
         ]);
 
         // Check if store is already approved
         if ($store->status === StoreStatus::ACTIVE) {
-            return response()->json([
-                'message' => 'This store is already approved.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.already_approved'),
             ], 400);
         }
 
         // Check if store is not pending
         if ($store->status !== StoreStatus::PENDING) {
-            return response()->json([
-                'message' => 'Only pending stores can be approved.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.only_pending_approve'),
             ], 400);
         }
 
         try {
             $this->approveStore->execute($store, $request->user(), $validated['notes'] ?? null);
 
-            return response()->json([
-                'message' => 'Store approved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.approved'),
                 'data' => new StoreResource($store->fresh()),
             ]);
         } catch (\Exception $e) {
@@ -165,8 +173,8 @@ class StoreManagementController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'message' => 'Failed to approve store. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.approve_failed'),
             ], 500);
         }
     }
@@ -176,29 +184,31 @@ class StoreManagementController extends Controller
      */
     public function reject(Request $request, Store $store): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $validated = $request->validate([
             'reason' => 'required|string|max:500',
         ]);
 
         // Check if store is already rejected
         if ($store->status === StoreStatus::REJECTED) {
-            return response()->json([
-                'message' => 'This store is already rejected.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.already_rejected'),
             ], 400);
         }
 
         // Check if store is not pending
         if ($store->status !== StoreStatus::PENDING) {
-            return response()->json([
-                'message' => 'Only pending stores can be rejected.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.only_pending_reject'),
             ], 400);
         }
 
         try {
             $this->rejectStore->execute($store, $request->user(), $validated['reason']);
 
-            return response()->json([
-                'message' => 'Store rejected successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.rejected'),
                 'data' => new StoreResource($store->fresh()),
             ]);
         } catch (\Exception $e) {
@@ -208,8 +218,8 @@ class StoreManagementController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'message' => 'Failed to reject store. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.reject_failed'),
             ], 500);
         }
     }
@@ -217,8 +227,10 @@ class StoreManagementController extends Controller
     /**
      * Get store statistics
      */
-    public function statistics(): JsonResponse
+    public function statistics(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $stats = [
                 'total' => Store::count(),
@@ -231,15 +243,15 @@ class StoreManagementController extends Controller
                     ->count(),
             ];
 
-            return response()->json([
-                'message' => 'Store statistics retrieved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.statistics_retrieved'),
                 'data' => $stats,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve store statistics', ['error' => $e->getMessage()]);
             
-            return response()->json([
-                'message' => 'Unable to retrieve store statistics. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.statistics_failed'),
             ], 500);
         }
     }
@@ -247,13 +259,15 @@ class StoreManagementController extends Controller
     /**
      * Get store verification documents
      */
-    public function verificationDocuments(Store $store): JsonResponse
+    public function verificationDocuments(Request $request, Store $store): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $verifications = $store->verifications()->get();
 
-            return response()->json([
-                'message' => 'Verification documents retrieved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.documents_retrieved'),
                 'data' => $verifications,
             ]);
         } catch (\Exception $e) {
@@ -262,8 +276,8 @@ class StoreManagementController extends Controller
                 'error' => $e->getMessage()
             ]);
             
-            return response()->json([
-                'message' => 'Unable to retrieve verification documents. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.documents_failed'),
             ], 500);
         }
     }
@@ -273,21 +287,23 @@ class StoreManagementController extends Controller
      */
     public function approveDocument(Request $request, Store $store, StoreVerification $verification): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $validated = $request->validate([
             'notes' => 'nullable|string|max:500',
         ]);
 
         // Check if verification belongs to store
         if ($verification->store_id !== $store->id) {
-            return response()->json([
-                'message' => 'Verification document does not belong to this store.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_wrong_store'),
             ], 400);
         }
 
         // Check if already approved
         if ($verification->status === 'approved') {
-            return response()->json([
-                'message' => 'This document is already approved.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_already_approved'),
             ], 400);
         }
 
@@ -298,8 +314,8 @@ class StoreManagementController extends Controller
                 $validated['notes'] ?? null
             );
 
-            return response()->json([
-                'message' => 'Verification document approved successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_approved'),
                 'data' => $verification->fresh(),
             ]);
         } catch (\Exception $e) {
@@ -310,8 +326,8 @@ class StoreManagementController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'message' => 'Failed to approve document. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_approve_failed'),
             ], 500);
         }
     }
@@ -321,21 +337,23 @@ class StoreManagementController extends Controller
      */
     public function rejectDocument(Request $request, Store $store, StoreVerification $verification): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $validated = $request->validate([
             'reason' => 'required|string|max:500',
         ]);
 
         // Check if verification belongs to store
         if ($verification->store_id !== $store->id) {
-            return response()->json([
-                'message' => 'Verification document does not belong to this store.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_wrong_store'),
             ], 400);
         }
 
         // Check if already rejected
         if ($verification->status === 'rejected') {
-            return response()->json([
-                'message' => 'This document is already rejected.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_already_rejected'),
             ], 400);
         }
 
@@ -346,8 +364,8 @@ class StoreManagementController extends Controller
                 $validated['reason']
             );
 
-            return response()->json([
-                'message' => 'Verification document rejected successfully.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_rejected'),
                 'data' => $verification->fresh(),
             ]);
         } catch (\Exception $e) {
@@ -358,8 +376,8 @@ class StoreManagementController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'message' => 'Failed to reject document. Please try again later.',
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_reject_failed'),
             ], 500);
         }
     }

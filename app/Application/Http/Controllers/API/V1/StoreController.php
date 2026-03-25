@@ -37,6 +37,8 @@ class StoreController extends Controller
      */
     public function store(CreateStoreRequest $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
         try {
@@ -61,7 +63,7 @@ class StoreController extends Controller
 
                 return $this->successResponse(
                     new StoreResource($store),
-                    'Store created successfully. Pending approval.',
+                    __('api.store.created'),
                     201
                 );
             });
@@ -73,7 +75,7 @@ class StoreController extends Controller
             ]);
 
             return $this->errorResponse(
-                'Failed to create store. Please try again later.',
+                __('api.store.create_failed'),
                 500
             );
         }
@@ -84,6 +86,8 @@ class StoreController extends Controller
      */
     public function update(UpdateStoreRequest $request, Store $store): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         Gate::authorize('update', $store);
 
         $user = $request->user();
@@ -106,7 +110,7 @@ class StoreController extends Controller
 
                 return $this->successResponse(
                     new StoreResource($updatedStore),
-                    'Store updated successfully.'
+                    __('api.store.updated')
                 );
             });
         } catch (Throwable $e) {
@@ -118,7 +122,7 @@ class StoreController extends Controller
             ]);
 
             return $this->errorResponse(
-                'Failed to update store. Please try again later.',
+                __('api.store.update_failed'),
                 500
             );
         }
@@ -129,6 +133,8 @@ class StoreController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         try {
             $stores = $request->user()
                 ->stores()
@@ -138,7 +144,7 @@ class StoreController extends Controller
 
             return $this->successResponse(
                 new StoreCollection($stores),
-                'Stores retrieved successfully.'
+                __('api.store.retrieved')
             );
         } catch (Throwable $e) {
             Log::error('Failed to retrieve user stores', [
@@ -147,7 +153,7 @@ class StoreController extends Controller
             ]);
 
             return $this->errorResponse(
-                'Failed to retrieve stores. Please try again later.',
+                __('api.store.retrieve_failed'),
                 500
             );
         }
@@ -160,6 +166,8 @@ class StoreController extends Controller
         UpdateVerificationDocumentRequest $request,
         Store $store
     ): JsonResponse {
+        $this->applyAuthenticatedLocale($request);
+
         Gate::authorize('updateVerificationDocuments', $store);
 
         $user = $request->user();
@@ -188,7 +196,7 @@ class StoreController extends Controller
 
                 return $this->successResponse(
                     $verification,
-                    'Verification document updated successfully. It will be reviewed by our team.'
+                    __('api.store.verification_updated')
                 );
             });
         } catch (Throwable $e) {
@@ -200,7 +208,7 @@ class StoreController extends Controller
             ]);
 
             return $this->errorResponse(
-                'Failed to update verification document. Please try again later.',
+                __('api.store.verification_update_failed'),
                 500
             );
         }
@@ -295,7 +303,7 @@ class StoreController extends Controller
      */
     private function successResponse($data, string $message, int $status = 200): JsonResponse
     {
-        return response()->json([
+        return $this->localizedJson([
             'success' => true,
             'message' => $message,
             'data' => $data,
@@ -316,6 +324,6 @@ class StoreController extends Controller
             $response['errors'] = $errors;
         }
 
-        return response()->json($response, $status);
+        return $this->localizedJson($response, $status);
     }
 }

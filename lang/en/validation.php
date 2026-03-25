@@ -179,8 +179,50 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'email' => [
+            'required' => 'Email address is required.',
+            'email' => 'Please provide a valid email address.',
+            'already_registered' => 'This email is already registered. Please log in.',
+            'already_registered_seller_onboarding' => 'This email is already registered. Please log in to continue seller onboarding.',
+            'already_registered_verify' => 'This email is already registered. Please login to verify your email.',
+        ],
+        'phone_number' => [
+            'unique' => 'This phone number is already registered.',
+        ],
+        'password' => [
+            'required' => 'Password is required.',
+            'confirmed' => 'Password confirmation does not match.',
+        ],
+        'role' => [
+            'in' => 'Invalid role selected.',
+        ],
+        'language' => [
+            'in' => 'The selected language is invalid.',
+        ],
+        'reset_token' => [
+            'required' => 'Reset token is required.',
+        ],
+        'code' => [
+            'required' => 'Verification code is required.',
+            'digits' => 'Verification code must be 6 digits.',
+        ],
+        'store_name' => [
+            'required' => 'Store name is required.',
+        ],
+        'categories' => [
+            'required' => 'At least one category must be selected.',
+        ],
+        'verification_docs' => [
+            'required' => 'All verification documents are required.',
+        ],
+        'document_type' => [
+            'required' => 'Document type is required.',
+            'in' => 'Invalid document type.',
+        ],
+        'document' => [
+            'required' => 'Document file is required.',
+            'mimes' => 'Document must be a PDF or image file.',
+            'max' => 'Document size must not exceed 5MB.',
         ],
     ],
 
@@ -195,6 +237,16 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'first_name' => 'first name',
+        'last_name' => 'last name',
+        'phone_number' => 'phone number',
+        'language' => 'language',
+        'reset_token' => 'reset token',
+        'code' => 'verification code',
+        'document_type' => 'document type',
+        'document' => 'document',
+        'name' => 'name',
+    ],
 
 ];

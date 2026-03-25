@@ -20,6 +20,8 @@ class NotificationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
         $notifications = $user->notifications()
@@ -41,6 +43,8 @@ class NotificationController extends Controller
      */
     public function unread(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
         $notifications = $user->notifications()
@@ -61,9 +65,11 @@ class NotificationController extends Controller
      */
     public function show(Request $request, Notification $notification): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         if ($notification->user_id !== $request->user()->id) {
             return response()->json([
-                'message' => 'Unauthorized',
+                'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
@@ -77,16 +83,18 @@ class NotificationController extends Controller
      */
     public function markAsRead(Request $request, Notification $notification): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         if ($notification->user_id !== $request->user()->id) {
             return response()->json([
-                'message' => 'Unauthorized',
+                'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
         $notification->markAsRead();
 
         return response()->json([
-            'message' => 'Notification marked as read',
+            'message' => __('api.notifications.marked_as_read'),
             'data' => new NotificationResource($notification->fresh()),
         ]);
     }
@@ -96,6 +104,8 @@ class NotificationController extends Controller
      */
     public function markAllAsRead(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
         $updated = $user->notifications()
@@ -103,7 +113,7 @@ class NotificationController extends Controller
             ->update(['read_at' => now()]);
 
         return response()->json([
-            'message' => "{$updated} notifications marked as read",
+            'message' => __('api.notifications.marked_all_as_read', ['count' => $updated]),
             'data' => [
                 'updated_count' => $updated,
             ],
@@ -115,16 +125,18 @@ class NotificationController extends Controller
      */
     public function markAsUnread(Request $request, Notification $notification): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         if ($notification->user_id !== $request->user()->id) {
             return response()->json([
-                'message' => 'Unauthorized',
+                'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
         $notification->markAsUnread();
 
         return response()->json([
-            'message' => 'Notification marked as unread',
+            'message' => __('api.notifications.marked_as_unread'),
             'data' => new NotificationResource($notification->fresh()),
         ]);
     }
@@ -134,16 +146,18 @@ class NotificationController extends Controller
      */
     public function destroy(Request $request, Notification $notification): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         if ($notification->user_id !== $request->user()->id) {
             return response()->json([
-                'message' => 'Unauthorized',
+                'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
         $notification->delete();
 
         return response()->json([
-            'message' => 'Notification deleted',
+            'message' => __('api.notifications.deleted'),
         ], 200);
     }
 
@@ -152,6 +166,8 @@ class NotificationController extends Controller
      */
     public function deleteAllRead(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
         $deleted = $user->notifications()
@@ -159,7 +175,7 @@ class NotificationController extends Controller
             ->delete();
 
         return response()->json([
-            'message' => "{$deleted} notifications deleted",
+            'message' => __('api.notifications.deleted_read', ['count' => $deleted]),
             'data' => [
                 'deleted_count' => $deleted,
             ],
@@ -171,6 +187,8 @@ class NotificationController extends Controller
      */
     public function unreadCount(Request $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $user = $request->user();
 
         return response()->json([

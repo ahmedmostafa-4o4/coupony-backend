@@ -38,7 +38,7 @@ class OtpController extends Controller
 
         if (!$user) {
             return response()->json([
-                'message' => 'User not found.',
+                'message' => __('api.otp.user_not_found'),
             ], 404);
         }
 
@@ -54,7 +54,7 @@ class OtpController extends Controller
             );
 
             return response()->json([
-                'message' => 'OTP sent successfully.',
+                'message' => __('api.otp.sent_successfully'),
                 'data' => [
                     'expires_at' => $otp->expires_at->toIso8601String(),
                     'expires_in_minutes' => now()->diffInMinutes($otp->expires_at, false),
@@ -71,7 +71,7 @@ class OtpController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Failed to send OTP. Please try again.',
+                'message' => __('api.otp.send_failed'),
             ], 500);
         }
     }
@@ -93,7 +93,7 @@ class OtpController extends Controller
 
         if (!$user) {
             return response()->json([
-                'message' => 'User not found.',
+                'message' => __('api.otp.user_not_found'),
             ], 404);
         }
 
@@ -123,6 +123,7 @@ class OtpController extends Controller
                     $tokens = $this->authService->issueTokensForUser($user, $context);
                     $responseData = array_merge($responseData, [
                         'user' => $tokens['user'],
+                        'session' => $tokens['session'],
                         'access_token' => $tokens['access_token'],
                         'refresh_token' => $tokens['refresh_token'],
                         'token_type' => $tokens['token_type'],
@@ -172,7 +173,7 @@ class OtpController extends Controller
 
         if (!$user) {
             return response()->json([
-                'message' => 'User not found.',
+                'message' => __('api.otp.user_not_found'),
             ], 404);
         }
 
