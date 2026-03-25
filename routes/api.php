@@ -227,7 +227,7 @@ Route::prefix('v1')->group(function () {
 
 
     Route::get('/log-test', function () {
-        Log::error('test from hostinger');
+        Log::info('test from hostinger');
         return 'done';
     });
 });
