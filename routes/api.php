@@ -115,10 +115,11 @@ Route::prefix('v1')->group(function () {
                 'message' => __('api.onboarding.completed'),
             ], 200);
         })->name('onBoarding.customer');
+
         Route::post('/on-boarding/seller', function (Request $request) {
             $data = $request->validate([
-                'offers_type' => ['array'],
-                'offers_type.*' => ['string', Rule::in(OffersTypeCategory::values())],
+                'interested_categories' => ['array'],
+                'interested_categories.*' => ['string', Rule::in(InterestingOfferCategory::values())],
                 'target_audience' => ['nullable', Rule::in(TargetAudienceCategory::values())],
             ]);
 
@@ -126,7 +127,7 @@ Route::prefix('v1')->group(function () {
                 DB::table('shop_interests')->updateOrInsert(
                     ['user_id' => $request->user()->id],
                     [
-                        'offers_type' => $data['offers_type'] ? json_encode($data['offers_type']) : null,
+                        'interested_categories' => $data['interested_categories'] ? json_encode($data['interested_categories']) : null,
                         'target_audience' => $data['target_audience'] ?? null,
                         'updated_at' => now(),
                         'created_at' => now(),

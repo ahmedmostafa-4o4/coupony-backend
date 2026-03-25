@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('shop_interests', function (Blueprint $table) {
             $table->id();
             $table->uuid('user_id')->unique();
-            $table->json('offers_type')->nullable();
+            $table->json('interested_categories')->nullable();
             $table->string('target_audience')->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
