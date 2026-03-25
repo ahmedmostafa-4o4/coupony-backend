@@ -110,7 +110,7 @@ class StoreData
         if ($request->hasFile('banner') && $storeId) {
             $bannerPath = $request->file('banner')->store("stores/{$storeId}/banner", 'public');
         }
-        Log::info($request->all());
+        Log::error($request->all());
         return new self(
             name: $request->input('name', ''),
             description: $request->input('description', ''),
