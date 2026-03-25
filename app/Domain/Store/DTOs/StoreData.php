@@ -5,6 +5,7 @@ namespace App\Domain\Store\DTOs;
 use App\Application\Http\Requests\createStoreRequest;
 use App\Application\Http\Requests\updateStoreRequest;
 use Illuminate\Support\Str;
+use Log;
 
 class StoreData
 {
@@ -109,7 +110,7 @@ class StoreData
         if ($request->hasFile('banner') && $storeId) {
             $bannerPath = $request->file('banner')->store("stores/{$storeId}/banner", 'public');
         }
-
+        Log::info($request->all());
         return new self(
             name: $request->input('name', ''),
             description: $request->input('description', ''),
