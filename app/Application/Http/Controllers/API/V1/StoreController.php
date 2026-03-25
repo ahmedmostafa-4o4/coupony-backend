@@ -86,7 +86,7 @@ class StoreController extends Controller
      */
     public function update(UpdateStoreRequest $request, Store $store): JsonResponse
     {
-        Log::error($request->all());
+        Log::error("update", $request->all());
 
         $this->applyAuthenticatedLocale($request);
 
