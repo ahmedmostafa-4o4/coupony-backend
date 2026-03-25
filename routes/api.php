@@ -8,6 +8,7 @@ use App\Application\Http\Controllers\API\V1\Auth\PasswordResetController;
 use App\Application\Http\Controllers\API\V1\Auth\RefreshTokenController;
 use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
+use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
@@ -20,6 +21,7 @@ use App\Domain\User\Enums\ShoppingStyleCategory;
 use App\Domain\User\Enums\TargetAudienceCategory;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
+use App\Http\Middleware\UseAuthenticatedUserLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -33,6 +35,7 @@ use Illuminate\Validation\Rule;
 */
 
 Route::prefix('v1')->group(function () {
+    Route::get('/locales', [LocaleController::class, 'index'])->name('locales.index');
 
     /*
     |--------------------------------------------------------------------------
@@ -57,9 +60,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
 
         // Protected Authentication Routes
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
             Route::post('/logout', [LoginController::class, 'logout'])->name('auth.logout');
             Route::get('/me', [LoginController::class, 'me'])->name('auth.me');
+            Route::put('/language', [LocaleController::class, 'update'])->name('auth.language.update');
         });
     });
 
@@ -68,7 +72,7 @@ Route::prefix('v1')->group(function () {
     | Store Routes
     |--------------------------------------------------------------------------
     */
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
         Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
@@ -83,7 +87,7 @@ Route::prefix('v1')->group(function () {
     | Onboarding Routes
     |--------------------------------------------------------------------------
     */
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
         Route::post('/on-boarding/customer', function (Request $request) {
             $data = $request->validate([
                 'interesting_offers' => ['required', 'array', 'min:1'],
@@ -108,7 +112,7 @@ Route::prefix('v1')->group(function () {
 
             return response()->json([
                 'success' => true,
-                'message' => 'Onboarding completed successfully',
+                'message' => __('api.onboarding.completed'),
             ], 200);
         })->name('onBoarding.customer');
         Route::post('/on-boarding/seller', function (Request $request) {
@@ -132,7 +136,7 @@ Route::prefix('v1')->group(function () {
 
             return response()->json([
                 'success' => true,
-                'message' => 'Onboarding completed successfully',
+                'message' => __('api.onboarding.completed'),
             ], 200);
         })->name('onBoarding.seller');
     });
@@ -161,7 +165,7 @@ Route::prefix('v1')->group(function () {
     */
     Route::post('/admin/register', AdminRegisterController::class)->name('admin.register');
 
-    Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::prefix('admin')->middleware(['auth:sanctum', UseAuthenticatedUserLocale::class, 'role:admin'])->group(function () {
 
         // Store Categories Management
         Route::prefix('store-category')->name('storeCategory.')->group(function () {
@@ -219,4 +223,11 @@ Route::prefix('v1')->group(function () {
             return config('mail.from.address');
         })->name('test.mailCheck');
     }
+
+
+
+    Route::get('/log-test', function () {
+        Log::error('test from hostinger');
+        return 'done';
+    });
 });
