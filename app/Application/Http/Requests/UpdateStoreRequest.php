@@ -39,6 +39,12 @@ class UpdateStoreRequest extends FormRequest
             // Files
             'logo' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
             'banner' => 'nullable|file|image|mimes:jpg,jpeg,png|max:5120',
+
+            // Socials
+            'socials' => 'nullable|array|min:1',
+            'socials.*' => 'array',
+            'socials.*.social_id' => 'required|integer|exists:socials,id',
+            'socials.*.link' => 'required|string|url',
         ];
     }
 }

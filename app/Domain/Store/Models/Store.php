@@ -78,7 +78,7 @@ class Store extends Model
 
         static::creating(function ($store) {
             if (empty($store->id)) {
-                $store->id = (string)\Illuminate\Support\Str::uuid();
+                $store->id = (string) \Illuminate\Support\Str::uuid();
             }
         });
     }
@@ -86,6 +86,11 @@ class Store extends Model
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    public function socials()
+    {
+        return $this->hasMany(StoreSocial::class, 'store_id');
     }
 
     public function verifications()

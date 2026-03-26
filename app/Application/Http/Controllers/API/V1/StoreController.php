@@ -297,7 +297,7 @@ class StoreController extends Controller
      */
     private function storeRelations(): array
     {
-        return ['owner', 'categories', 'addresses', 'verifications', 'hours'];
+        return ['owner', 'categories', 'addresses', 'verifications', 'hours', 'socials.social'];
     }
 
     /**

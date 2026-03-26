@@ -31,12 +31,13 @@ class StoreResource extends JsonResource
             'rating_count' => $this->rating_count,
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
-            
+
             // Relationships
             'owner' => new UserResource($this->whenLoaded('owner')),
             'categories' => StoreCategoryResource::collection($this->whenLoaded('categories')),
             'addresses' => StoreAddressResource::collection($this->whenLoaded('addresses')),
             'verifications' => VerificationResource::collection($this->whenLoaded('verifications')),
+            'socials' => StoreSocialResource::collection($this->whenLoaded('socials')),
             'hours' => $this->whenLoaded('hours'),
         ];
     }

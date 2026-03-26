@@ -10,6 +10,7 @@ use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
+use App\Application\Http\Controllers\API\V1\SocialController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
@@ -81,6 +82,7 @@ Route::prefix('v1')->group(function () {
 
     // Public Store Categories
     Route::get('/store-categories', [UserStoreCategoryController::class, 'index'])->name('userStoreCategory.index');
+    Route::get('/socials', [SocialController::class, 'index'])->name('socials.index');
 
     /*
     |--------------------------------------------------------------------------
@@ -174,6 +176,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [StoreCategoryController::class, 'store'])->name('store');
             Route::put('/{category}', [StoreCategoryController::class, 'update'])->name('update');
             Route::delete('/{category}', [StoreCategoryController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('socials')->name('socials.')->group(function () {
+            Route::post('/', [SocialController::class, 'store'])->name('store');
+            Route::put('/{social}', [SocialController::class, 'update'])->name('update');
+            Route::delete('/{social}', [SocialController::class, 'destroy'])->name('destroy');
         });
 
         // Store Management

@@ -36,6 +36,29 @@ class CreateStoreRequest extends FormRequest
             'logo_url' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
             'banner_url' => 'nullable|file|image|mimes:jpg,jpeg,png|max:5120',
 
+            // Socials
+            'socials' => [
+                'array',
+                'nullable',
+                'min:1',
+            ],
+
+            'socials.*' => [
+                'array',
+            ],
+
+            'socials.*.social_id' => [
+                'required',
+                'integer',
+                'exists:socials,id',
+            ],
+
+            'socials.*.link' => [
+                'required',
+                'string',
+                'url',
+            ],
+
             // Verification documents
             'verification_docs.commercial_register' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'verification_docs.tax_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',

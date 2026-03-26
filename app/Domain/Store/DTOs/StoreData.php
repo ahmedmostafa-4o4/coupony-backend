@@ -37,8 +37,8 @@ class StoreData
         public readonly ?string $id_card_back = null,
         public readonly ?array $categories = [],
         public readonly ?array $category_ids = [],
-        public readonly ?array $address = null
-
+        public readonly ?array $address = null,
+        public readonly ?array $socials = []
     ) {
     }
 
@@ -61,6 +61,7 @@ class StoreData
             phone: $request->input('phone'),
             email: $request->user()->email,
             tax_id: $request->input('tax_id'),
+            socials: $request->input('socials'),
             logo_url: null,
             banner_url: null,
             commercial_register: null,
@@ -88,6 +89,7 @@ class StoreData
             'status' => $this->status,
             'phone' => $this->phone,
             'email' => $this->email,
+            'socials' => $this->socials,
             'tax_id' => $this->tax_id,
             'logo_url' => $this->logo_url,
             'banner_url' => $this->banner_url,
@@ -120,6 +122,7 @@ class StoreData
             phone: $request->input('phone'),
             email: $request->input('email'),
             tax_id: $request->input('tax_id'),
+            socials: $request->input('socials'),
             logo_url: $logoPath,
             banner_url: $bannerPath,
         );

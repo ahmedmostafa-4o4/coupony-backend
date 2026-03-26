@@ -4,8 +4,8 @@ namespace App\Domain\Store\Actions;
 
 use App\Domain\Store\DTOs\StoreData;
 use App\Domain\Store\Events\StoreCreated;
-use App\Domain\Store\Models\Store;
 use App\Domain\Store\Enums\StoreStatus;
+use App\Domain\Store\Models\Store;
 use App\Domain\Store\Repositories\StoreRepository;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +17,10 @@ class CreateStore
     /**
      * Create a new class instance.
      */
-    public function __construct(private
+    public function __construct(
+        private
         StoreRepository $stores,
-        )
-    {
+    ) {
 
     }
 
@@ -43,14 +43,25 @@ class CreateStore
             // ✅ Address: بما إن العلاقة morphToMany + pivot addressables
             // ماينفعش create() من العلاقة. بنعمل Address::create وبعدين attach على الـ pivot
             $store->addBranchAddress(
-            [
-                'address_line1' => $data->address_line1,
-                'city' => $data->city,
-                'address_line2' => $data->address_line2,
-                'latitude' => $data->latitude,
-                'longitude' => $data->longitude,
-            ]
+                [
+                    'address_line1' => $data->address_line1,
+                    'city' => $data->city,
+                    'address_line2' => $data->address_line2,
+                    'latitude' => $data->latitude,
+                    'longitude' => $data->longitude,
+                ]
             );
+
+            if (!empty($data->socials)) {
+                $store->socials()->createMany(
+                    collect($data->socials)
+                        ->map(fn (array $social) => [
+                            'social_id' => $social['social_id'],
+                            'link' => $social['link'],
+                        ])
+                        ->all()
+                );
+            }
 
             // ✅ Documents / Verifications
             $docs = [
@@ -65,7 +76,7 @@ class CreateStore
                     $store->verifications()->create([
                         'document_type' => $type,
                         'document_path' => $path,
-                'status' => 'pending',
+                        'status' => 'pending',
                     ]);
                 }
             }

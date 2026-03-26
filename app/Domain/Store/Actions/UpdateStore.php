@@ -5,6 +5,7 @@ namespace App\Domain\Store\Actions;
 use App\Domain\Store\DTOs\StoreData;
 use App\Domain\Store\Events\StoreUpdated;
 use App\Domain\Store\Models\Store;
+use App\Domain\Store\Models\StoreSocial;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\Storage;
 
@@ -72,6 +73,10 @@ class UpdateStore
             }
         }
 
+        if (!is_null($data->socials)) {
+            $this->syncSocials($store, $data->socials);
+        }
+
         // If store was rejected, reset to pending
         if ($store->status === 'rejected') {
             $store->update([
@@ -85,6 +90,24 @@ class UpdateStore
         // Dispatch event
         event(new StoreUpdated($store, $user));
 
-        return $store->fresh(['owner', 'categories', 'addresses', 'verifications']);
+        return $store->fresh(['owner', 'categories', 'addresses', 'verifications', 'hours', 'socials.social']);
+    }
+
+    private function syncSocials(Store $store, array $socials): void
+    {
+        $incomingSocialIds = collect($socials)
+            ->pluck('social_id')
+            ->all();
+
+        $store->socials()
+            ->whereNotIn('social_id', $incomingSocialIds)
+            ->delete();
+
+        foreach ($socials as $social) {
+            $store->socials()->updateOrCreate(
+                ['social_id' => $social['social_id']],
+                ['link' => $social['link']]
+            );
+        }
     }
 }
