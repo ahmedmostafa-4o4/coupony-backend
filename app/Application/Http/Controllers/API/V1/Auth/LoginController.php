@@ -7,6 +7,7 @@ use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Services\AuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
@@ -36,12 +37,14 @@ class LoginController extends Controller
 
             if ($role === 'seller') {
                 $is_store_owner = $result['user']->stores()->exists();
+                $isOnboardingCompleted = $this->isOnboardingCompleted($result['user']->id, $role);
                 return $this->localizedJson([
                     'message' => __('api.auth.login_successful'),
                     'data' => [
                         'user' => new UserResource($result['user']->load('stores')),
                         'session' => $result['session'],
                         'role' => $role,
+                        'is_onboarding_completed' => $isOnboardingCompleted,
                         'is_store_owner' => $is_store_owner,
                         'next' => $is_store_owner ? null : [
                             'url' => route('store.create'),
@@ -75,6 +78,7 @@ class LoginController extends Controller
                     'user' => new UserResource($result['user']),
                     'session' => $result['session'],
                     'role' => $role,
+                    'is_onboarding_completed' => $this->isOnboardingCompleted($result['user']->id, $role),
                     'access_token' => $result['access_token'],
                     'refresh_token' => $result['refresh_token'],
                     'token_type' => $result['token_type'],
@@ -122,5 +126,14 @@ class LoginController extends Controller
         return $this->localizedJson([
             'data' => new UserResource($user),
         ], 200);
+    }
+
+    private function isOnboardingCompleted(string $userId, ?string $role): bool
+    {
+        return match ($role) {
+            'customer' => DB::table('interests')->where('user_id', $userId)->exists(),
+            'seller' => DB::table('shop_interests')->where('user_id', $userId)->exists(),
+            default => false,
+        };
     }
 }
