@@ -135,6 +135,21 @@ return [
             'document_rejected' => 'Verification document rejected successfully.',
             'document_reject_failed' => 'Failed to reject document. Please try again later.',
         ],
+        'users' => [
+            'retrieved' => 'Users retrieved successfully.',
+            'retrieve_failed' => 'Unable to retrieve users. Please try again later.',
+            'details_retrieved' => 'User details retrieved successfully.',
+            'details_failed' => 'Unable to retrieve user details. Please try again later.',
+            'updated' => 'User updated successfully.',
+            'update_failed' => 'Failed to update user. Please try again later.',
+            'status_updated' => 'User status updated successfully.',
+            'status_update_failed' => 'Failed to update user status. Please try again later.',
+            'deleted' => 'User deleted successfully.',
+            'delete_failed' => 'Failed to delete user. Please try again later.',
+            'cannot_delete_self' => 'You cannot delete your own admin account.',
+            'statistics_retrieved' => 'User statistics retrieved successfully.',
+            'statistics_failed' => 'Unable to retrieve user statistics. Please try again later.',
+        ],
     ],
     'notification' => [
         'email_subjects' => [

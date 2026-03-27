@@ -1,0 +1,230 @@
+{
+  "info": {
+    "_postman_id": "8d8f2656-4b31-4afb-bd90-9cfa770cb3bb",
+    "name": "Coupony Admin User Management API",
+    "description": "Postman collection for the admin user management endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "List Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users?role=seller&status=active&search=&per_page=15",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "role",
+              "value": "seller"
+            },
+            {
+              "key": "status",
+              "value": "active"
+            },
+            {
+              "key": "search",
+              "value": ""
+            },
+            {
+              "key": "per_page",
+              "value": "15"
+            }
+          ]
+        },
+        "description": "Returns a paginated list of users. Supported filters: role, status, search, from_date, to_date, per_page."
+      },
+      "response": []
+    },
+    {
+      "name": "User Statistics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users/statistics",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "statistics"
+          ]
+        },
+        "description": "Returns summary counts for admins, customers, sellers, pending sellers, and status totals."
+      },
+      "response": []
+    },
+    {
+      "name": "Show User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{user_id}}"
+          ]
+        },
+        "description": "Returns one user with profile, roles, points, and stores."
+      },
+      "response": []
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"updated.user@example.com\",\n  \"phone_number\": \"+201000000000\",\n  \"language\": \"en\",\n  \"timezone\": \"Africa/Cairo\",\n  \"status\": \"active\",\n  \"role\": \"customer\",\n  \"first_name\": \"Updated\",\n  \"last_name\": \"User\",\n  \"date_of_birth\": \"1995-05-20\",\n  \"gender\": \"male\",\n  \"bio\": \"Managed by admin from Postman\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{user_id}}"
+          ]
+        },
+        "description": "Updates user account fields, profile fields, and optionally syncs the role."
+      },
+      "response": []
+    },
+    {
+      "name": "Update User Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"suspended\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{user_id}}",
+            "status"
+          ]
+        },
+        "description": "Updates only the user's status. Allowed values: active, suspended, deleted."
+      },
+      "response": []
+    },
+    {
+      "name": "Delete User",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{user_id}}"
+          ]
+        },
+        "description": "Deletes the selected user. Admins cannot delete their own account."
+      },
+      "response": []
+    }
+  ]
+}

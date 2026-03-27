@@ -1,6 +1,7 @@
 <?php
 
 use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
+use App\Application\Http\Controllers\API\V1\Admin\UserManagementController;
 use App\Application\Http\Controllers\API\V1\Auth\AdminRegisterController;
 use App\Application\Http\Controllers\API\V1\Auth\LoginController;
 use App\Application\Http\Controllers\API\V1\Auth\OtpController;
@@ -160,6 +161,16 @@ Route::prefix('v1')->group(function () {
         Route::prefix('notify-me')->name('notifyMe.')->group(function () {
             Route::get('/list', [NotifyMeController::class, 'list'])->name('list');
             Route::post('/notify-all', [NotifyMeController::class, 'notifyAll'])->name('notifyAll');
+        });
+
+        // User Management
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [UserManagementController::class, 'index'])->name('index');
+            Route::get('/statistics', [UserManagementController::class, 'statistics'])->name('statistics');
+            Route::get('/{user}', [UserManagementController::class, 'show'])->name('show');
+            Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
+            Route::patch('/{user}/status', [UserManagementController::class, 'updateStatus'])->name('status');
+            Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         });
     });
 
