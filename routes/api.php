@@ -10,6 +10,7 @@ use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
+use App\Application\Http\Controllers\API\V1\OnboardingController;
 use App\Application\Http\Controllers\API\V1\SocialController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
@@ -23,11 +24,8 @@ use App\Domain\User\Enums\TargetAudienceCategory;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
 use App\Http\Middleware\UseAuthenticatedUserLocale;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Validation\Rule;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,58 +88,11 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
-        Route::post('/on-boarding/customer', function (Request $request) {
-            $data = $request->validate([
-                'interesting_offers' => ['required', 'array', 'min:1'],
-                'interesting_offers.*' => ['string', Rule::in(InterestingOfferCategory::values())],
-                'shopping_style' => ['required', 'array', 'min:1'],
-                'shopping_style.*' => ['string', Rule::in(ShoppingStyleCategory::values())],
-                'budget' => ['required', 'string', Rule::in(BudgetCategory::values())],
-            ]);
+        Route::get('/on-boarding/customer', [OnboardingController::class, 'customer'])->name('onBoarding.customer.show');
+        Route::post('/on-boarding/customer', [OnboardingController::class, 'storeCustomer'])->name('onBoarding.customer');
 
-            DB::transaction(function () use ($data, $request) {
-                DB::table('interests')->updateOrInsert(
-                    ['user_id' => $request->user()->id],
-                    [
-                        'interesting_offers' => json_encode($data['interesting_offers']),
-                        'shopping_style' => json_encode($data['shopping_style']),
-                        'budget' => $data['budget'],
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
-                );
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => __('api.onboarding.completed'),
-            ], 200);
-        })->name('onBoarding.customer');
-
-        Route::post('/on-boarding/seller', function (Request $request) {
-            $data = $request->validate([
-                'interested_categories' => ['array'],
-                'interested_categories.*' => ['string', Rule::in(InterestingOfferCategory::values())],
-                'target_audience' => ['nullable', Rule::in(TargetAudienceCategory::values())],
-            ]);
-
-            DB::transaction(function () use ($data, $request) {
-                DB::table('shop_interests')->updateOrInsert(
-                    ['user_id' => $request->user()->id],
-                    [
-                        'interested_categories' => $data['interested_categories'] ? json_encode($data['interested_categories']) : null,
-                        'target_audience' => $data['target_audience'] ?? null,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
-                );
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => __('api.onboarding.completed'),
-            ], 200);
-        })->name('onBoarding.seller');
+        Route::get('/on-boarding/seller', [OnboardingController::class, 'seller'])->name('onBoarding.seller.show');
+        Route::post('/on-boarding/seller', [OnboardingController::class, 'storeSeller'])->name('onBoarding.seller');
     });
 
     /*
