@@ -2,11 +2,11 @@
 
 namespace App\Domain\User\Enums;
 
-enum TargetAudienceCategory: string
+enum BestOfferTimeCategory: string
 {
-    case YOUTH = 'youth';
-    case FAMILIES = 'families';
-    case ALL = 'all';
+    case ALL_WEEK = 'all_week';
+    case WEEKENDS_OCCASIONS = 'weekends_occasions';
+    case OFF_PEAK = 'off_peak';
 
     public static function values(): array
     {

@@ -3,8 +3,11 @@
 namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
+use App\Domain\User\Enums\BestOfferTimeCategory;
 use App\Domain\User\Enums\BudgetCategory;
+use App\Domain\User\Enums\CustomerReachMethodEnum;
 use App\Domain\User\Enums\InterestingOfferCategory;
+use App\Domain\User\Enums\PriceCategory;
 use App\Domain\User\Enums\ShoppingStyleCategory;
 use App\Domain\User\Enums\TargetAudienceCategory;
 use Illuminate\Http\JsonResponse;
@@ -75,8 +78,10 @@ class OnboardingController extends Controller
         return $this->localizedJson([
             'success' => true,
             'data' => [
-                'interested_categories' => $this->decodeJsonArray($onboarding?->interested_categories),
                 'target_audience' => $onboarding?->target_audience,
+                'customer_reach_method' => $onboarding?->customer_reach_method,
+                'price_category' => $onboarding?->price_category,
+                'best_offer_time' => $onboarding?->best_offer_time,
             ],
             'is_onboarding_completed' => $onboarding !== null,
         ]);
@@ -87,17 +92,20 @@ class OnboardingController extends Controller
         $this->applyAuthenticatedLocale($request);
 
         $data = $request->validate([
-            'interested_categories' => ['array'],
-            'interested_categories.*' => ['string', Rule::in(InterestingOfferCategory::values())],
             'target_audience' => ['nullable', Rule::in(TargetAudienceCategory::values())],
+            'customer_reach_method' => ['nullable', Rule::in(CustomerReachMethodEnum::values())],
+            'price_category' => ['nullable', Rule::in(PriceCategory::values())],
+            'best_offer_time' => ['nullable', Rule::in(BestOfferTimeCategory::values())],
         ]);
 
         DB::transaction(function () use ($data, $request) {
             DB::table('shop_interests')->updateOrInsert(
                 ['user_id' => $request->user()->id],
                 [
-                    'interested_categories' => !empty($data['interested_categories']) ? json_encode($data['interested_categories']) : null,
                     'target_audience' => $data['target_audience'] ?? null,
+                    'customer_reach_method' => $data['customer_reach_method'] ?? null,
+                    'price_category' => $data['price_category'] ?? null,
+                    'best_offer_time' => $data['best_offer_time'] ?? null,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]

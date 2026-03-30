@@ -2,11 +2,10 @@
 
 namespace App\Domain\User\Enums;
 
-enum TargetAudienceCategory: string
+enum CustomerReachMethodEnum: string
 {
-    case YOUTH = 'youth';
-    case FAMILIES = 'families';
-    case ALL = 'all';
+    case PHYSICAL_STORE = 'physical_store';
+    case ONLINE_ONLY = 'online_only';
 
     public static function values(): array
     {
