@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -18,6 +20,8 @@ class AuthenticationTest extends TestCase
         Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
+
+        Storage::fake('public');
     }
 
     public function test_user_can_login_with_valid_credentials()
@@ -97,6 +101,118 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure(['data']);
+    }
+
+    public function test_user_can_update_own_profile_via_me_endpoint()
+    {
+        $user = User::factory()->create([
+            'email' => 'before@example.com',
+            'language' => 'ar',
+        ]);
+
+        $avatar = UploadedFile::fake()->create('avatar.jpg', 120, 'image/jpeg');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->withHeader('Accept', 'application/json')
+            ->call(
+                'PATCH',
+                '/api/v1/auth/me',
+                [
+                    'email' => 'after@example.com',
+                    'language' => 'en',
+                    'first_name' => 'Updated',
+                    'last_name' => 'Name',
+                    'bio' => 'Updated from me endpoint',
+                    'gender' => 'male',
+                ],
+                [],
+                ['avatar' => $avatar]
+            );
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.email', 'after@example.com')
+            ->assertJsonPath('data.language', 'en')
+            ->assertJsonPath('data.profile.first_name', 'Updated')
+            ->assertJsonPath('data.profile.last_name', 'Name')
+            ->assertJsonPath('data.profile.bio', 'Updated from me endpoint');
+
+        $avatarUrl = $response->json('data.profile.avatar');
+        $avatarPath = str_replace(Storage::disk('public')->url(''), '', $avatarUrl);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'email' => 'after@example.com',
+            'language' => 'en',
+        ]);
+
+        $this->assertDatabaseHas('profiles', [
+            'user_id' => $user->id,
+            'first_name' => 'Updated',
+            'last_name' => 'Name',
+            'bio' => 'Updated from me endpoint',
+        ]);
+
+        Storage::disk('public')->assertExists(ltrim($avatarPath, '/'));
+    }
+
+    public function test_me_update_requires_unique_email()
+    {
+        $user = User::factory()->create([
+            'email' => 'owner@example.com',
+        ]);
+
+        User::factory()->create([
+            'email' => 'taken@example.com',
+        ]);
+
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson('/api/v1/me', [
+                'email' => 'taken@example.com',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_user_can_remove_avatar_and_return_to_default_one()
+    {
+        $user = User::factory()->create();
+
+        $avatar = UploadedFile::fake()->create('avatar.jpg', 120, 'image/jpeg');
+
+        $uploadResponse = $this->actingAs($user, 'sanctum')
+            ->withHeader('Accept', 'application/json')
+            ->call(
+                'PATCH',
+                '/api/v1/auth/me',
+                [],
+                [],
+                ['avatar' => $avatar]
+            );
+
+        $uploadResponse->assertStatus(200);
+
+        $uploadedAvatarUrl = $uploadResponse->json('data.profile.avatar');
+        $uploadedAvatarPath = ltrim(str_replace(Storage::disk('public')->url(''), '', $uploadedAvatarUrl), '/');
+
+        Storage::disk('public')->assertExists($uploadedAvatarPath);
+
+        $removeResponse = $this->actingAs($user, 'sanctum')
+            ->patchJson('/api/v1/auth/me', [
+                'remove_avatar' => true,
+            ]);
+
+        $removeResponse->assertStatus(200)
+            ->assertJsonPath('data.profile.avatar', config('app.url') . '/users/avatars/default.svg');
+
+        $this->assertDatabaseHas('profiles', [
+            'user_id' => $user->id,
+            'avatar_url' => config('app.url') . '/users/avatars/default.svg',
+        ]);
+
+        Storage::disk('public')->assertMissing($uploadedAvatarPath);
     }
 
     public function test_user_can_refresh_token()

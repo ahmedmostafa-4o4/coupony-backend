@@ -66,6 +66,6 @@ class Profile extends Model
      */
     protected static function newFactory()
     {
-        return \Database\Factories\ProfileFactory::new ();
+        return \Database\Factories\ProfileFactory::new();
     }
 }

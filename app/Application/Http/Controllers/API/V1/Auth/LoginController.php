@@ -9,6 +9,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class LoginController extends Controller
 {
@@ -128,6 +130,84 @@ class LoginController extends Controller
         ], 200);
     }
 
+    public function updateMe(Request $request): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'phone_number' => ['sometimes', 'nullable', 'string', 'max:30', Rule::unique('users', 'phone_number')->ignore($user->id)],
+            'language' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'timezone' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'first_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'last_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'date_of_birth' => ['sometimes', 'nullable', 'date'],
+            'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female'])],
+            'bio' => ['sometimes', 'nullable', 'string'],
+            'avatar' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'remove_avatar' => ['sometimes', 'boolean'],
+        ]);
+
+        try {
+            DB::transaction(function () use ($validated, $user, $request) {
+                $userFields = collect($validated)->only([
+                    'email',
+                    'phone_number',
+                    'language',
+                    'timezone',
+                ])->filter(function ($value, $key) use ($validated) {
+                    return array_key_exists($key, $validated);
+                })->all();
+
+                if ($userFields !== []) {
+                    $user->fill($userFields);
+                    $user->save();
+                }
+
+                $profileFields = collect($validated)->only([
+                    'first_name',
+                    'last_name',
+                    'date_of_birth',
+                    'gender',
+                    'bio',
+                ])->filter(function ($value, $key) use ($validated) {
+                    return array_key_exists($key, $validated);
+                })->all();
+
+                if (!empty($validated['remove_avatar'])) {
+                    $this->deleteStoredAvatarIfExists($user->profile?->avatar_url);
+                    $profileFields['avatar_url'] = $this->defaultAvatarUrl();
+                } elseif ($request->hasFile('avatar')) {
+                    $profileFields['avatar_url'] = $this->replaceAvatar($request, $user->id, $user->profile?->avatar_url);
+                }
+
+                if ($profileFields !== []) {
+                    $user->profile()->updateOrCreate(
+                        ['user_id' => $user->id],
+                        $profileFields
+                    );
+                }
+            });
+
+            $user->load(['profile', 'roles', 'points', 'stores']);
+
+            return $this->localizedJson([
+                'data' => new UserResource($user),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to update authenticated user profile', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.auth.login_failed'),
+            ], 500);
+        }
+    }
+
     private function isOnboardingCompleted(string $userId, ?string $role): bool
     {
         return match ($role) {
@@ -135,5 +215,38 @@ class LoginController extends Controller
             'seller' => DB::table('shop_interests')->where('user_id', $userId)->exists(),
             default => false,
         };
+    }
+
+    private function replaceAvatar(Request $request, string $userId, ?string $currentAvatarUrl): string
+    {
+        $this->deleteStoredAvatarIfExists($currentAvatarUrl);
+
+        $path = $request->file('avatar')->store("users/{$userId}/avatar", 'public');
+
+        return Storage::disk('public')->url($path);
+    }
+
+    private function deleteStoredAvatarIfExists(?string $avatarUrl): void
+    {
+        if (!$avatarUrl) {
+            return;
+        }
+
+        $storagePrefix = rtrim(Storage::disk('public')->url(''), '/');
+
+        if (!str_starts_with($avatarUrl, $storagePrefix . '/')) {
+            return;
+        }
+
+        $relativePath = ltrim(substr($avatarUrl, strlen($storagePrefix)), '/');
+
+        if ($relativePath !== '' && Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
+        }
+    }
+
+    private function defaultAvatarUrl(): string
+    {
+        return config('app.url') . '/users/avatars/default.svg';
     }
 }

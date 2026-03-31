@@ -63,6 +63,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
             Route::post('/logout', [LoginController::class, 'logout'])->name('auth.logout');
             Route::get('/me', [LoginController::class, 'me'])->name('auth.me');
+            Route::patch('/me', [LoginController::class, 'updateMe'])->name('me.update');
             Route::put('/language', [LocaleController::class, 'update'])->name('auth.language.update');
         });
     });
