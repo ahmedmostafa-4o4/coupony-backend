@@ -21,7 +21,7 @@ class UserResource extends JsonResource
             'language' => $this->language,
             'full_name' => $this->full_name,
             'phone_number' => $this->phone_number,
-            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values()),
+            'roles' => $this->whenLoaded('roles', fn() => $this->roles->pluck('name')->values()),
             'profile' => $this->whenLoaded('profile', [
                 'first_name' => $this->profile?->first_name,
                 'last_name' => $this->profile?->last_name,
