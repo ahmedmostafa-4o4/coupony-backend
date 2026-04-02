@@ -48,24 +48,6 @@ class LoginController extends Controller
                         'role' => $role,
                         'is_onboarding_completed' => $isOnboardingCompleted,
                         'is_store_owner' => $is_store_owner,
-                        'next' => $is_store_owner ? null : [
-                            'url' => route('store.create'),
-                            'method' => 'POST',
-                            'fields' => [
-                                'name' => 'string',
-                                'description' => 'string',
-                                'subscription_tier' => 'free|basic|premium|enterprise',
-                                'phone' => 'string',
-                                'tax_id' => 'string',
-                                'logo' => 'file',
-                                'banner' => 'file',
-                                'verification_docs' => [
-                                    'commercial_register' => 'file',
-                                    'tax_card' => 'file',
-                                    'id_card' => 'file',
-                                ]
-                            ]
-                        ],
                         'access_token' => $result['access_token'],
                         'refresh_token' => $result['refresh_token'],
                         'token_type' => $result['token_type'],
