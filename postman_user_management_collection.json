@@ -15,7 +15,15 @@
       "value": ""
     },
     {
+      "key": "user_token",
+      "value": ""
+    },
+    {
       "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "address_id",
       "value": ""
     }
   ],
@@ -31,200 +39,432 @@
   },
   "item": [
     {
-      "name": "List Users",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/admin/users?role=seller&status=active&search=&per_page=15",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "admin",
-            "users"
-          ],
-          "query": [
-            {
-              "key": "role",
-              "value": "seller"
+      "name": "Admin User Management",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
             },
-            {
-              "key": "status",
-              "value": "active"
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users?role=seller&status=active&search=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "seller"
+                },
+                {
+                  "key": "status",
+                  "value": "active"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
             },
-            {
-              "key": "search",
-              "value": ""
-            },
-            {
-              "key": "per_page",
-              "value": "15"
-            }
-          ]
-        },
-        "description": "Returns a paginated list of users. Supported filters: role, status, search, from_date, to_date, per_page."
-      },
-      "response": []
-    },
-    {
-      "name": "User Statistics",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/admin/users/statistics",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "admin",
-            "users",
-            "statistics"
-          ]
-        },
-        "description": "Returns summary counts for admins, customers, sellers, pending sellers, and status totals."
-      },
-      "response": []
-    },
-    {
-      "name": "Show User",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "admin",
-            "users",
-            "{{user_id}}"
-          ]
-        },
-        "description": "Returns one user with profile, roles, points, and stores."
-      },
-      "response": []
-    },
-    {
-      "name": "Update User",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
+            "description": "Returns a paginated list of users. Supported filters: role, status, search, from_date, to_date, per_page."
           },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"updated.user@example.com\",\n  \"phone_number\": \"+201000000000\",\n  \"language\": \"en\",\n  \"timezone\": \"Africa/Cairo\",\n  \"status\": \"active\",\n  \"role\": \"customer\",\n  \"first_name\": \"Updated\",\n  \"last_name\": \"User\",\n  \"date_of_birth\": \"1995-05-20\",\n  \"gender\": \"male\",\n  \"bio\": \"Managed by admin from Postman\"\n}"
+          "response": []
         },
-        "url": {
-          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "admin",
-            "users",
-            "{{user_id}}"
-          ]
-        },
-        "description": "Updates user account fields, profile fields, and optionally syncs the role."
-      },
-      "response": []
-    },
-    {
-      "name": "Update User Status",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
+        {
+          "name": "User Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/statistics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "statistics"
+              ]
+            },
+            "description": "Returns summary counts for admins, customers, sellers, pending sellers, and status totals."
           },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"status\": \"suspended\"\n}"
+          "response": []
         },
-        "url": {
-          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}/status",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "admin",
-            "users",
-            "{{user_id}}",
-            "status"
-          ]
+        {
+          "name": "Show User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Returns one user with profile, roles, points, and stores."
+          },
+          "response": []
         },
-        "description": "Updates only the user's status. Allowed values: active, suspended, deleted."
-      },
-      "response": []
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"updated.user@example.com\",\n  \"phone_number\": \"+201000000000\",\n  \"language\": \"en\",\n  \"timezone\": \"Africa/Cairo\",\n  \"status\": \"active\",\n  \"role\": \"customer\",\n  \"first_name\": \"Updated\",\n  \"last_name\": \"User\",\n  \"date_of_birth\": \"1995-05-20\",\n  \"gender\": \"male\",\n  \"bio\": \"Managed by admin from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Updates user account fields, profile fields, and optionally syncs the role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}",
+                "status"
+              ]
+            },
+            "description": "Updates only the user's status. Allowed values: active, suspended, deleted."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Deletes the selected user. Admins cannot delete their own account."
+          },
+          "response": []
+        }
+      ]
     },
     {
-      "name": "Delete User",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "admin",
-            "users",
-            "{{user_id}}"
-          ]
+      "name": "My Addresses",
+      "item": [
+        {
+          "name": "List My Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses"
+              ]
+            },
+            "description": "Returns the authenticated user's addresses."
+          },
+          "response": []
         },
-        "description": "Deletes the selected user. Admins cannot delete their own account."
-      },
-      "response": []
+        {
+          "name": "Create My Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Ahmed\",\n  \"last_name\": \"Mostafa\",\n  \"address_line1\": \"12 Nile Street\",\n  \"address_line2\": \"Apartment 4\",\n  \"city\": \"Cairo\",\n  \"state_province\": \"Cairo\",\n  \"postal_code\": \"11511\",\n  \"country_code\": \"EG\",\n  \"phone_number\": \"+201000000000\",\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357,\n  \"delivery_instructions\": \"Call before delivery\",\n  \"label\": \"home\",\n  \"is_default_shipping\": true,\n  \"is_default_billing\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses"
+              ]
+            },
+            "description": "Creates a new address for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_line1\": \"45 Tahrir Square\",\n  \"city\": \"Cairo\",\n  \"label\": \"work\",\n  \"is_default_shipping\": true,\n  \"is_default_billing\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Updates an existing address owned by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete My Address",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Deletes an address owned by the authenticated user."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

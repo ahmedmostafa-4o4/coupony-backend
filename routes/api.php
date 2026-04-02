@@ -10,6 +10,7 @@ use App\Application\Http\Controllers\API\V1\Auth\RefreshTokenController;
 use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\API\V1\LocaleController;
+use App\Application\Http\Controllers\API\V1\MeAddressController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\OnboardingController;
 use App\Application\Http\Controllers\API\V1\SocialController;
@@ -74,10 +75,14 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
-        Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
+        Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
+        Route::get('/me/addresses', [MeAddressController::class, 'index'])->name('me.addresses.index');
+        Route::post('/me/addresses', [MeAddressController::class, 'store'])->name('me.addresses.store');
+        Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
+        Route::delete('/me/addresses/{addressId}', [MeAddressController::class, 'destroy'])->name('me.addresses.destroy');
     });
 
     // Public Store Categories
