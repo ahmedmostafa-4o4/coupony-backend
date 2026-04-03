@@ -29,8 +29,8 @@ class OtpController extends Controller
         $validated = $request->validate([
             'email' => 'required_without:phone_number|email|exists:users,email',
             'phone_number' => 'required_without:email|string|exists:users,phone_number',
-            'purpose' => ['required', Rule::in([OtpPurposes::VERIFY_EMAIL, OtpPurposes::VERIFY_PHONE, OtpPurposes::LOGIN, OtpPurposes::RESET_PASSWORD])],
-            'channel' => ['nullable', Rule::in([OtpChannels::EMAIL, OtpChannels::SMS, OtpChannels::WHATSAPP])],
+            'purpose' => ['required', Rule::in($this->otpPurposeValues())],
+            'channel' => ['nullable', Rule::in($this->otpChannelValues())],
         ]);
 
         // Find user
@@ -85,8 +85,8 @@ class OtpController extends Controller
             'email' => 'required_without:phone_number|email',
             'phone_number' => 'required_without:email|string',
             'code' => 'required|string|digits:6',
-            'purpose' => ['required', Rule::in([OtpPurposes::VERIFY_EMAIL, OtpPurposes::VERIFY_PHONE, OtpPurposes::LOGIN, OtpPurposes::RESET_PASSWORD])],
-            'channel' => ['nullable', Rule::in([OtpChannels::EMAIL, OtpChannels::SMS, OtpChannels::WHATSAPP])],
+            'purpose' => ['required', Rule::in($this->otpPurposeValues())],
+            'channel' => ['nullable', Rule::in($this->otpChannelValues())],
         ]);
 
         $user = $this->findUser($request);
@@ -98,6 +98,7 @@ class OtpController extends Controller
         }
 
         $channel = $validated['channel'] ?? $this->determineChannel($validated['purpose']);
+        $wasEmailVerified = $user->getIsVerifiedAttribute();
 
         $result = $this->otpService->verify(
             user: $user,
@@ -112,7 +113,10 @@ class OtpController extends Controller
                 'purpose' => $validated['purpose'],
             ];
 
-            if ($validated['purpose'] === OtpPurposes::VERIFY_EMAIL->value) {
+            if (
+                $validated['purpose'] === OtpPurposes::VERIFY_EMAIL->value &&
+                !$wasEmailVerified
+            ) {
                 $context = [
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
@@ -165,8 +169,8 @@ class OtpController extends Controller
         $validated = $request->validate([
             'email' => 'required_without:phone_number|email',
             'phone_number' => 'required_without:email|string',
-            'purpose' => ['required', Rule::in([OtpPurposes::VERIFY_EMAIL, OtpPurposes::VERIFY_PHONE, OtpPurposes::LOGIN, OtpPurposes::RESET_PASSWORD])],
-            'channel' => ['nullable', Rule::in([OtpChannels::EMAIL, OtpChannels::SMS, OtpChannels::WHATSAPP])],
+            'purpose' => ['required', Rule::in($this->otpPurposeValues())],
+            'channel' => ['nullable', Rule::in($this->otpChannelValues())],
         ]);
 
         $user = $this->findUser($request);
@@ -223,10 +227,32 @@ class OtpController extends Controller
     private function determineChannel(string $purpose): string
     {
         return match ($purpose) {
-            OtpPurposes::VERIFY_EMAIL, OtpPurposes::RESET_PASSWORD => OtpChannels::EMAIL,
-            OtpPurposes::VERIFY_PHONE, OtpPurposes::LOGIN => OtpChannels::SMS,
-            default => 'email',
+            OtpPurposes::VERIFY_EMAIL->value, OtpPurposes::RESET_PASSWORD->value => OtpChannels::EMAIL->value,
+            OtpPurposes::VERIFY_PHONE->value, OtpPurposes::LOGIN->value => OtpChannels::SMS->value,
+            default => OtpChannels::EMAIL->value,
         };
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function otpPurposeValues(): array
+    {
+        return array_map(
+            static fn (OtpPurposes $purpose): string => $purpose->value,
+            OtpPurposes::cases()
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function otpChannelValues(): array
+    {
+        return array_map(
+            static fn (OtpChannels $channel): string => $channel->value,
+            OtpChannels::cases()
+        );
     }
 
 }

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\User\Models\Otp;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OtpTest extends TestCase
@@ -36,6 +37,50 @@ class OtpTest extends TestCase
         $this->assertDatabaseHas('otps', [
             'user_id' => $user->id,
             'purpose' => 'verify_email',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_email_otp_response_masks_email_recipient_correctly()
+    {
+        User::factory()->create([
+            'email' => 'tester@example.com',
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/otp/send', [
+            'email' => 'tester@example.com',
+            'purpose' => 'verify_email',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.masked_recipient', 'te****@example.com');
+    }
+
+    public function test_phone_verification_defaults_to_sms_channel()
+    {
+        Http::fake();
+        config([
+            'services.twilio.account_sid' => 'test-sid',
+            'services.twilio.auth_token' => 'test-token',
+            'services.twilio.from_number' => '+10000000000',
+        ]);
+
+        $user = User::factory()->create([
+            'phone_number' => '+201234567890',
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/otp/send', [
+            'phone_number' => '+201234567890',
+            'purpose' => 'verify_phone',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.channel', 'sms');
+
+        $this->assertDatabaseHas('otps', [
+            'user_id' => $user->id,
+            'purpose' => 'verify_phone',
+            'channel' => 'sms',
             'status' => 'pending',
         ]);
     }
@@ -93,6 +138,36 @@ class OtpTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonFragment(['error_code' => 'OTP_INVALID']);
+    }
+
+    public function test_verified_user_email_otp_verification_does_not_issue_tokens()
+    {
+        config(['otp.test_code' => '123456']);
+
+        $user = User::factory()->create([
+            'email' => 'verified@example.com',
+            'email_verified_at' => now()->subDay(),
+        ]);
+
+        $originalVerifiedAt = $user->email_verified_at?->toIso8601String();
+
+        $this->postJson('/api/v1/auth/otp/send', [
+            'email' => 'verified@example.com',
+            'purpose' => 'verify_email',
+        ])->assertStatus(200);
+
+        $response = $this->postJson('/api/v1/auth/otp/verify', [
+            'email' => 'verified@example.com',
+            'code' => '123456',
+            'purpose' => 'verify_email',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.verified', true)
+            ->assertJsonMissingPath('data.access_token')
+            ->assertJsonMissingPath('data.refresh_token');
+
+        $this->assertSame($originalVerifiedAt, $user->fresh()->email_verified_at?->toIso8601String());
     }
 
     public function test_user_can_resend_otp()

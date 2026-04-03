@@ -157,14 +157,16 @@ class OtpService
 
     public function maskRecipient(string $recipient, string $channel): string
     {
-        if ($channel === OtpChannels::EMAIL) {
-            [$name, $domain] = explode('@', $recipient);
-            $maskedName = substr($name, 0, 2) . str_repeat('*', strlen($name) - 2);
-            return $maskedName . '@' . $domain;
+        if ($channel === OtpChannels::EMAIL->value && str_contains($recipient, '@')) {
+            [$name, $domain] = explode('@', $recipient, 2);
+
+            $visibleCharacters = min(2, strlen($name));
+            $maskedCharacters = max(strlen($name) - $visibleCharacters, 1);
+
+            return substr($name, 0, $visibleCharacters) . str_repeat('*', $maskedCharacters) . '@' . $domain;
         }
 
-        // Phone masking
-        return substr($recipient, 0, 4) . str_repeat('*', strlen($recipient) - 6) . substr($recipient, -2);
+        return $this->maskPhoneRecipient($recipient);
     }
 
     /**
@@ -337,6 +339,28 @@ class OtpService
     private function getWhatsAppMessage(string $code, string $purpose): string
     {
         return $this->getSmsMessage($code, $purpose);
+    }
+
+    private function maskPhoneRecipient(string $recipient): string
+    {
+        $length = strlen($recipient);
+
+        if ($length <= 2) {
+            return str_repeat('*', $length);
+        }
+
+        if ($length <= 6) {
+            $visiblePrefix = min(2, max($length - 2, 1));
+            $maskedCharacters = max($length - ($visiblePrefix + 2), 1);
+
+            return substr($recipient, 0, $visiblePrefix)
+                . str_repeat('*', $maskedCharacters)
+                . substr($recipient, -2);
+        }
+
+        return substr($recipient, 0, 4)
+            . str_repeat('*', max($length - 6, 1))
+            . substr($recipient, -2);
     }
 
 

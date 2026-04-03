@@ -82,7 +82,7 @@ class AuthenticationServiceTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Your account has been suspended');
+        $this->expectExceptionMessage(__('api.auth.account_suspended'));
 
         $this->authService->login('test@example.com', 'password123', []);
     }
@@ -109,7 +109,7 @@ class AuthenticationServiceTest extends TestCase
             ->andReturn($otp);
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('verification code has been sent');
+        $this->expectExceptionMessage(__('api.auth.verification_code_sent'));
 
         $this->authService->login('test@example.com', 'password123', []);
     }

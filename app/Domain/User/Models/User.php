@@ -204,6 +204,10 @@ class User extends Authenticatable
 
     public function markEmailAsVerified(): void
     {
+        if ($this->email_verified_at !== null) {
+            return;
+        }
+
         $this->forceFill([
             'email_verified_at' => now(),
         ])->save();
@@ -211,6 +215,10 @@ class User extends Authenticatable
 
     public function markPhoneAsVerified(): void
     {
+        if ($this->phone_verified_at !== null) {
+            return;
+        }
+
         $this->forceFill([
             'phone_verified_at' => now(),
         ])->save();

@@ -85,7 +85,7 @@ class OtpServiceTest extends TestCase
         $result = $this->otpService->verify($user, '123456', 'verify_email', 'email');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals('OTP verified successfully.', $result['message']);
+        $this->assertEquals(__('api.otp.verified_successfully'), $result['message']);
     }
 
     public function test_verify_fails_with_incorrect_code()
@@ -110,7 +110,9 @@ class OtpServiceTest extends TestCase
         $result = $this->otpService->verify($user, '999999', 'verify_email', 'email');
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Invalid OTP code', $result['message']);
+        $this->assertEquals('OTP_INVALID', $result['error_code']);
+        $this->assertEquals(2, $result['remaining_attempts']);
+        $this->assertEquals(__('api.otp.invalid', ['attempts' => 2]), $result['message']);
     }
 
     public function test_verify_fails_with_expired_otp()
@@ -162,18 +164,14 @@ class OtpServiceTest extends TestCase
     {
         $masked = $this->otpService->maskRecipient('test@example.com', OtpChannels::EMAIL->value);
 
-        $this->assertStringStartsWith('te', $masked);
-        $this->assertStringContainsString('*', $masked);
-        $this->assertNotEquals('test@example.com', $masked);
+        $this->assertSame('te**@example.com', $masked);
     }
 
     public function test_mask_recipient_masks_phone_correctly()
     {
         $masked = $this->otpService->maskRecipient('1234567890', OtpChannels::SMS->value);
 
-        $this->assertStringStartsWith('1234', $masked);
-        $this->assertStringContainsString('*', $masked);
-        $this->assertStringEndsWith('90', $masked);
+        $this->assertSame('1234****90', $masked);
     }
 
     protected function tearDown(): void

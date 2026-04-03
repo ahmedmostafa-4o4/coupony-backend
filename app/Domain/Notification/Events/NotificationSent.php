@@ -46,4 +46,9 @@ class NotificationSent implements ShouldBroadcast
             ],
         ];
     }
+
+    public function broadcastWhen(): bool
+    {
+        return (bool) config('broadcasting.enabled', true);
+    }
 }
