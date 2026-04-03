@@ -85,7 +85,7 @@ class AuthenticationTest extends TestCase
             ->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Logged out successfully']);
+            ->assertJson(['message' => __('api.auth.logout_successful')]);
     }
 
     public function test_user_can_get_profile()
@@ -168,7 +168,7 @@ class AuthenticationTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->patchJson('/api/v1/me', [
+            ->patchJson('/api/v1/auth/me', [
                 'email' => 'taken@example.com',
             ]);
 
@@ -255,6 +255,18 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response->assertStatus(401)
-            ->assertJsonFragment(['message' => 'Invalid credentials']);
+            ->assertJsonFragment(['message' => __('api.auth.account_suspended')]);
+    }
+
+    public function test_unknown_email_returns_invalid_credentials_response()
+    {
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'missing@example.com',
+            'password' => 'password123',
+            'role' => 'customer',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')]);
     }
 }

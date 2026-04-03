@@ -38,7 +38,7 @@ class UserJourneyTest extends TestCase
             'device_name' => 'Test Device',
         ]);
 
-        $registerResponse->assertStatus(200);
+        $registerResponse->assertStatus(201);
 
         // Step 2: Verify email with OTP
         config(['otp.test_code' => '123456']);
@@ -102,7 +102,7 @@ class UserJourneyTest extends TestCase
             'device_name' => 'Test Device',
         ]);
 
-        $registerResponse->assertStatus(200);
+        $registerResponse->assertStatus(201);
 
         // Step 2: Verify email
         config(['otp.test_code' => '123456']);
@@ -129,11 +129,8 @@ class UserJourneyTest extends TestCase
             ->assertJsonPath('data.is_store_owner', false)
             ->assertJsonStructure([
             'data' => [
-                'next' => [
-                    'url',
-                    'method',
-                    'fields',
-                ],
+                'access_token',
+                'refresh_token',
             ],
         ]);
 
@@ -143,7 +140,7 @@ class UserJourneyTest extends TestCase
         $category = StoreCategory::factory()->create();
 
         $storeResponse = $this->withHeader('Authorization', "Bearer {$newAccessToken}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'John\'s Store',
             'description' => 'A great store',
             'phone' => '+1234567890',

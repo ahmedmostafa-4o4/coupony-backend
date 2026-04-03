@@ -6,10 +6,6 @@ use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\registerUserRequest;
 use App\Domain\User\Actions\RegisterUser;
 use App\Domain\User\DTOs\UserData;
-use App\Domain\User\Enums\OtpChannels;
-use App\Domain\User\Enums\OtpPurposes;
-use App\Domain\User\Services\AuthenticationService;
-use App\Domain\User\Services\OtpService;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
@@ -40,7 +36,7 @@ class AdminRegisterController extends Controller implements HasMiddleware
             'device_name' => $request->input('device_name'),
             'admin_id' => $request->user()->id,
         ];
-        $user = $this->registerUser->excute(
+        $user = $this->registerUser->execute(
             UserData::fromRequest($request),
             context: $context
         );

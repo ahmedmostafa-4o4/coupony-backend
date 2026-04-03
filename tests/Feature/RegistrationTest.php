@@ -17,6 +17,8 @@ class RegistrationTest extends TestCase
 
         Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
     }
 
     public function test_user_can_register_with_valid_data()
@@ -31,7 +33,7 @@ class RegistrationTest extends TestCase
             'device_name' => 'Test Device',
         ]);
 
-        $response->assertStatus(200)
+        $response->assertStatus(201)
             ->assertJsonStructure([
             'message',
             'data' => [
@@ -45,6 +47,56 @@ class RegistrationTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
         ]);
+    }
+
+    public function test_registration_persists_phone_number()
+    {
+        $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'email' => 'john-phone@example.com',
+            'phone_number' => '+201234567890',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'customer',
+        ])->assertStatus(201);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'john-phone@example.com',
+            'phone_number' => '+201234567890',
+        ]);
+    }
+
+    public function test_seller_registration_assigns_seller_pending_role()
+    {
+        $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Seller',
+            'last_name' => 'User',
+            'email' => 'seller@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'seller',
+        ])->assertStatus(201);
+
+        $user = User::where('email', 'seller@example.com')->first();
+
+        $this->assertTrue($user->hasRole('customer'));
+        $this->assertTrue($user->hasRole('seller_pending'));
+    }
+
+    public function test_public_registration_rejects_admin_role()
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'first_name' => 'Admin',
+            'last_name' => 'User',
+            'email' => 'admin-public@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'admin',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['role']);
     }
 
     public function test_registration_requires_first_name()

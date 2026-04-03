@@ -29,10 +29,15 @@ class AuthenticationService
 
     public function login(string $email, string $password, array $context = [])
     {
+        $requestedRole = $context['role'] ?? null;
         $user = User::where('email', $email)->first();
-        Log::info('', [$user]);
+
         if (!$user || !$this->hasher->check($password, $user->password_hash)) {
-            Log::info('password check', [!$this->hasher->check($password, $user->password_hash)]);
+            Log::warning('Login failed: invalid credentials', [
+                'email' => $email,
+                'user_id' => $user?->id,
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => [__('api.auth.invalid_credentials')],
             ]);
@@ -56,7 +61,7 @@ class AuthenticationService
             ]);
         }
 
-        if ($context['role'] === "admin" && !$user->hasRole($context['role'])) {
+        if ($requestedRole === 'admin' && !$user->hasRole($requestedRole)) {
             throw ValidationException::withMessages([
                 'role' => [__('api.common.unauthorized')],
             ]);
@@ -82,12 +87,14 @@ class AuthenticationService
             'last_activity' => now()->timestamp,
         ]);
 
-        if ($context['role'] === "customer" && !$user->hasRole($context['role'])) {
-            $user->assignRole($context['role']);
+        if ($requestedRole === 'customer' && !$user->hasRole($requestedRole)) {
+            $user->assignRole($requestedRole);
             $user->userRoles()->updateOrCreate([
-                'role_id' => Role::where('name', $context['role'])->first()->id,
+                'role_id' => Role::where('name', $requestedRole)->first()->id,
                 'user_id' => $user->id,
-                'role' => $context['role'],
+                'store_id' => null,
+            ], [
+                'granted_at' => now(),
             ]);
         }
 

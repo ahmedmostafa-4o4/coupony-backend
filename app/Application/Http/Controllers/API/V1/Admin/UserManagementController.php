@@ -5,6 +5,7 @@ namespace App\Application\Http\Controllers\API\V1\Admin;
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Enums\UserStatus;
+use Cache;
 use App\Domain\User\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -224,6 +225,8 @@ class UserManagementController extends Controller
             DB::transaction(function () use ($user) {
                 $user->tokens()->delete();
                 $user->sessions()->delete();
+                Cache::forget("user.by_email.{$user->email}");
+                Cache::forget("user.by_id.{$user->id}");
                 $user->delete();
             });
 

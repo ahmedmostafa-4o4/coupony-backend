@@ -49,9 +49,21 @@ class registerUserRequest extends FormRequest
             ],
             'phone_number' => 'nullable|string|max:20|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|string|in:customer,seller,admin',
+            'role' => ['required', 'string', Rule::in($this->allowedRoles())],
             'language' => ['nullable', 'string', Rule::in(array_keys(config('localization.supported_locales', [])))],
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedRoles(): array
+    {
+        if ($this->routeIs('admin.register')) {
+            return ['admin'];
+        }
+
+        return ['customer', 'seller'];
     }
 
     /**
