@@ -17,7 +17,11 @@ class StoreCategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'is_active' => $this->is_active
+            'name_ar' => $this->name_ar,
+            'name_en' => $this->name_en,
+            'slug' => $this->slug,
+            'sort_order' => $this->sort_order,
+            'is_active' => $this->is_active,
         ];
     }
 }

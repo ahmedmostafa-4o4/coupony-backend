@@ -5,6 +5,7 @@ namespace App\Application\Http\Controllers\API\V1;
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\createStoreCategoryRequest;
 use App\Application\Http\Requests\updateStoreCategoryRequest;
+use App\Application\Http\Resources\StoreCategoryResource;
 use App\Domain\Store\Models\StoreCategory;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -35,7 +36,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
 
             return response()->json([
                 'message' => __('api.store_categories.retrieved'),
-                'data' => $categories,
+                'data' => StoreCategoryResource::collection($categories),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve store categories', ['error' => $e->getMessage()]);
@@ -56,7 +57,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
             
             return response()->json([
                 'message' => __('api.store_categories.created'),
-                'data' => $category,
+                'data' => new StoreCategoryResource($category),
             ], 201);
         } catch (\Exception $e) {
             Log::error('Failed to create store category', ['error' => $e->getMessage()]);
@@ -77,7 +78,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
             
             return response()->json([
                 'message' => __('api.store_categories.updated'),
-                'data' => $category,
+                'data' => new StoreCategoryResource($category),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to update store category', [

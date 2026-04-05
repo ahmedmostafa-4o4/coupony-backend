@@ -3,6 +3,7 @@
 use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\UserManagementController;
 use App\Application\Http\Controllers\API\V1\Auth\AdminRegisterController;
+use App\Application\Http\Controllers\API\V1\Auth\GoogleLoginController;
 use App\Application\Http\Controllers\API\V1\Auth\LoginController;
 use App\Application\Http\Controllers\API\V1\Auth\OtpController;
 use App\Application\Http\Controllers\API\V1\Auth\PasswordResetController;
@@ -47,6 +48,7 @@ Route::prefix('v1')->group(function () {
         // Public Authentication Routes
         Route::post('/register', RegisterController::class)->name('auth.register');
         Route::post('/login', [LoginController::class, 'login'])->name('auth.login');
+        Route::post('/google', GoogleLoginController::class)->name('auth.google');
         Route::post('/refresh', RefreshTokenController::class)->name('auth.refresh');
 
         // Password Reset Routes (Public)

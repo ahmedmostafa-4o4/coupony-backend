@@ -20,11 +20,13 @@ class StoreCategoryFactory extends Factory
      */
     public function definition(): array
     {
-        $name = fake()->unique()->words(2, true);
+        $nameEn = fake()->unique()->words(2, true);
+        $nameAr = 'تصنيف ' . fake()->unique()->numberBetween(1000, 9999);
 
         return [
-            'name' => ucfirst($name),
-            'slug' => Str::slug($name),
+            'name_ar' => $nameAr,
+            'name_en' => ucfirst($nameEn),
+            'slug' => Str::slug($nameEn),
             'is_active' => true,
             'sort_order' => fake()->numberBetween(1, 100),
         ];

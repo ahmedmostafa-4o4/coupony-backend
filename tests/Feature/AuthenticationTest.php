@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
@@ -19,6 +20,7 @@ class AuthenticationTest extends TestCase
 
         Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
 
         Storage::fake('public');
@@ -263,6 +265,107 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'missing@example.com',
             'password' => 'password123',
+            'role' => 'customer',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')]);
+    }
+
+    public function test_user_can_login_with_google_and_create_a_new_customer_account()
+    {
+        config()->set('services.google.client_id', 'google-client-id');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'google-user-123',
+                'email' => 'google-user@example.com',
+                'email_verified' => 'true',
+                'given_name' => 'Google',
+                'family_name' => 'User',
+                'aud' => 'google-client-id',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'valid-google-token',
+            'role' => 'customer',
+            'device_name' => 'Pixel',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.user.email', 'google-user@example.com')
+            ->assertJsonPath('data.role', 'customer')
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    'user',
+                    'session',
+                    'access_token',
+                    'refresh_token',
+                    'token_type',
+                    'expires_in',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'google-user@example.com',
+            'provider' => 'google',
+            'provider_id' => 'google-user-123',
+        ]);
+    }
+
+    public function test_existing_user_is_linked_to_google_by_email()
+    {
+        config()->set('services.google.client_id', 'google-client-id');
+
+        $user = User::factory()->create([
+            'email' => 'existing@example.com',
+            'provider' => null,
+            'provider_id' => null,
+            'email_verified_at' => null,
+        ]);
+
+        $user->assignRole('customer');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'google-existing-456',
+                'email' => 'existing@example.com',
+                'email_verified' => true,
+                'given_name' => 'Existing',
+                'family_name' => 'User',
+                'aud' => 'google-client-id',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'valid-google-token',
+            'role' => 'customer',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.user.email', 'existing@example.com');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'provider' => 'google',
+            'provider_id' => 'google-existing-456',
+        ]);
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_user_cannot_login_with_invalid_google_token()
+    {
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'error' => 'invalid_token',
+            ], 400),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'invalid-google-token',
             'role' => 'customer',
         ]);
 

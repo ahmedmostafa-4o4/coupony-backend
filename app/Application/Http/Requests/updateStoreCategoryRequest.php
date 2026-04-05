@@ -3,6 +3,7 @@
 namespace App\Application\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class updateStoreCategoryRequest extends FormRequest
 {
@@ -21,10 +22,11 @@ class updateStoreCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Basic store info
-            'name' => 'sometimes|string|unique:store_categories,name,' . $this->category->id,
+            'name_ar' => ['sometimes', 'string', 'max:255', Rule::unique('store_categories', 'name_ar')->ignore($this->category->id)],
+            'name_en' => ['sometimes', 'string', 'max:255', Rule::unique('store_categories', 'name_en')->ignore($this->category->id)],
+            'slug' => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('store_categories', 'slug')->ignore($this->category->id)],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
-
 }
