@@ -15,7 +15,7 @@ class StoreData
      */
     public function __construct(
         public readonly string $name,
-        public readonly string $description,
+        public readonly ?string $description = null,
         public readonly ?string $ownerUserId = null,
         public readonly ?string $address_line1 = null,
         public readonly ?string $address_line2 = null,

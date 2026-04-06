@@ -34,6 +34,7 @@ class CreateStore
                 'name' => $data->name,
                 'email' => $data->email,
                 'phone' => $data->phone,
+                'description' => $data->description,
                 'status' => StoreStatus::PENDING,
             ]);
 
@@ -55,7 +56,7 @@ class CreateStore
             if (!empty($data->socials)) {
                 $store->socials()->createMany(
                     collect($data->socials)
-                        ->map(fn (array $social) => [
+                        ->map(fn(array $social) => [
                             'social_id' => $social['social_id'],
                             'link' => $social['link'],
                         ])
