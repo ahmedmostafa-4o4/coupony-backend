@@ -67,6 +67,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [LoginController::class, 'logout'])->name('auth.logout');
             Route::get('/me', [LoginController::class, 'me'])->name('auth.me');
             Route::patch('/me', [LoginController::class, 'updateMe'])->name('me.update');
+            Route::delete('/me', [LoginController::class, 'destroyMe'])->name('me.destroy');
             Route::put('/language', [LocaleController::class, 'update'])->name('auth.language.update');
         });
     });

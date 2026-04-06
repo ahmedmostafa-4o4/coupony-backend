@@ -372,4 +372,54 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(401)
             ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')]);
     }
+
+    public function test_customer_can_delete_own_account_with_current_password()
+    {
+        $user = User::factory()->create([
+            'password_hash' => bcrypt('password123'),
+            'provider' => null,
+        ]);
+        $user->assignRole('customer');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'current_password' => 'password123',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonFragment(['message' => __('api.admin.users.deleted')]);
+
+        $this->assertDatabaseMissing('users', [
+            'id' => $user->id,
+        ]);
+    }
+
+    public function test_customer_delete_own_account_requires_current_password_for_password_accounts()
+    {
+        $user = User::factory()->create([
+            'password_hash' => bcrypt('password123'),
+            'provider' => null,
+        ]);
+        $user->assignRole('customer');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me');
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['current_password']);
+    }
+
+    public function test_seller_cannot_delete_account_via_customer_delete_endpoint()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('seller');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'current_password' => 'password123',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJsonFragment(['message' => __('api.common.unauthorized')]);
+    }
 }

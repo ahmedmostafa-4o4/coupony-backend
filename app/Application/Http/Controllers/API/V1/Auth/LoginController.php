@@ -1,13 +1,16 @@
 <?php
 
 namespace App\Application\Http\Controllers\API\V1\Auth;
+
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\loginUserRequest;
 use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Services\AuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -186,6 +189,56 @@ class LoginController extends Controller
 
             return $this->localizedJson([
                 'message' => __('api.auth.login_failed'),
+            ], 500);
+        }
+    }
+
+    public function destroyMe(Request $request): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $user = $request->user();
+
+        if (!$user->hasRole('customer') || $user->hasAnyRole(['admin', 'seller', 'seller_pending'])) {
+            return $this->localizedJson([
+                'message' => __('api.common.unauthorized'),
+            ], 403);
+        }
+
+        if (blank($user->provider)) {
+            $validated = $request->validate([
+                'current_password' => ['required', 'string', 'min:8'],
+            ]);
+
+            if (!Hash::check($validated['current_password'], $user->password_hash)) {
+                return $this->localizedJson([
+                    'message' => __('api.auth.invalid_credentials'),
+                    'errors' => [
+                        'current_password' => [__('api.auth.invalid_credentials')],
+                    ],
+                ], 401);
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($user) {
+                $this->authService->logoutAll($user);
+                Cache::forget("user.by_email.{$user->email}");
+                Cache::forget("user.by_id.{$user->id}");
+                $user->delete();
+            });
+
+            return $this->localizedJson([
+                'message' => __('api.admin.users.deleted'),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete authenticated customer account', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.users.delete_failed'),
             ], 500);
         }
     }
