@@ -4,6 +4,7 @@ namespace App\Domain\Store\Models;
 
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreHours;
+use App\Domain\Product\Models\Product;
 use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
@@ -153,6 +154,11 @@ class Store extends Model
             StoreCategory::class,
             'store_store_category'
         );
+    }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class, 'store_id');
     }
 
     public function addBranchAddress(array $data): Address

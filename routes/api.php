@@ -14,6 +14,10 @@ use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\MeAddressController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\OnboardingController;
+use App\Application\Http\Controllers\API\V1\CategoryController;
+use App\Application\Http\Controllers\API\V1\ProductImageController;
+use App\Application\Http\Controllers\API\V1\ProductController;
+use App\Application\Http\Controllers\API\V1\ProductVariantController;
 use App\Application\Http\Controllers\API\V1\SocialController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
@@ -38,6 +42,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::get('/locales', [LocaleController::class, 'index'])->name('locales.index');
+    Route::get('/products', [ProductController::class, 'publicIndex'])->name('products.index');
+    Route::get('/products/{product}', [ProductController::class, 'publicShow'])->name('products.show');
+    Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
+    Route::get('/categories/{category}/products', [ProductController::class, 'categoryProducts'])->name('categories.products.index');
 
     /*
     |--------------------------------------------------------------------------
@@ -66,6 +74,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
             Route::post('/logout', [LoginController::class, 'logout'])->name('auth.logout');
             Route::get('/me', [LoginController::class, 'me'])->name('auth.me');
+            Route::post('/change-password', [LoginController::class, 'changePassword'])->name('auth.change-password');
             Route::patch('/me', [LoginController::class, 'updateMe'])->name('me.update');
             Route::delete('/me', [LoginController::class, 'destroyMe'])->name('me.destroy');
             Route::put('/language', [LocaleController::class, 'update'])->name('auth.language.update');
@@ -82,6 +91,27 @@ Route::prefix('v1')->group(function () {
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
+        Route::scopeBindings()->group(function () {
+            Route::prefix('/stores/{store}/products')->name('stores.products.')->group(function () {
+                Route::post('/', [ProductController::class, 'store'])->name('store');
+                Route::get('/', [ProductController::class, 'sellerIndex'])->name('index');
+                Route::get('/{product}', [ProductController::class, 'show'])->name('show');
+                Route::put('/{product}', [ProductController::class, 'update'])->name('update');
+                Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
+                Route::patch('/{product}/status', [ProductController::class, 'updateStatus'])->name('status');
+                Route::get('/{product}/variants', [ProductVariantController::class, 'index'])->name('variants.index');
+                Route::post('/{product}/variants', [ProductVariantController::class, 'store'])->name('variants.store');
+                Route::get('/{product}/variants/{variant}', [ProductVariantController::class, 'show'])->name('variants.show');
+                Route::put('/{product}/variants/{variant}', [ProductVariantController::class, 'update'])->name('variants.update');
+                Route::delete('/{product}/variants/{variant}', [ProductVariantController::class, 'destroy'])->name('variants.destroy');
+                Route::put('/{product}/variants/{variant}/attributes', [ProductVariantController::class, 'replaceAttributes'])->name('variants.attributes.update');
+                Route::get('/{product}/images', [ProductImageController::class, 'index'])->name('images.index');
+                Route::post('/{product}/images', [ProductImageController::class, 'store'])->name('images.store');
+                Route::patch('/{product}/images/reorder', [ProductImageController::class, 'reorder'])->name('images.reorder');
+                Route::patch('/{product}/images/{image}/primary', [ProductImageController::class, 'setPrimary'])->name('images.primary');
+                Route::delete('/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('images.destroy');
+            });
+        });
         Route::get('/me/addresses', [MeAddressController::class, 'index'])->name('me.addresses.index');
         Route::post('/me/addresses', [MeAddressController::class, 'store'])->name('me.addresses.store');
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
@@ -130,6 +160,12 @@ Route::prefix('v1')->group(function () {
     Route::post('/admin/register', AdminRegisterController::class)->name('admin.register');
 
     Route::prefix('admin')->middleware(['auth:sanctum', UseAuthenticatedUserLocale::class, 'role:admin'])->group(function () {
+        Route::prefix('categories')->name('categories.')->group(function () {
+            Route::get('/', [CategoryController::class, 'index'])->name('index');
+            Route::post('/', [CategoryController::class, 'store'])->name('store');
+            Route::put('/{category}', [CategoryController::class, 'update'])->name('update');
+            Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
+        });
 
         // Store Categories Management
         Route::prefix('store-category')->name('storeCategory.')->group(function () {

@@ -85,6 +85,30 @@ Notification types:
 - Promotion
 - Reminder
 
+### 6. ProductCategorySeeder
+Creates a reusable product catalog tree for the Product module.
+
+**Categories Created:**
+- Electronics
+- Fashion
+- Food & Beverages
+- Home & Garden
+- Beauty & Health
+- Sports & Outdoors
+
+Each top-level category also includes child categories such as `Smartphones`, `Audio`, `Footwear`, `Restaurant Deals`, and `Skincare`.
+
+### 7. ProductSeeder
+Creates sample products for active stores using the Product module tables.
+
+**Products Created Per Active Store:**
+- 5 products per active store
+- Mix of `active`, `draft`, and `inactive` product statuses
+- Linked product categories
+- Product images
+- Product variants
+- Variant attributes
+
 ## Running Seeders
 
 ### Run All Seeders
@@ -97,7 +121,9 @@ php artisan db:seed
 php artisan db:seed --class=RoleAndPermissionSeeder
 php artisan db:seed --class=UserSeeder
 php artisan db:seed --class=StoreCategorySeeder
+php artisan db:seed --class=ProductCategorySeeder
 php artisan db:seed --class=StoreSeeder
+php artisan db:seed --class=ProductSeeder
 php artisan db:seed --class=NotificationSeeder
 ```
 
@@ -113,8 +139,10 @@ The seeders must be run in the following order due to dependencies:
 1. **RoleAndPermissionSeeder** - Creates roles first
 2. **UserSeeder** - Creates users and assigns roles
 3. **StoreCategorySeeder** - Creates categories
-4. **StoreSeeder** - Creates stores (requires users and categories)
-5. **NotificationSeeder** - Creates notifications (requires users)
+4. **ProductCategorySeeder** - Creates product categories
+5. **StoreSeeder** - Creates stores (requires users and categories)
+6. **ProductSeeder** - Creates products (requires stores and product categories)
+7. **NotificationSeeder** - Creates notifications (requires users)
 
 This order is automatically handled by `DatabaseSeeder.php`.
 
@@ -137,7 +165,9 @@ After seeding, you can use these credentials for testing:
 - **Roles:** 6
 - **Permissions:** ~20
 - **Store Categories:** 15
+- **Product Categories:** 16
 - **Stores:** 7 (3 active + 2 pending + 2 rejected)
+- **Products:** 15 sample products across active stores
 - **Store Hours:** 49 (7 per store)
 - **Store Verifications:** 28 (4 per store)
 - **Notifications:** ~40-50 (varies)

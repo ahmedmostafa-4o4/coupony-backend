@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Application\Http\Requests;
+
+use App\Domain\Product\Enums\ProductStatus;
+use App\Domain\Product\Enums\ProductType;
+use App\Domain\Product\Models\Product;
+use App\Domain\Store\Models\Store;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateProductRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        /** @var Store $store */
+        $store = $this->route('store');
+        /** @var Product $product */
+        $product = $this->route('product');
+
+        return [
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'slug' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('products', 'slug')
+                    ->where(fn($query) => $query->where('store_id', $store->id))
+                    ->ignore($product->id),
+            ],
+            'short_description' => ['nullable', 'string', 'max:500'],
+            'description' => ['nullable', 'string'],
+            'product_type' => ['sometimes', 'required', Rule::in(ProductType::values())],
+            'base_price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'currency' => ['sometimes', 'required', 'string', 'size:3'],
+            'sku' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('products', 'sku')
+                    ->where(fn($query) => $query->where('store_id', $store->id))
+                    ->ignore($product->id),
+            ],
+            'status' => ['sometimes', 'required', Rule::in(ProductStatus::values())],
+            'is_featured' => ['sometimes', 'boolean'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
+            'images' => ['nullable', 'array'],
+            'images.*.file' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp'],
+            'images.*.sort_order' => ['nullable', 'integer'],
+            'images.*.is_primary' => ['nullable', 'boolean'],
+            'variants' => ['nullable', 'array'],
+            'variants.*.title' => ['required', 'string', 'max:255'],
+            'variants.*.option_summary' => ['nullable', 'string', 'max:255'],
+            'variants.*.sku' => ['nullable', 'string', 'max:100'],
+            'variants.*.barcode' => ['nullable', 'string', 'max:100'],
+            'variants.*.price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.currency' => ['required_with:variants', 'string', 'size:3'],
+            'variants.*.sort_order' => ['nullable', 'integer'],
+            'variants.*.is_default' => ['nullable', 'boolean'],
+            'variants.*.is_active' => ['nullable', 'boolean'],
+            'variants.*.attributes' => ['nullable', 'array'],
+            'variants.*.attributes.*.attribute_name' => ['required', 'string', 'max:100'],
+            'variants.*.attributes.*.attribute_value' => ['required', 'string', 'max:255'],
+            'variants.*.attributes.*.sort_order' => ['nullable', 'integer'],
+        ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->exists('compare_at_price') && $this->input('compare_at_price') !== null) {
+                $basePrice = $this->exists('base_price')
+                    ? $this->input('base_price')
+                    : $this->route('product')->base_price;
+
+                if ((float) $this->input('compare_at_price') < (float) $basePrice) {
+                    $validator->errors()->add('compare_at_price', __('validation.custom.product.compare_at_price'));
+                }
+            }
+
+            $variants = collect($this->input('variants', []) ?? []);
+
+            if ($variants->isEmpty()) {
+                return;
+            }
+
+            $defaultCount = $variants->filter(fn(array $variant) => (bool) ($variant['is_default'] ?? false))->count();
+
+            if ($defaultCount > 1) {
+                $validator->errors()->add('variants', __('validation.custom.variants.single_default'));
+            }
+
+            $duplicateSkus = $variants
+                ->pluck('sku')
+                ->filter(fn($sku) => filled($sku))
+                ->map(fn($sku) => mb_strtolower((string) $sku))
+                ->duplicates();
+
+            if ($duplicateSkus->isNotEmpty()) {
+                $validator->errors()->add('variants', __('validation.custom.variants.unique_sku'));
+            }
+
+            foreach ($variants as $index => $variant) {
+                if (
+                    array_key_exists('price', $variant)
+                    && array_key_exists('compare_at_price', $variant)
+                    && $variant['price'] !== null
+                    && $variant['compare_at_price'] !== null
+                    && (float) $variant['compare_at_price'] < (float) $variant['price']
+                ) {
+                    $validator->errors()->add(
+                        "variants.{$index}.compare_at_price",
+                        __('validation.custom.variants.compare_at_price')
+                    );
+                }
+            }
+        });
+    }
+}

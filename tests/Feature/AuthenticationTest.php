@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
@@ -103,6 +104,59 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure(['data']);
+    }
+
+    public function test_user_can_change_password(): void
+    {
+        $user = User::factory()->create([
+            'password_hash' => bcrypt('Ax7!mQ2#Lp9$'),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/auth/change-password', [
+                'current_password' => 'Ax7!mQ2#Lp9$',
+                'password' => 'Rt4@kN8!Vz2%',
+                'password_confirmation' => 'Rt4@kN8!Vz2%',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonFragment(['message' => __('api.auth.password_changed')]);
+
+        $this->assertTrue(Hash::check('Rt4@kN8!Vz2%', $user->fresh()->password_hash));
+    }
+
+    public function test_user_cannot_change_password_with_incorrect_current_password(): void
+    {
+        $user = User::factory()->create([
+            'password_hash' => bcrypt('Ax7!mQ2#Lp9$'),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/auth/change-password', [
+                'current_password' => 'Wr5!zT3#By8@',
+                'password' => 'Rt4@kN8!Vz2%',
+                'password_confirmation' => 'Rt4@kN8!Vz2%',
+            ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')]);
+    }
+
+    public function test_user_cannot_reuse_the_current_password_when_changing_password(): void
+    {
+        $user = User::factory()->create([
+            'password_hash' => bcrypt('Ax7!mQ2#Lp9$'),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/auth/change-password', [
+                'current_password' => 'Ax7!mQ2#Lp9$',
+                'password' => 'Ax7!mQ2#Lp9$',
+                'password_confirmation' => 'Ax7!mQ2#Lp9$',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
     }
 
     public function test_user_can_update_own_profile_via_me_endpoint()

@@ -186,12 +186,16 @@ return [
             'already_registered_seller_onboarding' => 'This email is already registered. Please log in to continue seller onboarding.',
             'already_registered_verify' => 'This email is already registered. Please login to verify your email.',
         ],
+        'current_password' => [
+            'required' => 'Current password is required.',
+        ],
         'phone_number' => [
             'unique' => 'This phone number is already registered.',
         ],
         'password' => [
             'required' => 'Password is required.',
             'confirmed' => 'Password confirmation does not match.',
+            'different' => 'New password must be different from the current password.',
         ],
         'role' => [
             'in' => 'Invalid role selected.',
@@ -223,6 +227,21 @@ return [
             'required' => 'Document file is required.',
             'mimes' => 'Document must be a PDF or image file.',
             'max' => 'Document size must not exceed 5MB.',
+        ],
+        'product' => [
+            'compare_at_price' => 'The compare at price must be greater than or equal to the base price.',
+        ],
+        'variants' => [
+            'single_default' => 'Only one default variant is allowed per product.',
+            'unique_sku' => 'Variant SKU must be unique per product.',
+            'compare_at_price' => 'Variant compare at price must be greater than or equal to the variant price.',
+        ],
+        'attributes' => [
+            'unique_name' => 'Attribute names must be unique per variant.',
+        ],
+        'images' => [
+            'single_primary' => 'Only one primary image is allowed per request.',
+            'unique_ids' => 'Each image can only appear once in the reorder payload.',
         ],
     ],
 

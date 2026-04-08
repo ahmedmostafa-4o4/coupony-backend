@@ -3,6 +3,7 @@
 namespace App\Application\Http\Controllers\API\V1\Auth;
 
 use App\Application\Http\Controllers\Controller;
+use App\Application\Http\Requests\ChangePasswordRequest;
 use App\Application\Http\Requests\loginUserRequest;
 use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Services\AuthenticationService;
@@ -113,6 +114,46 @@ class LoginController extends Controller
         return $this->localizedJson([
             'data' => new UserResource($user),
         ], 200);
+    }
+
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $user = $request->user();
+        $validated = $request->validated();
+
+        if (!Hash::check($validated['current_password'], $user->password_hash)) {
+            return $this->localizedJson([
+                'message' => __('api.auth.invalid_credentials'),
+                'errors' => [
+                    'current_password' => [__('api.auth.invalid_credentials')],
+                ],
+            ], 401);
+        }
+
+        try {
+            DB::transaction(function () use ($user, $validated) {
+                $user->forceFill([
+                    'password_hash' => Hash::make($validated['password']),
+                ])->save();
+
+                $user->tokens()->delete();
+            });
+
+            return $this->localizedJson([
+                'message' => __('api.auth.password_changed'),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to change password', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.auth.login_failed'),
+            ], 500);
+        }
     }
 
     public function updateMe(Request $request): JsonResponse

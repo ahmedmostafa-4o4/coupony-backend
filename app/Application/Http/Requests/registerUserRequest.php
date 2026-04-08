@@ -5,13 +5,14 @@ namespace App\Application\Http\Requests;
 use App\Domain\User\Repositories\UserRepository;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class registerUserRequest extends FormRequest
 {
-    public function __construct(private
+    public function __construct(
+        private
         UserRepository $user
-        )
-    {
+    ) {
     }
     /**
      * Determine if the user is authorized to make this request.
@@ -35,20 +36,33 @@ class registerUserRequest extends FormRequest
                 'required',
                 'email',
                 function ($attribute, $value, $fail) {
-            $user = $this->user->findByEmail($value);
-            if ($user) {
-                if (($this->role ?? null) === 'seller') {
-                    if ($user->email_verified_at !== null || $user->phone_verified_at !== null)
-                        return $fail(__('validation.custom.email.already_registered_seller_onboarding'));
-                    else
-                        return $fail(__('validation.custom.email.already_registered_verify'));
-                }
-                return $fail(__('validation.custom.email.already_registered'));
-            }
-        },
+                    $user = $this->user->findByEmail($value);
+                    if ($user) {
+                        if (($this->role ?? null) === 'seller') {
+                            if ($user->email_verified_at !== null || $user->phone_verified_at !== null)
+                                return $fail(__('validation.custom.email.already_registered_seller_onboarding'));
+                            else
+                                return $fail(__('validation.custom.email.already_registered_verify'));
+                        }
+                        return $fail(__('validation.custom.email.already_registered'));
+                    }
+                },
             ],
             'phone_number' => 'nullable|string|max:20|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised(),
+            ]
+
+
+            ,
+        ,
             'role' => ['required', 'string', Rule::in($this->allowedRoles())],
             'language' => ['nullable', 'string', Rule::in(array_keys(config('localization.supported_locales', [])))],
         ];

@@ -1,0 +1,223 @@
+{
+  "info": {
+    "_postman_id": "a1e43a89-e3b2-46aa-9869-8369f6e4dc19",
+    "name": "Coupony - Address Endpoints",
+    "description": "Postman collection for authenticated user address endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "user_token",
+      "value": ""
+    },
+    {
+      "key": "address_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "My Addresses",
+      "item": [
+        {
+          "name": "List My Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses"
+              ]
+            },
+            "description": "Returns all addresses for the authenticated user."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const jsonData = pm.response.json();",
+                  "  if (jsonData && Array.isArray(jsonData.data) && jsonData.data.length > 0 && jsonData.data[0].id) {",
+                  "    pm.collectionVariables.set('address_id', String(jsonData.data[0].id));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create My Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Ahmed\",\n  \"last_name\": \"Mostafa\",\n  \"company\": \"Coupony\",\n  \"address_line1\": \"12 Nile Street\",\n  \"address_line2\": \"Apartment 4\",\n  \"city\": \"Cairo\",\n  \"state_province\": \"Cairo\",\n  \"postal_code\": \"11511\",\n  \"country_code\": \"EG\",\n  \"phone_number\": \"+201000000000\",\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357,\n  \"delivery_instructions\": \"Call before delivery\",\n  \"label\": \"home\",\n  \"is_default_shipping\": true,\n  \"is_default_billing\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses"
+              ]
+            },
+            "description": "Creates an address for the authenticated user. Required fields on create: address_line1 and city."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const jsonData = pm.response.json();",
+                  "  if (jsonData && jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('address_id', String(jsonData.data.id));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update My Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_line1\": \"45 Tahrir Square\",\n  \"city\": \"Cairo\",\n  \"label\": \"work\",\n  \"is_default_shipping\": true,\n  \"is_default_billing\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Updates any subset of address fields for a specific address owned by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete My Address",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Deletes a specific address owned by the authenticated user."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

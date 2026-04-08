@@ -1,0 +1,1288 @@
+{
+  "info": {
+    "_postman_id": "f2d0af58-2e31-47fd-a497-2f334e59d1f1",
+    "name": "Coupony Products API",
+    "description": "Postman collection for Product module endpoints (seller + public).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "store_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variant_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "image_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Helpers",
+      "item": [
+        {
+          "name": "Login (Save Bearer Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seller1@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  const token = data?.data?.access_token || data?.access_token || data?.token || '';",
+                  "  if (token) pm.collectionVariables.set('token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin Login (Save Admin Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@coupony.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  const token = data?.data?.access_token || data?.access_token || data?.token || '';",
+                  "  if (token) pm.collectionVariables.set('admin_token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Product Categories",
+      "item": [
+        {
+          "name": "List Admin Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/categories?active=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "active",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Admin Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics\",\n  \"slug\": \"electronics\",\n  \"description\": \"Devices and accessories\",\n  \"parent_id\": null,\n  \"sort_order\": 1,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "categories"
+              ]
+            },
+            "description": "Creates a product category. Use an existing category id in parent_id to make a child category."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Admin Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics & Gadgets\",\n  \"description\": \"Updated category description\",\n  \"sort_order\": 2,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/categories/{{category_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Admin Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/categories/{{category_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Seller Products",
+      "item": [
+        {
+          "name": "Create Product (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Example Product",
+                  "type": "text"
+                },
+                {
+                  "key": "slug",
+                  "value": "example-product",
+                  "type": "text"
+                },
+                {
+                  "key": "short_description",
+                  "value": "Short description",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Long description",
+                  "type": "text"
+                },
+                {
+                  "key": "product_type",
+                  "value": "standard",
+                  "type": "text"
+                },
+                {
+                  "key": "base_price",
+                  "value": "100.00",
+                  "type": "text"
+                },
+                {
+                  "key": "compare_at_price",
+                  "value": "120.00",
+                  "type": "text"
+                },
+                {
+                  "key": "currency",
+                  "value": "EGP",
+                  "type": "text"
+                },
+                {
+                  "key": "sku",
+                  "value": "SKU-001",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "type": "text"
+                },
+                {
+                  "key": "is_featured",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "category_ids[0]",
+                  "value": "{{category_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "images[0][file]",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "images[0][sort_order]",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "images[0][is_primary]",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][title]",
+                  "value": "Red / XL",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][option_summary]",
+                  "value": "Color: Red, Size: XL",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][sku]",
+                  "value": "SKU-001-RED-XL",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][barcode]",
+                  "value": "123456789",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][price]",
+                  "value": "110.00",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][compare_at_price]",
+                  "value": "130.00",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][currency]",
+                  "value": "EGP",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][sort_order]",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][is_default]",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][is_active]",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][attributes][0][attribute_name]",
+                  "value": "color",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][attributes][0][attribute_value]",
+                  "value": "red",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][attributes][0][sort_order]",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][attributes][1][attribute_name]",
+                  "value": "size",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][attributes][1][attribute_value]",
+                  "value": "XL",
+                  "type": "text"
+                },
+                {
+                  "key": "variants[0][attributes][1][sort_order]",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products"
+              ]
+            },
+            "description": "Creates a product for the selected store and auto-saves returned product_id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  const id = data?.data?.id || '';",
+                  "  if (id) pm.collectionVariables.set('product_id', id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Store Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products?status=&search=&is_featured=&per_page=15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "is_featured",
+                  "value": ""
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Store Product",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Store Product (JSON)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Product\",\n  \"slug\": \"updated-product\",\n  \"status\": \"active\",\n  \"is_featured\": true,\n  \"category_ids\": [{{category_id}}],\n  \"variants\": [\n    {\n      \"title\": \"Blue / L\",\n      \"option_summary\": \"Color: Blue, Size: L\",\n      \"sku\": \"SKU-001-BLUE-L\",\n      \"barcode\": \"987654321\",\n      \"price\": 115,\n      \"compare_at_price\": 140,\n      \"currency\": \"EGP\",\n      \"sort_order\": 0,\n      \"is_default\": true,\n      \"is_active\": true,\n      \"attributes\": [\n        {\"attribute_name\": \"color\", \"attribute_value\": \"blue\", \"sort_order\": 0},\n        {\"attribute_name\": \"size\", \"attribute_value\": \"L\", \"sort_order\": 1}\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Store Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Product Variants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/variants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "variants"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product Variant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Blue / L\",\n  \"option_summary\": \"Color: Blue, Size: L\",\n  \"sku\": \"SKU-001-BLUE-L\",\n  \"barcode\": \"987654321\",\n  \"price\": 115,\n  \"compare_at_price\": 140,\n  \"currency\": \"EGP\",\n  \"sort_order\": 1,\n  \"is_default\": false,\n  \"is_active\": true,\n  \"attributes\": [\n    {\"attribute_name\": \"color\", \"attribute_value\": \"blue\", \"sort_order\": 0},\n    {\"attribute_name\": \"size\", \"attribute_value\": \"L\", \"sort_order\": 1}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/variants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "variants"
+              ]
+            },
+            "description": "Creates a separate variant for the selected product and auto-saves variant_id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  const id = data?.data?.id || '';",
+                  "  if (id) pm.collectionVariables.set('variant_id', id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Show Product Variant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/variants/{{variant_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "variants",
+                "{{variant_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product Variant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Blue / XL\",\n  \"option_summary\": \"Color: Blue, Size: XL\",\n  \"price\": 125,\n  \"compare_at_price\": 150,\n  \"is_default\": true,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/variants/{{variant_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "variants",
+                "{{variant_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace Variant Attributes",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributes\": [\n    {\"attribute_name\": \"color\", \"attribute_value\": \"navy\", \"sort_order\": 0},\n    {\"attribute_name\": \"size\", \"attribute_value\": \"XL\", \"sort_order\": 1}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/variants/{{variant_id}}/attributes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "variants",
+                "{{variant_id}}",
+                "attributes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product Variant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/variants/{{variant_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "variants",
+                "{{variant_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Product Images",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "images"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Product Images (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images[0][file]",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "images[0][sort_order]",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "images[0][is_primary]",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "images[1][file]",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "images[1][sort_order]",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "images[1][is_primary]",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "images"
+              ]
+            },
+            "description": "Uploads product images and auto-saves the first returned image_id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  const id = data?.data?.[0]?.id || '';",
+                  "  if (id) pm.collectionVariables.set('image_id', id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reorder Product Images",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"images\": [\n    {\"id\": {{image_id}}, \"sort_order\": 0}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/images/reorder",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "images",
+                "reorder"
+              ]
+            },
+            "description": "Send the full current image list here. The sample uses one image only."
+          },
+          "response": []
+        },
+        {
+          "name": "Set Primary Product Image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/images/{{image_id}}/primary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "images",
+                "{{image_id}}",
+                "primary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product Image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products/{{product_id}}/images/{{image_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "products",
+                "{{product_id}}",
+                "images",
+                "{{image_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Public Products",
+      "item": [
+        {
+          "name": "List Public Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?category={{category_id}}&search=&featured=&per_page=15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "{{category_id}}"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "featured",
+                  "value": ""
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Public Product",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{product_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Category Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{{category_id}}/products?per_page=15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{category_id}}",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
