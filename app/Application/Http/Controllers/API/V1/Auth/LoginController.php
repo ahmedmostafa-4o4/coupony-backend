@@ -122,7 +122,6 @@ class LoginController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone_number' => ['sometimes', 'nullable', 'string', 'max:30', Rule::unique('users', 'phone_number')->ignore($user->id)],
             'language' => ['sometimes', 'nullable', 'string', 'max:10'],
             'timezone' => ['sometimes', 'nullable', 'string', 'max:100'],
@@ -142,7 +141,6 @@ class LoginController extends Controller
             ]);
             DB::transaction(function () use ($validated, $user, $request) {
                 $userFields = collect($validated)->only([
-                    'email',
                     'phone_number',
                     'language',
                     'timezone',
