@@ -72,6 +72,41 @@ class MeAddressTest extends TestCase
         ]);
     }
 
+    public function test_user_can_search_own_addresses(): void
+    {
+        $user = User::factory()->create();
+
+        $matchingAddress = Address::factory()->create([
+            'address_line1' => '12 Nile Street',
+            'city' => 'Cairo',
+        ]);
+
+        $nonMatchingAddress = Address::factory()->create([
+            'address_line1' => '45 Desert Road',
+            'city' => 'Giza',
+        ]);
+
+        $user->addresses()->attach($matchingAddress->id, [
+            'label' => 'home',
+            'is_default_shipping' => true,
+            'is_default_billing' => false,
+        ]);
+
+        $user->addresses()->attach($nonMatchingAddress->id, [
+            'label' => 'office',
+            'is_default_shipping' => false,
+            'is_default_billing' => false,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/addresses?search=Nile');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $matchingAddress->id)
+            ->assertJsonPath('data.0.address_line1', '12 Nile Street');
+    }
+
     public function test_user_can_update_own_address(): void
     {
         $user = User::factory()->create();

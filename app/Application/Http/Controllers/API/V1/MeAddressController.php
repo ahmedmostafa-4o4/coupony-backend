@@ -15,8 +15,30 @@ class MeAddressController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
         $addresses = $request->user()
             ->addresses()
+            ->when(!empty($validated['search']), function ($query) use ($validated) {
+                $search = $validated['search'];
+
+                $query->where(function ($innerQuery) use ($search) {
+                    $innerQuery->where('addresses.first_name', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.last_name', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.company', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.address_line1', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.address_line2', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.city', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.state_province', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.postal_code', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.country_code', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.phone_number', 'like', '%' . $search . '%')
+                        ->orWhere('addresses.delivery_instructions', 'like', '%' . $search . '%')
+                        ->orWhere('addressables.label', 'like', '%' . $search . '%');
+                });
+            })
             ->latest('addressables.created_at')
             ->get();
 
