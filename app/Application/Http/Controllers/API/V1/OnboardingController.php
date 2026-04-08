@@ -45,7 +45,7 @@ class OnboardingController extends Controller
             'interesting_offers.*' => ['string', Rule::in(InterestingOfferCategory::values())],
             'shopping_style' => ['array'],
             'shopping_style.*' => ['string', Rule::in(ShoppingStyleCategory::values())],
-            'budget' => ['required', 'string', Rule::in(BudgetCategory::values())],
+            'budget' => ['nullable', 'string', Rule::in(BudgetCategory::values())],
         ]);
 
         DB::transaction(function () use ($data, $request) {
