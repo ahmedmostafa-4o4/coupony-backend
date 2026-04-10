@@ -59,6 +59,30 @@ class StoreManagementController extends Controller
     }
 
     /**
+     * Get all suspended stores
+     */
+    public function suspended(Request $request): JsonResponse
+    {
+        return $this->listByStatus(
+            $request,
+            StoreStatus::SUSPENDED,
+            'Failed to retrieve suspended stores'
+        );
+    }
+
+    /**
+     * Get all closed stores
+     */
+    public function closed(Request $request): JsonResponse
+    {
+        return $this->listByStatus(
+            $request,
+            StoreStatus::CLOSED,
+            'Failed to retrieve closed stores'
+        );
+    }
+
+    /**
      * Get all stores with filters
      */
     public function index(Request $request): JsonResponse
@@ -378,6 +402,35 @@ class StoreManagementController extends Controller
 
             return $this->localizedJson([
                 'message' => __('api.admin.stores.document_reject_failed'),
+            ], 500);
+        }
+    }
+
+    private function listByStatus(Request $request, StoreStatus $status, string $logMessage): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        try {
+            $stores = Store::with(['owner', 'categories', 'verifications', 'addresses'])
+                ->where('status', $status)
+                ->latest()
+                ->paginate($request->input('per_page', 15));
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.retrieved'),
+                'data' => StoreResource::collection($stores),
+                'meta' => [
+                    'current_page' => $stores->currentPage(),
+                    'last_page' => $stores->lastPage(),
+                    'per_page' => $stores->perPage(),
+                    'total' => $stores->total(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error($logMessage, ['error' => $e->getMessage()]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.retrieve_failed'),
             ], 500);
         }
     }

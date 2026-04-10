@@ -185,6 +185,8 @@ Route::prefix('v1')->group(function () {
         Route::prefix('stores')->name('admin.stores.')->group(function () {
             Route::get('/', [StoreManagementController::class, 'index'])->name('index');
             Route::get('/pending', [StoreManagementController::class, 'pending'])->name('pending');
+            Route::get('/suspended', [StoreManagementController::class, 'suspended'])->name('suspended');
+            Route::get('/closed', [StoreManagementController::class, 'closed'])->name('closed');
             Route::get('/statistics', [StoreManagementController::class, 'statistics'])->name('statistics');
             Route::get('/{store}', [StoreManagementController::class, 'show'])->name('show');
             Route::post('/{store}/approve', [StoreManagementController::class, 'approve'])->name('approve');
