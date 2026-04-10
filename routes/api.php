@@ -191,6 +191,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/{store}', [StoreManagementController::class, 'show'])->name('show');
             Route::post('/{store}/approve', [StoreManagementController::class, 'approve'])->name('approve');
             Route::post('/{store}/reject', [StoreManagementController::class, 'reject'])->name('reject');
+            Route::post('/{store}/suspend', [StoreManagementController::class, 'suspend'])->name('suspend');
+            Route::post('/{store}/close', [StoreManagementController::class, 'close'])->name('close');
 
             // Verification Documents
             Route::get('/{store}/verifications', [StoreManagementController::class, 'verificationDocuments'])->name('verifications');

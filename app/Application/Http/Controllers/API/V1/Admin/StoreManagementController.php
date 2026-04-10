@@ -6,8 +6,10 @@ use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Resources\StoreResource;
 use App\Domain\Store\Actions\ApproveStore;
 use App\Domain\Store\Actions\ApproveVerificationDocument;
+use App\Domain\Store\Actions\CloseStore;
 use App\Domain\Store\Actions\RejectStore;
 use App\Domain\Store\Actions\RejectVerificationDocument;
+use App\Domain\Store\Actions\SuspendStore;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreVerification;
@@ -20,6 +22,8 @@ class StoreManagementController extends Controller
     public function __construct(private
         ApproveStore $approveStore, private
         RejectStore $rejectStore, private
+        SuspendStore $suspendStore, private
+        CloseStore $closeStore, private
         ApproveVerificationDocument $approveVerificationDocument, private
         RejectVerificationDocument $rejectVerificationDocument
         )
@@ -249,6 +253,80 @@ class StoreManagementController extends Controller
     }
 
     /**
+     * Suspend store
+     */
+    public function suspend(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($store->status === StoreStatus::SUSPENDED) {
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.already_suspended'),
+            ], 400);
+        }
+
+        try {
+            $this->suspendStore->execute($store, $request->user(), $validated['reason'] ?? null);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.suspended'),
+                'data' => new StoreResource($store->fresh()),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Store suspend failed', [
+                'store_id' => $store->id,
+                'admin_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.suspend_failed'),
+            ], 500);
+        }
+    }
+
+    /**
+     * Close store
+     */
+    public function close(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($store->status === StoreStatus::CLOSED) {
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.already_closed'),
+            ], 400);
+        }
+
+        try {
+            $this->closeStore->execute($store, $request->user(), $validated['reason'] ?? null);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.closed'),
+                'data' => new StoreResource($store->fresh()),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Store close failed', [
+                'store_id' => $store->id,
+                'admin_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.close_failed'),
+            ], 500);
+        }
+    }
+
+    /**
      * Get store statistics
      */
     public function statistics(Request $request): JsonResponse
@@ -262,6 +340,7 @@ class StoreManagementController extends Controller
                 'active' => Store::where('status', StoreStatus::ACTIVE)->count(),
                 'rejected' => Store::where('status', StoreStatus::REJECTED)->count(),
                 'suspended' => Store::where('status', StoreStatus::SUSPENDED)->count(),
+                'closed' => Store::where('status', StoreStatus::CLOSED)->count(),
                 'recent_pending' => Store::where('status', StoreStatus::PENDING)
                     ->where('created_at', '>=', now()->subDays(7))
                     ->count(),
