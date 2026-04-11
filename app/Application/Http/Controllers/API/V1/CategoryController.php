@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller implements HasMiddleware
@@ -73,9 +74,15 @@ class CategoryController extends Controller implements HasMiddleware
                 'is_active' => $data['is_active'] ?? true,
             ]);
 
+            if ($request->hasFile('icon')) {
+                $category->update([
+                    'icon_url' => $request->file('icon')->store("categories/{$category->id}/icon", 'public'),
+                ]);
+            }
+
             return $this->localizedJson([
                 'message' => __('api.categories.created'),
-                'data' => new CategoryResource($category),
+                'data' => new CategoryResource($category->fresh()),
             ], 201);
         } catch (\Throwable $throwable) {
             Log::error('Failed to create product category', [
@@ -99,7 +106,15 @@ class CategoryController extends Controller implements HasMiddleware
                 $data['slug'] = Str::slug($data['name']);
             }
 
+            unset($data['icon']);
             $category->update($data);
+
+            if ($request->hasFile('icon')) {
+                $oldIconPath = $category->icon_url;
+                $newIconPath = $request->file('icon')->store("categories/{$category->id}/icon", 'public');
+                $category->update(['icon_url' => $newIconPath]);
+                $this->deleteStoredIconIfExists($oldIconPath);
+            }
 
             return $this->localizedJson([
                 'message' => __('api.categories.updated'),
@@ -140,6 +155,13 @@ class CategoryController extends Controller implements HasMiddleware
             return $this->localizedJson([
                 'message' => __('api.categories.delete_failed'),
             ], 500);
+        }
+    }
+
+    private function deleteStoredIconIfExists(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 }

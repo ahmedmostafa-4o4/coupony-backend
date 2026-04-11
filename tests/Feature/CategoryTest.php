@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Domain\Product\Models\Category;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -17,6 +19,7 @@ class CategoryTest extends TestCase
         parent::setUp();
 
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
+        Storage::fake('public');
     }
 
     public function test_admin_can_create_product_category(): void
@@ -25,16 +28,18 @@ class CategoryTest extends TestCase
         $admin->assignRole('admin');
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->postJson('/api/v1/admin/categories', [
+            ->post('/api/v1/admin/categories', [
                 'name' => 'Electronics',
                 'description' => 'Devices and accessories',
+                'icon' => UploadedFile::fake()->create('category.png', 50, 'image/png'),
                 'sort_order' => 1,
                 'is_active' => true,
             ]);
 
         $response->assertCreated()
             ->assertJsonPath('data.name', 'Electronics')
-            ->assertJsonPath('data.is_active', true);
+            ->assertJsonPath('data.is_active', true)
+            ->assertJsonPath('data.icon_url', fn($value) => is_string($value) && str_contains($value, '/storage/categories/'));
 
         $this->assertDatabaseHas('categories', [
             'name' => 'Electronics',
@@ -53,16 +58,19 @@ class CategoryTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->putJson("/api/v1/admin/categories/{$category->id}", [
+            ->post("/api/v1/admin/categories/{$category->id}", [
+                '_method' => 'PUT',
                 'name' => 'Restaurants & Cafes',
                 'parent_id' => $parent->id,
+                'icon' => UploadedFile::fake()->create('updated-category.png', 50, 'image/png'),
                 'is_active' => false,
             ]);
 
         $response->assertOk()
             ->assertJsonPath('data.name', 'Restaurants & Cafes')
             ->assertJsonPath('data.parent_id', $parent->id)
-            ->assertJsonPath('data.is_active', false);
+            ->assertJsonPath('data.is_active', false)
+            ->assertJsonPath('data.icon_url', fn($value) => is_string($value) && str_contains($value, '/storage/categories/'));
 
         $this->assertDatabaseHas('categories', [
             'id' => $category->id,

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class StoreCategoryController extends Controller implements HasMiddleware
 {
@@ -53,11 +54,18 @@ class StoreCategoryController extends Controller implements HasMiddleware
 
         try {
             $data = $request->validated();
+            unset($data['icon']);
             $category = StoreCategory::create($data);
+
+            if ($request->hasFile('icon')) {
+                $category->update([
+                    'icon_url' => $request->file('icon')->store("store-categories/{$category->id}/icon", 'public'),
+                ]);
+            }
             
             return response()->json([
                 'message' => __('api.store_categories.created'),
-                'data' => new StoreCategoryResource($category),
+                'data' => new StoreCategoryResource($category->fresh()),
             ], 201);
         } catch (\Exception $e) {
             Log::error('Failed to create store category', ['error' => $e->getMessage()]);
@@ -74,11 +82,19 @@ class StoreCategoryController extends Controller implements HasMiddleware
 
         try {
             $data = $request->validated();
+            unset($data['icon']);
             $category->update($data);
+
+            if ($request->hasFile('icon')) {
+                $oldIconPath = $category->icon_url;
+                $newIconPath = $request->file('icon')->store("store-categories/{$category->id}/icon", 'public');
+                $category->update(['icon_url' => $newIconPath]);
+                $this->deleteStoredIconIfExists($oldIconPath);
+            }
             
             return response()->json([
                 'message' => __('api.store_categories.updated'),
-                'data' => new StoreCategoryResource($category),
+                'data' => new StoreCategoryResource($category->fresh()),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to update store category', [
@@ -116,6 +132,13 @@ class StoreCategoryController extends Controller implements HasMiddleware
             return response()->json([
                 'message' => __('api.store_categories.delete_failed'),
             ], 500);
+        }
+    }
+
+    private function deleteStoredIconIfExists(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 }

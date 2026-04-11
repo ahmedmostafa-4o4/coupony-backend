@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Domain\Store\Models\StoreCategory;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -17,6 +19,7 @@ class StoreCategoryTest extends TestCase
         parent::setUp();
 
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
+        Storage::fake('public');
     }
 
     public function test_admin_can_create_store_category_with_arabic_and_english_names(): void
@@ -25,9 +28,10 @@ class StoreCategoryTest extends TestCase
         $admin->assignRole('admin');
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->postJson('/api/v1/admin/store-category', [
+            ->post('/api/v1/admin/store-category', [
                 'name_ar' => 'إلكترونيات',
                 'name_en' => 'Electronics',
+                'icon' => UploadedFile::fake()->create('store-category.png', 50, 'image/png'),
                 'sort_order' => 1,
                 'is_active' => true,
             ]);
@@ -35,7 +39,8 @@ class StoreCategoryTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('data.name_ar', 'إلكترونيات')
             ->assertJsonPath('data.name_en', 'Electronics')
-            ->assertJsonPath('data.name', 'Electronics');
+            ->assertJsonPath('data.name', 'Electronics')
+            ->assertJsonPath('data.icon_url', fn($value) => is_string($value) && str_contains($value, '/storage/store-categories/'));
 
         $this->assertDatabaseHas('store_categories', [
             'name_ar' => 'إلكترونيات',
@@ -53,16 +58,19 @@ class StoreCategoryTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->putJson("/api/v1/admin/store-category/{$category->id}", [
+            ->post("/api/v1/admin/store-category/{$category->id}", [
+                '_method' => 'PUT',
                 'name_ar' => 'مطاعم وكافيهات',
                 'name_en' => 'Restaurants & Cafes',
+                'icon' => UploadedFile::fake()->create('updated-store-category.png', 50, 'image/png'),
                 'is_active' => false,
             ]);
 
         $response->assertOk()
             ->assertJsonPath('data.name_ar', 'مطاعم وكافيهات')
             ->assertJsonPath('data.name_en', 'Restaurants & Cafes')
-            ->assertJsonPath('data.is_active', false);
+            ->assertJsonPath('data.is_active', false)
+            ->assertJsonPath('data.icon_url', fn($value) => is_string($value) && str_contains($value, '/storage/store-categories/'));
 
         $this->assertDatabaseHas('store_categories', [
             'id' => $category->id,

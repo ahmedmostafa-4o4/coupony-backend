@@ -42,16 +42,12 @@ class LoginController extends Controller
             $role = $request->input('role');
 
             if ($role === 'seller') {
-                $is_store_owner = $result['user']->stores()->exists();
-                $isOnboardingCompleted = $this->isOnboardingCompleted($result['user']->id, $role);
                 return $this->localizedJson([
                     'message' => __('api.auth.login_successful'),
                     'data' => [
                         'user' => new UserResource($result['user']->load('stores')),
                         'session' => $result['session'],
                         'role' => $role,
-                        'is_onboarding_completed' => $isOnboardingCompleted,
-                        'is_store_owner' => $is_store_owner,
                         'access_token' => $result['access_token'],
                         'refresh_token' => $result['refresh_token'],
                         'token_type' => $result['token_type'],
@@ -66,7 +62,6 @@ class LoginController extends Controller
                     'user' => new UserResource($result['user']),
                     'session' => $result['session'],
                     'role' => $role,
-                    'is_onboarding_completed' => $this->isOnboardingCompleted($result['user']->id, $role),
                     'access_token' => $result['access_token'],
                     'refresh_token' => $result['refresh_token'],
                     'token_type' => $result['token_type'],
@@ -111,8 +106,10 @@ class LoginController extends Controller
 
         $user = $request->user();
 
+        $user = new UserResource($user->load(['profile', 'roles', 'sessions', 'points']));
+
         return $this->localizedJson([
-            'data' => new UserResource($user),
+            'data' => $user
         ], 200);
     }
 
@@ -286,14 +283,6 @@ class LoginController extends Controller
         }
     }
 
-    private function isOnboardingCompleted(string $userId, ?string $role): bool
-    {
-        return match ($role) {
-            'customer' => DB::table('interests')->where('user_id', $userId)->exists(),
-            'seller' => DB::table('shop_interests')->where('user_id', $userId)->exists(),
-            default => false,
-        };
-    }
 
     private function replaceAvatar(Request $request, string $userId, ?string $currentAvatarUrl): string
     {

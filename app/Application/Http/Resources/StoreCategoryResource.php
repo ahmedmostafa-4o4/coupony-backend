@@ -4,6 +4,7 @@ namespace App\Application\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class StoreCategoryResource extends JsonResource
 {
@@ -20,6 +21,8 @@ class StoreCategoryResource extends JsonResource
             'name_ar' => $this->name_ar,
             'name_en' => $this->name_en,
             'slug' => $this->slug,
+            'icon_path' => $this->icon_url,
+            'icon_url' => $this->icon_url ? Storage::disk('public')->url($this->icon_url) : null,
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
         ];
