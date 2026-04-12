@@ -13,7 +13,7 @@ class UserResource extends JsonResource
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request, bool $isOnboardingCompleted = false): array
+    public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
@@ -32,7 +32,7 @@ class UserResource extends JsonResource
                 'gender' => $this->profile?->gender
             ]),
             'is_store_owner' => $this->stores()->exists(),
-            'is_onboarding_completed' => $isOnboardingCompleted,
+            'is_onboarding_completed' => $this->isOnboardingCompleted($this->id, $request->input('role')),
 
             'sessions' => $this->whenLoaded('sessions', [
                 'token' => $this->sessions?->first()?->token,
