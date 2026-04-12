@@ -5,6 +5,7 @@ namespace App\Application\Http\Resources;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Log;
 
 class UserResource extends JsonResource
 {
@@ -55,6 +56,7 @@ class UserResource extends JsonResource
 
     private function isOnboardingCompleted(string $userId, ?string $role): bool
     {
+        Log::info("Checking onboarding completion for user_id: $userId with role: $role");
         return match ($role) {
             'customer' => DB::table('interests')->where('user_id', $userId)->exists(),
             'seller' => DB::table('shop_interests')->where('user_id', $userId)->exists(),
