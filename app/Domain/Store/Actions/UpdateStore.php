@@ -3,11 +3,13 @@
 namespace App\Domain\Store\Actions;
 
 use App\Domain\Store\DTOs\StoreData;
+use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Events\StoreUpdated;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreSocial;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\Storage;
+use Log;
 
 class UpdateStore
 {
@@ -19,7 +21,7 @@ class UpdateStore
         }
 
         // Check if store can be updated (not approved)
-        if ($store->status === 'active') {
+        if ($store->status === StoreStatus::ACTIVE) {
             throw new \Exception('Cannot update an approved store. Please contact support.');
         }
 
@@ -32,6 +34,8 @@ class UpdateStore
             'tax_id' => $data->tax_id ?? $store->tax_id,
             'subscription_tier' => $data->subscription_tier ?? $store->subscription_tier,
         ]);
+
+
 
         // Update logo if provided
         if ($data->logo_url) {
@@ -78,14 +82,22 @@ class UpdateStore
         }
 
         // If store was rejected, reset to pending
-        if ($store->status === 'rejected') {
+
+        if ($store->status === StoreStatus::REJECTED) {
             $store->update([
-                'status' => 'pending',
+                'status' => StoreStatus::PENDING,
                 'rejected_at' => null,
                 'rejected_by' => null,
                 'rejection_reason' => null,
             ]);
         }
+
+
+        //  Log::info('Store update executed', [
+        //     'store_id' => $store->id,
+        //     'user_id' => $user->id,
+        //     'status_after' => $store->status,
+        // ]);
 
         // Dispatch event
         event(new StoreUpdated($store, $user));

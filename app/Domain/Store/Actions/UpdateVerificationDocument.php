@@ -2,6 +2,7 @@
 
 namespace App\Domain\Store\Actions;
 
+use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Events\VerificationDocumentUpdated;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreVerification;
@@ -18,7 +19,7 @@ class UpdateVerificationDocument
         }
 
         // Check if store is approved (cannot update approved store documents)
-        if ($store->status === 'active') {
+        if ($store->status === StoreStatus::ACTIVE) {
             throw new \Exception('Cannot update documents for an approved store. Please contact support.');
         }
 
@@ -51,9 +52,9 @@ class UpdateVerificationDocument
         }
 
         // If store was rejected, reset to pending
-        if ($store->status === 'rejected') {
+        if ($store->status === StoreStatus::REJECTED) {
             $store->update([
-                'status' => 'pending',
+                'status' => StoreStatus::PENDING,
                 'rejected_at' => null,
                 'rejected_by' => null,
                 'rejection_reason' => null,
