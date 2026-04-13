@@ -13,7 +13,7 @@ Creates all roles and permissions for the application using Spatie Permission pa
 - `seller_pending` - Pending store owners
 - `customer` - Regular customers
 - `store_manager` - Store managers
-- `store_staff` - Store staff members
+- `store_employee` - In-store scanning and redemption employees
 
 **Permissions Created:**
 - User management (view, create, edit, delete)

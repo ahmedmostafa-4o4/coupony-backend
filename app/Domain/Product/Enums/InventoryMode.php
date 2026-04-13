@@ -2,10 +2,10 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductStatus: string
+enum InventoryMode: string
 {
-    case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
+    case TRACKED = 'tracked';
+    case UNLIMITED = 'unlimited';
 
     public static function values(): array
     {

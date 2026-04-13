@@ -2,10 +2,11 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductStatus: string
+enum ProductRevisionAction: string
 {
-    case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
+    case CREATE = 'create';
+    case UPDATE = 'update';
+    case RESUBMIT = 'resubmit';
 
     public static function values(): array
     {

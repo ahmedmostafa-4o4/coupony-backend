@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\Product;
@@ -24,6 +25,7 @@ class ProductTest extends TestCase
 
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'store_employee', 'guard_name' => 'sanctum']);
 
         Storage::fake('public');
         config(['logging.default' => 'null']);
@@ -43,12 +45,21 @@ class ProductTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('data.store_id', $store->id)
             ->assertJsonPath('data.title', 'Example Product')
-            ->assertJsonPath('data.variants.0.title', 'Red / XL');
+            ->assertJsonPath('data.approval_status', ProductApprovalStatus::PENDING->value)
+            ->assertJsonPath('data.offer.type', 'fixed')
+            ->assertJsonPath('data.offer.fixed_amount', '15.00')
+            ->assertJsonPath('data.variants.0.title', 'Red / XL')
+            ->assertJsonPath('data.variants.0.inventory_mode', 'tracked')
+            ->assertJsonPath('data.variants.0.stock_qty', 8)
+            ->assertJsonPath('data.variants.0.low_stock_threshold', 2)
+            ->assertJsonPath('data.variants.0.allow_backorder', false)
+            ->assertJsonPath('data.variants.0.is_in_stock', true);
 
         $this->assertDatabaseHas('products', [
             'store_id' => $store->id,
             'slug' => 'example-product',
-            'status' => 'draft',
+            'status' => ProductStatus::INACTIVE->value,
+            'approval_status' => ProductApprovalStatus::PENDING->value,
         ]);
 
         $this->assertDatabaseCount('product_images', 1);
@@ -116,19 +127,18 @@ class ProductTest extends TestCase
             ->putJson("/api/v1/stores/{$store->id}/products/{$product->id}", [
                 'title' => 'Updated Product',
                 'slug' => 'updated-product',
-                'status' => ProductStatus::ACTIVE->value,
                 'category_ids' => [$categories[0]->id],
             ]);
 
         $response->assertOk()
             ->assertJsonPath('data.title', 'Updated Product')
-            ->assertJsonPath('data.status', ProductStatus::ACTIVE->value);
+            ->assertJsonPath('data.status', ProductStatus::INACTIVE->value);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'title' => 'Updated Product',
             'slug' => 'updated-product',
-            'status' => ProductStatus::ACTIVE->value,
+            'status' => ProductStatus::INACTIVE->value,
         ]);
         $this->assertDatabaseHas('product_categories', [
             'product_id' => $product->id,
@@ -170,8 +180,8 @@ class ProductTest extends TestCase
 
     public function test_public_list_only_returns_active_products(): void
     {
-        Product::factory()->active()->create(['title' => 'Visible Product']);
-        Product::factory()->create(['title' => 'Draft Product', 'status' => ProductStatus::DRAFT]);
+        Product::factory()->active()->approved()->create(['title' => 'Visible Product']);
+        Product::factory()->active()->create(['title' => 'Pending Product']);
 
         $response = $this->getJson('/api/v1/products');
 
@@ -188,6 +198,55 @@ class ProductTest extends TestCase
 
         $response->assertNotFound()
             ->assertJsonPath('message', __('api.product.not_found'));
+    }
+
+    public function test_public_show_rejects_non_approved_products(): void
+    {
+        $product = Product::factory()->active()->create([
+            'approval_status' => ProductApprovalStatus::PENDING,
+        ]);
+
+        $response = $this->getJson("/api/v1/products/{$product->id}");
+
+        $response->assertNotFound()
+            ->assertJsonPath('message', __('api.product.not_found'));
+    }
+
+    public function test_product_resource_matches_final_contract(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+            'inventory_mode' => 'tracked',
+            'stock_qty' => 7,
+            'low_stock_threshold' => 2,
+            'allow_backorder' => false,
+        ]);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/products/{$product->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.id', $product->id)
+            ->assertJsonPath('data.store_id', $store->id)
+            ->assertJsonPath('data.title', $product->title)
+            ->assertJsonPath('data.currency', 'EGP')
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.approval_status', 'approved')
+            ->assertJsonPath('data.is_featured', false)
+            ->assertJsonPath('data.variants.0.inventory_mode', 'tracked')
+            ->assertJsonPath('data.variants.0.stock_qty', 7)
+            ->assertJsonPath('data.variants.0.low_stock_threshold', 2)
+            ->assertJsonPath('data.variants.0.allow_backorder', false)
+            ->assertJsonMissingPath('data.base_price')
+            ->assertJsonMissingPath('data.compare_at_price')
+            ->assertJsonMissingPath('data.sku')
+            ->assertJsonMissingPath('data.published_revision_no')
+            ->assertJsonMissingPath('data.approved_at')
+            ->assertJsonMissingPath('data.updated_at');
     }
 
     public function test_category_sync_works(): void
@@ -232,6 +291,10 @@ class ProductTest extends TestCase
             'title' => 'Red / XL',
             'sku' => 'SKU-001-RED-XL',
             'is_default' => true,
+            'inventory_mode' => 'tracked',
+            'stock_qty' => 8,
+            'low_stock_threshold' => 2,
+            'allow_backorder' => false,
         ]);
 
         $variantId = ProductVariant::where('product_id', $productId)->value('id');
@@ -286,6 +349,240 @@ class ProductTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['variants']);
+    }
+
+    public function test_product_offer_is_required_on_create(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'offer' => null,
+                'images' => [],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['offer']);
+    }
+
+    public function test_fixed_offer_requires_fixed_amount(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'offer' => [
+                    'type' => 'fixed',
+                    'status' => 'active',
+                    'fixed_amount' => null,
+                ],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['offer.fixed_amount']);
+    }
+
+    public function test_percentage_offer_requires_percentage_value(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'offer' => [
+                    'type' => 'percentage',
+                    'status' => 'active',
+                    'fixed_amount' => null,
+                    'percentage_value' => null,
+                    'max_discount' => null,
+                ],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['offer.percentage_value']);
+    }
+
+    public function test_buy_x_get_y_offer_requires_known_target_variant_skus(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'offer' => [
+                    'type' => 'buy_x_get_y',
+                    'status' => 'active',
+                    'buy_qty' => 2,
+                    'get_qty' => 1,
+                    'allow_mix_buy_variants' => true,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => ['MISSING-SKU'],
+                    'reward_variant_skus' => ['SKU-001-RED-XL'],
+                ],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['offer.buy_variant_skus']);
+    }
+
+    public function test_buy_x_get_y_offer_returns_target_variant_ids(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Red / XL',
+                        'option_summary' => 'Color: Red, Size: XL',
+                        'sku' => 'SKU-001-RED-XL',
+                        'barcode' => '123456789',
+                        'price' => 110,
+                        'compare_at_price' => 130,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [],
+                    ],
+                    [
+                        'title' => 'Blue / L',
+                        'option_summary' => 'Color: Blue, Size: L',
+                        'sku' => 'SKU-001-BLUE-L',
+                        'barcode' => '987654321',
+                        'price' => 115,
+                        'compare_at_price' => 135,
+                        'currency' => 'EGP',
+                        'sort_order' => 1,
+                        'is_default' => false,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 5,
+                        'low_stock_threshold' => 1,
+                        'allow_backorder' => false,
+                        'attributes' => [],
+                    ],
+                ],
+                'offer' => [
+                    'type' => 'buy_x_get_y',
+                    'status' => 'active',
+                    'label' => 'Buy 2 get 1',
+                    'buy_qty' => 2,
+                    'get_qty' => 1,
+                    'allow_mix_buy_variants' => true,
+                    'allow_mix_reward_variants' => true,
+                    'buy_variant_skus' => ['SKU-001-RED-XL', 'SKU-001-BLUE-L'],
+                    'reward_variant_skus' => ['SKU-001-BLUE-L'],
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.offer.type', 'buy_x_get_y')
+            ->assertJsonCount(2, 'data.offer.buy_variant_ids')
+            ->assertJsonCount(1, 'data.offer.reward_variant_ids');
+    }
+
+    public function test_tracked_inventory_requires_stock_quantity(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+        $category = Category::factory()->create();
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'category_ids' => [$category->id],
+                'images' => [],
+                'variants' => [[
+                    'title' => 'Tracked Variant',
+                    'option_summary' => 'Tracked stock',
+                    'sku' => 'TRACKED-NO-STOCK',
+                    'barcode' => '111222333',
+                    'price' => 110,
+                    'compare_at_price' => 130,
+                    'currency' => 'EGP',
+                    'sort_order' => 0,
+                    'is_default' => true,
+                    'is_active' => true,
+                    'inventory_mode' => 'tracked',
+                    'stock_qty' => null,
+                    'low_stock_threshold' => null,
+                    'allow_backorder' => false,
+                    'attributes' => [],
+                ]],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['variants.0.stock_qty']);
+    }
+
+    public function test_unlimited_inventory_is_always_in_stock(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+        $category = Category::factory()->create();
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'category_ids' => [$category->id],
+                'images' => [],
+                'variants' => [[
+                    'title' => 'Unlimited Variant',
+                    'option_summary' => 'Unlimited stock',
+                    'sku' => 'UNLIMITED-STOCK',
+                    'barcode' => '999888777',
+                    'price' => 110,
+                    'compare_at_price' => 130,
+                    'currency' => 'EGP',
+                    'sort_order' => 0,
+                    'is_default' => true,
+                    'is_active' => true,
+                    'inventory_mode' => 'unlimited',
+                    'stock_qty' => null,
+                    'low_stock_threshold' => null,
+                    'allow_backorder' => false,
+                    'attributes' => [],
+                ]],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.variants.0.inventory_mode', 'unlimited')
+            ->assertJsonPath('data.variants.0.stock_qty', null)
+            ->assertJsonPath('data.variants.0.low_stock_threshold', null)
+            ->assertJsonPath('data.variants.0.is_in_stock', true);
+    }
+
+    public function test_tracked_inventory_with_backorder_is_reported_in_stock(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+        $product = Product::factory()->create(['store_id' => $store->id]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'inventory_mode' => 'tracked',
+            'stock_qty' => 0,
+            'low_stock_threshold' => 3,
+            'allow_backorder' => true,
+        ]);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/products/{$product->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.variants.0.inventory_mode', 'tracked')
+            ->assertJsonPath('data.variants.0.stock_qty', 0)
+            ->assertJsonPath('data.variants.0.allow_backorder', true)
+            ->assertJsonPath('data.variants.0.is_in_stock', true);
     }
 
     public function test_slug_uniqueness_per_store_is_enforced(): void
@@ -380,13 +677,17 @@ class ProductTest extends TestCase
                 'sku' => 'BLUE-L',
                 'barcode' => '123456001',
                 'price' => 140,
-                'compare_at_price' => 160,
-                'currency' => 'EGP',
-                'is_default' => true,
-                'is_active' => true,
-                'attributes' => [
-                    ['attribute_name' => 'color', 'attribute_value' => 'blue', 'sort_order' => 0],
-                    ['attribute_name' => 'size', 'attribute_value' => 'L', 'sort_order' => 1],
+                    'compare_at_price' => 160,
+                    'currency' => 'EGP',
+                    'is_default' => true,
+                    'is_active' => true,
+                    'inventory_mode' => 'tracked',
+                    'stock_qty' => 0,
+                    'low_stock_threshold' => 5,
+                    'allow_backorder' => true,
+                    'attributes' => [
+                        ['attribute_name' => 'color', 'attribute_value' => 'blue', 'sort_order' => 0],
+                        ['attribute_name' => 'size', 'attribute_value' => 'L', 'sort_order' => 1],
                 ],
             ]);
 
@@ -394,7 +695,12 @@ class ProductTest extends TestCase
 
         $createResponse->assertCreated()
             ->assertJsonPath('data.sku', 'BLUE-L')
-            ->assertJsonPath('data.is_default', true);
+            ->assertJsonPath('data.is_default', true)
+            ->assertJsonPath('data.inventory_mode', 'tracked')
+            ->assertJsonPath('data.stock_qty', 0)
+            ->assertJsonPath('data.low_stock_threshold', 5)
+            ->assertJsonPath('data.allow_backorder', true)
+            ->assertJsonPath('data.is_in_stock', true);
 
         $updateResponse = $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$product->id}/variants/{$variantId}", [
@@ -402,16 +708,21 @@ class ProductTest extends TestCase
                 'price' => 150,
                 'compare_at_price' => 170,
                 'is_active' => false,
+                'stock_qty' => 4,
             ]);
 
         $updateResponse->assertOk()
             ->assertJsonPath('data.title', 'Blue / XL')
-            ->assertJsonPath('data.is_active', false);
+            ->assertJsonPath('data.is_active', false)
+            ->assertJsonPath('data.stock_qty', 4);
 
         $this->assertDatabaseHas('product_variants', [
             'id' => $variantId,
             'title' => 'Blue / XL',
             'is_active' => false,
+            'inventory_mode' => 'tracked',
+            'stock_qty' => 4,
+            'allow_backorder' => true,
         ]);
     }
 
@@ -569,12 +880,10 @@ class ProductTest extends TestCase
             'slug' => 'example-product',
             'short_description' => 'Short description',
             'description' => 'Long description',
-            'product_type' => 'standard',
             'base_price' => 100,
             'compare_at_price' => 120,
             'currency' => 'EGP',
             'sku' => 'SKU-001',
-            'status' => 'draft',
             'is_featured' => false,
             'category_ids' => [],
             'images' => [
@@ -596,6 +905,10 @@ class ProductTest extends TestCase
                     'sort_order' => 0,
                     'is_default' => true,
                     'is_active' => true,
+                    'inventory_mode' => 'tracked',
+                    'stock_qty' => 8,
+                    'low_stock_threshold' => 2,
+                    'allow_backorder' => false,
                     'attributes' => [
                         [
                             'attribute_name' => 'color',
@@ -609,6 +922,21 @@ class ProductTest extends TestCase
                         ],
                     ],
                 ],
+            ],
+            'offer' => [
+                'type' => 'fixed',
+                'status' => 'active',
+                'label' => 'Launch discount',
+                'claim_expiration_minutes' => 1440,
+                'fixed_amount' => 15,
+                'percentage_value' => null,
+                'max_discount' => null,
+                'buy_qty' => null,
+                'get_qty' => null,
+                'allow_mix_buy_variants' => false,
+                'allow_mix_reward_variants' => false,
+                'buy_variant_skus' => [],
+                'reward_variant_skus' => [],
             ],
         ];
 

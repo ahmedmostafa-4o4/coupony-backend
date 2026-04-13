@@ -2,10 +2,20 @@
 
 namespace App\Domain\Product\Repositories;
 
+use App\Domain\Product\Enums\ProductApprovalStatus;
+use App\Domain\Product\Enums\InventoryMode;
+use App\Domain\Product\Enums\ProductOfferTargetRole;
+use App\Domain\Product\Enums\ProductOfferType;
+use App\Domain\Product\Enums\ProductOfferStatus;
+use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
+use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductImage;
+use App\Domain\Product\Models\ProductOffer;
+use App\Domain\Product\Models\ProductOfferVariantTarget;
+use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Store\Models\Store;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -101,6 +111,10 @@ class ProductRepository
                 'sort_order' => $variantData['sort_order'],
                 'is_default' => $variantData['is_default'],
                 'is_active' => $variantData['is_active'],
+                'inventory_mode' => $variantData['inventory_mode'] ?? InventoryMode::UNLIMITED,
+                'stock_qty' => $variantData['stock_qty'] ?? null,
+                'low_stock_threshold' => $variantData['low_stock_threshold'] ?? null,
+                'allow_backorder' => $variantData['allow_backorder'] ?? false,
             ]);
 
             if (($variantData['attributes'] ?? []) !== []) {
@@ -116,6 +130,273 @@ class ProductRepository
                 );
             }
         }
+    }
+
+    public function syncOffer(Product $product, array $attributes): ProductOffer
+    {
+        $offer = $product->offer()->updateOrCreate(
+            ['product_id' => $product->id],
+            [
+                'type' => $attributes['type'],
+                'status' => $attributes['status'] ?? ProductOfferStatus::ACTIVE,
+                'label' => $attributes['label'] ?? null,
+                'starts_at' => $attributes['starts_at'] ?? null,
+                'ends_at' => $attributes['ends_at'] ?? null,
+                'claim_expiration_minutes' => $attributes['claim_expiration_minutes'] ?? null,
+                'fixed_amount' => $attributes['fixed_amount'] ?? null,
+                'percentage_value' => $attributes['percentage_value'] ?? null,
+                'max_discount' => $attributes['max_discount'] ?? null,
+                'buy_qty' => $attributes['buy_qty'] ?? null,
+                'get_qty' => $attributes['get_qty'] ?? null,
+                'allow_mix_buy_variants' => (bool) ($attributes['allow_mix_buy_variants'] ?? false),
+                'allow_mix_reward_variants' => (bool) ($attributes['allow_mix_reward_variants'] ?? false),
+            ]
+        );
+
+        $offer->targets()->delete();
+
+        if ($offer->type !== ProductOfferType::BUY_X_GET_Y) {
+            return $offer->load('targets');
+        }
+
+        $variantsBySku = $product->variants()
+            ->get(['id', 'sku'])
+            ->filter(fn(ProductVariant $variant) => filled($variant->sku))
+            ->keyBy(fn(ProductVariant $variant) => mb_strtolower((string) $variant->sku));
+
+        $records = collect([
+            ProductOfferTargetRole::BUY->value => $attributes['buy_variant_skus'] ?? [],
+            ProductOfferTargetRole::REWARD->value => $attributes['reward_variant_skus'] ?? [],
+        ])->flatMap(function (array $skus, string $role) use ($variantsBySku, $offer) {
+            return collect($skus)
+                ->map(fn($sku) => mb_strtolower((string) $sku))
+                ->filter()
+                ->map(function (string $normalizedSku) use ($variantsBySku, $offer, $role) {
+                    $variant = $variantsBySku->get($normalizedSku);
+
+                    if (!$variant) {
+                        return null;
+                    }
+
+                    return [
+                        'offer_id' => $offer->id,
+                        'variant_id' => $variant->id,
+                        'role' => $role,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                })
+                ->filter();
+        })->values()->all();
+
+        if ($records !== []) {
+            ProductOfferVariantTarget::query()->insert($records);
+        }
+
+        return $offer->load('targets');
+    }
+
+    public function pendingRevision(Product $product): ?ProductRevision
+    {
+        return $product->revisions()
+            ->where('status', ProductRevisionStatus::PENDING)
+            ->latest('revision_no')
+            ->latest('id')
+            ->first();
+    }
+
+    public function sellerRevisionPaginate(Product $product, int $perPage = 15): LengthAwarePaginator
+    {
+        return ProductRevision::query()
+            ->where('product_id', $product->id)
+            ->with('product')
+            ->latest('revision_no')
+            ->latest('id')
+            ->paginate($perPage);
+    }
+
+    public function pendingRevisionsPaginate(int $perPage = 15): LengthAwarePaginator
+    {
+        return ProductRevision::query()
+            ->where('status', ProductRevisionStatus::PENDING)
+            ->with('product')
+            ->latest('submitted_at')
+            ->latest('id')
+            ->paginate($perPage);
+    }
+
+    public function loadRevision(ProductRevision $revision): ProductRevision
+    {
+        return $revision->load('product');
+    }
+
+    public function loadOfferClaim(OfferClaim $claim): OfferClaim
+    {
+        return $claim->load(['user', 'store', 'product', 'offer', 'redeemedBy']);
+    }
+
+    public function nextRevisionNumber(Product $product): int
+    {
+        return ((int) $product->revisions()->max('revision_no')) + 1;
+    }
+
+    public function storePendingImages(Product $product, array $images): array
+    {
+        $storedPaths = [];
+
+        $records = collect($images)
+            ->map(function (array $image) use ($product, &$storedPaths) {
+                $path = $image['file']->store("products/{$product->id}/images", 'public');
+                $storedPaths[] = $path;
+
+                return [
+                    'image_url' => $path,
+                    'sort_order' => (int) ($image['sort_order'] ?? 0),
+                    'is_primary' => (bool) ($image['is_primary'] ?? false),
+                ];
+            })
+            ->all();
+
+        return [
+            'stored' => $storedPaths,
+            'images' => $records,
+        ];
+    }
+
+    public function replaceImagesFromSnapshot(Product $product, array $images): void
+    {
+        $product->images()->delete();
+
+        if ($images === []) {
+            return;
+        }
+
+        $product->images()->createMany(
+            collect($images)->map(fn(array $image) => [
+                'image_url' => $image['image_url'],
+                'sort_order' => (int) ($image['sort_order'] ?? 0),
+                'is_primary' => (bool) ($image['is_primary'] ?? false),
+                'created_at' => now(),
+            ])->all()
+        );
+    }
+
+    public function snapshotPayload(Product $product): array
+    {
+        $product = $product->load([
+            'categories:id',
+            'images',
+            'variants.attributes',
+            'offer.targets.variant:id,sku',
+        ]);
+
+        /** @var ProductOffer|null $offer */
+        $offer = $product->offer;
+
+        return [
+            'product' => [
+                'title' => $product->title,
+                'slug' => $product->slug,
+                'short_description' => $product->short_description,
+                'description' => $product->description,
+                'base_price' => $product->base_price,
+                'compare_at_price' => $product->compare_at_price,
+                'currency' => $product->currency,
+                'sku' => $product->sku,
+                'is_featured' => $product->is_featured,
+                'category_ids' => $product->categories->pluck('id')->values()->all(),
+            ],
+            'images' => $product->images
+                ->map(fn(ProductImage $image) => [
+                    'image_url' => $image->image_url,
+                    'sort_order' => $image->sort_order,
+                    'is_primary' => $image->is_primary,
+                ])
+                ->values()
+                ->all(),
+            'variants' => $product->variants
+                ->map(fn(ProductVariant $variant) => [
+                    'title' => $variant->title,
+                    'option_summary' => $variant->option_summary,
+                    'sku' => $variant->sku,
+                    'barcode' => $variant->barcode,
+                    'price' => $variant->price,
+                    'compare_at_price' => $variant->compare_at_price,
+                    'currency' => $variant->currency,
+                    'sort_order' => $variant->sort_order,
+                    'is_default' => $variant->is_default,
+                    'is_active' => $variant->is_active,
+                    'inventory_mode' => $variant->inventory_mode?->value ?? $variant->inventory_mode,
+                    'stock_qty' => $variant->stock_qty,
+                    'low_stock_threshold' => $variant->low_stock_threshold,
+                    'allow_backorder' => $variant->allow_backorder,
+                    'attributes' => $variant->attributes
+                        ->map(fn($attribute) => [
+                            'attribute_name' => $attribute->attribute_name,
+                            'attribute_value' => $attribute->attribute_value,
+                            'sort_order' => $attribute->sort_order,
+                        ])
+                        ->values()
+                        ->all(),
+                ])
+                ->values()
+                ->all(),
+            'offer' => $offer ? [
+                'type' => $offer->type?->value ?? $offer->type,
+                'status' => $offer->status?->value ?? $offer->status,
+                'label' => $offer->label,
+                'starts_at' => $offer->starts_at?->toIso8601String(),
+                'ends_at' => $offer->ends_at?->toIso8601String(),
+                'claim_expiration_minutes' => $offer->claim_expiration_minutes,
+                'fixed_amount' => $offer->fixed_amount,
+                'percentage_value' => $offer->percentage_value,
+                'max_discount' => $offer->max_discount,
+                'buy_qty' => $offer->buy_qty,
+                'get_qty' => $offer->get_qty,
+                'allow_mix_buy_variants' => $offer->allow_mix_buy_variants,
+                'allow_mix_reward_variants' => $offer->allow_mix_reward_variants,
+                'buy_variant_skus' => $offer->targets
+                    ->filter(fn(ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::BUY->value)
+                    ->map(fn(ProductOfferVariantTarget $target) => $target->variant?->sku)
+                    ->filter()
+                    ->values()
+                    ->all(),
+                'reward_variant_skus' => $offer->targets
+                    ->filter(fn(ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::REWARD->value)
+                    ->map(fn(ProductOfferVariantTarget $target) => $target->variant?->sku)
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ] : null,
+        ];
+    }
+
+    public function applySnapshot(Product $product, array $payload): Product
+    {
+        $productAttributes = $payload['product'] ?? [];
+
+        $product = tap($this->update($product, [
+            'title' => $productAttributes['title'] ?? $product->title,
+            'slug' => $productAttributes['slug'] ?? $product->slug,
+            'short_description' => $productAttributes['short_description'] ?? null,
+            'description' => $productAttributes['description'] ?? null,
+            'base_price' => $productAttributes['base_price'] ?? null,
+            'compare_at_price' => $productAttributes['compare_at_price'] ?? null,
+            'currency' => $productAttributes['currency'] ?? $product->currency,
+            'sku' => $productAttributes['sku'] ?? null,
+            'is_featured' => (bool) ($productAttributes['is_featured'] ?? false),
+        ]), function (Product $updatedProduct) use ($productAttributes) {
+            $this->syncCategories($updatedProduct, $productAttributes['category_ids'] ?? []);
+        });
+
+        $this->replaceImagesFromSnapshot($product, $payload['images'] ?? []);
+        $this->replaceVariants($product, $payload['variants'] ?? []);
+
+        if (is_array($payload['offer'] ?? null)) {
+            $this->syncOffer($product, $payload['offer']);
+        }
+
+        return $this->loadSellerProduct($product->fresh());
     }
 
     public function createVariant(Product $product, array $attributes): ProductVariant
@@ -137,6 +418,10 @@ class ProductRepository
             'sort_order' => $attributes['sort_order'] ?? (($product->variants()->max('sort_order') ?? -1) + 1),
             'is_default' => $shouldBeDefault,
             'is_active' => (bool) ($attributes['is_active'] ?? true),
+            'inventory_mode' => $attributes['inventory_mode'] ?? InventoryMode::UNLIMITED,
+            'stock_qty' => $attributes['stock_qty'] ?? null,
+            'low_stock_threshold' => $attributes['low_stock_threshold'] ?? null,
+            'allow_backorder' => (bool) ($attributes['allow_backorder'] ?? false),
         ]);
 
         if (($attributes['attributes'] ?? []) !== []) {
@@ -322,6 +607,7 @@ class ProductRepository
     {
         return $category->products()
             ->where('status', ProductStatus::ACTIVE->value)
+            ->where('approval_status', ProductApprovalStatus::APPROVED->value)
             ->with($this->publicRelations())
             ->latest()
             ->paginate($perPage);
@@ -332,7 +618,9 @@ class ProductRepository
         return Category::query()
             ->active()
             ->withCount([
-                'products' => fn($query) => $query->where('status', ProductStatus::ACTIVE->value),
+                'products' => fn($query) => $query
+                    ->where('status', ProductStatus::ACTIVE->value)
+                    ->where('approval_status', ProductApprovalStatus::APPROVED->value),
             ])
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -365,6 +653,7 @@ class ProductRepository
             'categories',
             'images',
             'variants.attributes',
+            'offer.targets',
         ];
     }
 
@@ -375,6 +664,7 @@ class ProductRepository
             'categories' => fn($query) => $query->active(),
             'images',
             'variants' => fn($query) => $query->where('is_active', true)->with('attributes'),
+            'offer.targets',
         ];
     }
 

@@ -40,6 +40,10 @@ class RoleAndPermissionSeeder extends Seeder
             'create orders',
             'edit orders',
             'delete orders',
+
+            // Claim permissions
+            'view claims',
+            'redeem claims',
             
             // Report permissions
             'view reports',
@@ -90,11 +94,11 @@ class RoleAndPermissionSeeder extends Seeder
             'edit orders',
         ]);
 
-        // Store Staff role
-        $storeStaff = Role::create(['name' => 'store_staff', 'guard_name' => 'sanctum']);
-        $storeStaff->givePermissionTo([
-            'view stores',
-            'view orders',
+        // Store Employee role
+        $storeEmployee = Role::create(['name' => 'store_employee', 'guard_name' => 'sanctum']);
+        $storeEmployee->givePermissionTo([
+            'view claims',
+            'redeem claims',
         ]);
 
         $this->command->info('Roles and permissions created successfully!');

@@ -21,12 +21,19 @@ return new class extends Migration
                 $table->string('slug');
                 $table->string('short_description', 500)->nullable();
                 $table->text('description')->nullable();
-                $table->enum('product_type', ['standard', 'service', 'couponable_item'])->default('standard');
                 $table->decimal('base_price', 12, 2);
                 $table->decimal('compare_at_price', 12, 2)->nullable();
                 $table->char('currency', 3)->default('EGP');
                 $table->string('sku', 100)->nullable();
-                $table->enum('status', ['draft', 'active', 'inactive', 'archived'])->default('draft');
+                $table->enum('status', ['active', 'inactive'])->default('inactive');
+                $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending');
+                $table->unsignedInteger('published_revision_no')->default(0);
+                $table->timestamp('approved_at')->nullable();
+                $table->char('approved_by', 36)->nullable();
+                $table->timestamp('rejected_at')->nullable();
+                $table->char('rejected_by', 36)->nullable();
+                $table->text('rejection_reason')->nullable();
+                $table->text('admin_notes')->nullable();
                 $table->boolean('is_featured')->default(false);
                 $table->unsignedInteger('sale_count')->default(0);
                 $table->unsignedInteger('redemption_count')->default(0);
@@ -41,6 +48,16 @@ return new class extends Migration
                     ->references('id')
                     ->on('stores')
                     ->cascadeOnDelete();
+
+                $table->foreign('approved_by')
+                    ->references('id')
+                    ->on('users')
+                    ->nullOnDelete();
+
+                $table->foreign('rejected_by')
+                    ->references('id')
+                    ->on('users')
+                    ->nullOnDelete();
             });
         }
 
@@ -58,6 +75,10 @@ return new class extends Migration
                 $table->integer('sort_order')->default(0);
                 $table->boolean('is_default')->default(false);
                 $table->boolean('is_active')->default(true);
+                $table->enum('inventory_mode', ['tracked', 'unlimited'])->default('unlimited');
+                $table->unsignedInteger('stock_qty')->nullable();
+                $table->unsignedInteger('low_stock_threshold')->nullable();
+                $table->boolean('allow_backorder')->default(false);
                 $table->unsignedInteger('sale_count')->default(0);
                 $table->unsignedInteger('redemption_count')->default(0);
                 $table->timestamps();
@@ -110,6 +131,137 @@ return new class extends Migration
             });
         }
 
+        if (!Schema::hasTable('product_offers')) {
+            Schema::create('product_offers', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->uuid('product_id')->unique();
+                $table->enum('type', ['fixed', 'percentage', 'buy_x_get_y']);
+                $table->enum('status', ['active', 'inactive'])->default('active');
+                $table->string('label')->nullable();
+                $table->timestamp('starts_at')->nullable();
+                $table->timestamp('ends_at')->nullable();
+                $table->unsignedInteger('claim_expiration_minutes')->nullable();
+                $table->decimal('fixed_amount', 12, 2)->nullable();
+                $table->decimal('percentage_value', 5, 2)->nullable();
+                $table->decimal('max_discount', 12, 2)->nullable();
+                $table->unsignedInteger('buy_qty')->nullable();
+                $table->unsignedInteger('get_qty')->nullable();
+                $table->boolean('allow_mix_buy_variants')->default(false);
+                $table->boolean('allow_mix_reward_variants')->default(false);
+                $table->timestamps();
+
+                $table->foreign('product_id')
+                    ->references('id')
+                    ->on('products')
+                    ->cascadeOnDelete();
+            });
+        }
+
+        if (!Schema::hasTable('product_offer_variant_targets')) {
+            Schema::create('product_offer_variant_targets', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('offer_id');
+                $table->uuid('variant_id');
+                $table->enum('role', ['buy', 'reward']);
+                $table->timestamps();
+
+                $table->unique(['offer_id', 'variant_id', 'role']);
+
+                $table->foreign('offer_id')
+                    ->references('id')
+                    ->on('product_offers')
+                    ->cascadeOnDelete();
+
+                $table->foreign('variant_id')
+                    ->references('id')
+                    ->on('product_variants')
+                    ->cascadeOnDelete();
+            });
+        }
+
+        if (!Schema::hasTable('product_revisions')) {
+            Schema::create('product_revisions', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('product_id');
+                $table->unsignedInteger('revision_no');
+                $table->enum('action', ['create', 'update', 'resubmit']);
+                $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled'])->default('pending');
+                $table->unsignedInteger('base_revision_no')->nullable();
+                $table->char('submitted_by', 36);
+                $table->timestamp('submitted_at');
+                $table->char('reviewed_by', 36)->nullable();
+                $table->timestamp('reviewed_at')->nullable();
+                $table->text('rejection_reason')->nullable();
+                $table->text('admin_notes')->nullable();
+                $table->json('payload');
+                $table->timestamps();
+
+                $table->unique(['product_id', 'revision_no']);
+                $table->index(['product_id', 'status']);
+
+                $table->foreign('product_id')
+                    ->references('id')
+                    ->on('products')
+                    ->cascadeOnDelete();
+
+                $table->foreign('submitted_by')
+                    ->references('id')
+                    ->on('users')
+                    ->cascadeOnDelete();
+
+                $table->foreign('reviewed_by')
+                    ->references('id')
+                    ->on('users')
+                    ->nullOnDelete();
+            });
+        }
+
+        if (!Schema::hasTable('offer_claims')) {
+            Schema::create('offer_claims', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->char('user_id', 36);
+                $table->uuid('store_id');
+                $table->uuid('product_id');
+                $table->uuid('offer_id');
+                $table->enum('status', ['active', 'redeemed', 'expired', 'cancelled'])->default('active');
+                $table->string('claim_token', 100)->unique();
+                $table->string('qr_code_token', 100)->unique();
+                $table->json('offer_snapshot');
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamp('redeemed_at')->nullable();
+                $table->char('redeemed_by', 36)->nullable();
+                $table->timestamps();
+
+                $table->index(['store_id', 'status']);
+                $table->index(['product_id', 'status']);
+
+                $table->foreign('user_id')
+                    ->references('id')
+                    ->on('users')
+                    ->cascadeOnDelete();
+
+                $table->foreign('store_id')
+                    ->references('id')
+                    ->on('stores')
+                    ->cascadeOnDelete();
+
+                $table->foreign('product_id')
+                    ->references('id')
+                    ->on('products')
+                    ->cascadeOnDelete();
+
+                $table->foreign('offer_id')
+                    ->references('id')
+                    ->on('product_offers')
+                    ->cascadeOnDelete();
+
+                $table->foreign('redeemed_by')
+                    ->references('id')
+                    ->on('users')
+                    ->nullOnDelete();
+            });
+        }
+
         if (!Schema::hasTable('product_categories')) {
             Schema::create('product_categories', function (Blueprint $table) {
                 $table->id();
@@ -138,6 +290,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('product_categories');
+        Schema::dropIfExists('offer_claims');
+        Schema::dropIfExists('product_revisions');
+        Schema::dropIfExists('product_offer_variant_targets');
+        Schema::dropIfExists('product_offers');
         Schema::dropIfExists('product_images');
         Schema::dropIfExists('product_variant_attributes');
         Schema::dropIfExists('product_variants');

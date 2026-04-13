@@ -2,10 +2,11 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductStatus: string
+enum ProductApprovalStatus: string
 {
-    case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
+    case PENDING = 'pending';
+    case APPROVED = 'approved';
+    case REJECTED = 'rejected';
 
     public static function values(): array
     {

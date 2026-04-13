@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Domain\Store\Models;
+
+use App\Domain\User\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class StoreEmployee extends Model
+{
+    use HasFactory;
+
+    protected $table = 'store_employees';
+
+    protected $fillable = [
+        'store_id',
+        'user_id',
+    ];
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+}

@@ -4,7 +4,9 @@ namespace App\Domain\Store\Models;
 
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreHours;
+use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\OfferClaim;
 use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
@@ -108,10 +110,7 @@ class Store extends Model
 
     public function staff(): BelongsToMany
     {
-        return $this->users()
-            ->whereHas('roles', function ($query) {
-                $query->whereIn('name', ['store_manager', 'store_staff']);
-            });
+        return $this->employees();
     }
 
     public function managers(): BelongsToMany
@@ -120,6 +119,17 @@ class Store extends Model
             ->whereHas('roles', function ($query) {
                 $query->where('name', 'store_manager');
             });
+    }
+
+    public function employeeLinks()
+    {
+        return $this->hasMany(StoreEmployee::class, 'store_id');
+    }
+
+    public function employees(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'store_employees', 'store_id', 'user_id')
+            ->withTimestamps();
     }
 
     public function hours()
@@ -159,6 +169,21 @@ class Store extends Model
     public function products()
     {
         return $this->hasMany(Product::class, 'store_id');
+    }
+
+    public function offerClaims()
+    {
+        return $this->hasMany(OfferClaim::class, 'store_id');
+    }
+
+    public function claims()
+    {
+        return $this->offerClaims();
+    }
+
+    public function hasEmployee(User $user): bool
+    {
+        return $this->employees()->whereKey($user->id)->exists();
     }
 
     public function addBranchAddress(array $data): Address

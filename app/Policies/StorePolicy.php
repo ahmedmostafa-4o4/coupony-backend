@@ -53,4 +53,10 @@ class StorePolicy
         return $store->owner_user_id === $user->id
             || $user->hasRole(['admin', 'super_admin']);
     }
+
+    public function accessClaims(User $user, Store $store): bool
+    {
+        return $user->hasRole('store_employee')
+            && $store->hasEmployee($user);
+    }
 }

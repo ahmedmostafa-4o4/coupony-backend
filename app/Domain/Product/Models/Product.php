@@ -2,9 +2,13 @@
 
 namespace App\Domain\Product\Models;
 
+use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
-use App\Domain\Product\Enums\ProductType;
+use App\Domain\Product\Models\OfferClaim;
+use App\Domain\Product\Models\ProductOffer;
+use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Store\Models\Store;
+use App\Domain\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,12 +29,19 @@ class Product extends Model
         'slug',
         'short_description',
         'description',
-        'product_type',
         'base_price',
         'compare_at_price',
         'currency',
         'sku',
         'status',
+        'approval_status',
+        'published_revision_no',
+        'approved_at',
+        'approved_by',
+        'rejected_at',
+        'rejected_by',
+        'rejection_reason',
+        'admin_notes',
         'is_featured',
         'sale_count',
         'redemption_count',
@@ -39,10 +50,13 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'product_type' => ProductType::class,
             'base_price' => 'decimal:2',
             'compare_at_price' => 'decimal:2',
             'status' => ProductStatus::class,
+            'approval_status' => ProductApprovalStatus::class,
+            'published_revision_no' => 'integer',
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
             'is_featured' => 'boolean',
             'sale_count' => 'integer',
             'redemption_count' => 'integer',
@@ -58,6 +72,10 @@ class Product extends Model
             if (blank($product->id)) {
                 $product->id = (string) \Illuminate\Support\Str::uuid();
             }
+
+            $product->status ??= ProductStatus::INACTIVE;
+            $product->approval_status ??= ProductApprovalStatus::PENDING;
+            $product->published_revision_no ??= 0;
         });
     }
 
@@ -81,6 +99,27 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class, 'product_id')->orderBy('sort_order')->orderBy('id');
     }
 
+    public function offer()
+    {
+        return $this->hasOne(ProductOffer::class, 'product_id');
+    }
+
+    public function revisions()
+    {
+        return $this->hasMany(ProductRevision::class, 'product_id')->orderByDesc('revision_no')->orderByDesc('id');
+    }
+
+    public function offerClaims()
+    {
+        return $this->hasMany(OfferClaim::class, 'product_id');
+    }
+
+    public function pendingRevision()
+    {
+        return $this->hasOne(ProductRevision::class, 'product_id')
+            ->where('status', \App\Domain\Product\Enums\ProductRevisionStatus::PENDING);
+    }
+
     public function activeVariants()
     {
         return $this->variants()->where('is_active', true);
@@ -88,7 +127,19 @@ class Product extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('status', ProductStatus::ACTIVE);
+        return $query
+            ->where('status', ProductStatus::ACTIVE)
+            ->where('approval_status', ProductApprovalStatus::APPROVED);
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     protected static function newFactory()

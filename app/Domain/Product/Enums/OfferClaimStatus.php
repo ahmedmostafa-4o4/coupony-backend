@@ -2,10 +2,12 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductStatus: string
+enum OfferClaimStatus: string
 {
     case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
+    case REDEEMED = 'redeemed';
+    case EXPIRED = 'expired';
+    case CANCELLED = 'cancelled';
 
     public static function values(): array
     {

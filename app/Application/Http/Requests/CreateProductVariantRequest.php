@@ -2,6 +2,7 @@
 
 namespace App\Application\Http\Requests;
 
+use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,10 @@ class CreateProductVariantRequest extends FormRequest
             'sort_order' => ['nullable', 'integer'],
             'is_default' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
+            'inventory_mode' => ['nullable', Rule::in(InventoryMode::values())],
+            'stock_qty' => ['nullable', 'integer', 'min:0'],
+            'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
+            'allow_backorder' => ['nullable', 'boolean'],
             'attributes' => ['nullable', 'array'],
             'attributes.*.attribute_name' => ['required', 'string', 'max:100'],
             'attributes.*.attribute_value' => ['required', 'string', 'max:255'],
@@ -62,6 +67,25 @@ class CreateProductVariantRequest extends FormRequest
 
             if ($attributeNames->isNotEmpty()) {
                 $validator->errors()->add('attributes', __('validation.custom.attributes.unique_name'));
+            }
+
+            $inventoryMode = $this->input('inventory_mode', InventoryMode::UNLIMITED->value);
+            $stockQty = $this->input('stock_qty');
+
+            if ($inventoryMode === InventoryMode::TRACKED->value && $stockQty === null) {
+                $validator->errors()->add('stock_qty', 'The stock qty field is required when inventory mode is tracked.');
+            }
+
+            if ($inventoryMode === InventoryMode::UNLIMITED->value && $this->exists('stock_qty') && $stockQty !== null) {
+                $validator->errors()->add('stock_qty', 'The stock qty field must be empty when inventory mode is unlimited.');
+            }
+
+            if (
+                $inventoryMode === InventoryMode::UNLIMITED->value
+                && $this->exists('low_stock_threshold')
+                && $this->input('low_stock_threshold') !== null
+            ) {
+                $validator->errors()->add('low_stock_threshold', 'The low stock threshold field must be empty when inventory mode is unlimited.');
             }
         });
     }

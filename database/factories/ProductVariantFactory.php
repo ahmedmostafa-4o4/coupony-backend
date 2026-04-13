@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,6 +25,10 @@ class ProductVariantFactory extends Factory
             'sort_order' => 0,
             'is_default' => false,
             'is_active' => true,
+            'inventory_mode' => InventoryMode::UNLIMITED,
+            'stock_qty' => null,
+            'low_stock_threshold' => null,
+            'allow_backorder' => false,
             'sale_count' => 0,
             'redemption_count' => 0,
         ];

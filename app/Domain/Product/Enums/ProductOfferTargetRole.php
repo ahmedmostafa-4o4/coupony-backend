@@ -2,10 +2,10 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductStatus: string
+enum ProductOfferTargetRole: string
 {
-    case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
+    case BUY = 'buy';
+    case REWARD = 'reward';
 
     public static function values(): array
     {

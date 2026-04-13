@@ -20,7 +20,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $seller = Role::create(['name' => 'seller']);
         $seller_pending = Role::create(['name' => 'seller_pending']);
         $storeManager = Role::create(['name' => 'store_manager']);
-        $storeStaff = Role::create(['name' => 'store_staff']);
+        $storeEmployee = Role::create(['name' => 'store_employee']);
         $admin = Role::create(['name' => 'admin']);
         $customer = Role::create(['name' => 'customer']);
 
@@ -37,6 +37,8 @@ class RolesAndPermissionsSeeder extends Seeder
         Permission::create(['name' => 'order:read']);
         Permission::create(['name' => 'cart:manage']);
         Permission::create(['name' => 'profile:update']);
+        Permission::create(['name' => 'claim:view']);
+        Permission::create(['name' => 'claim:redeem']);
 
         $customer->givePermissionTo([
             'product:read',
@@ -65,10 +67,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'order:update',
         ]);
 
-        $storeStaff->givePermissionTo([
-            'product:create',
-            'order:view',
-            'order:update',
+        $storeEmployee->givePermissionTo([
+            'claim:view',
+            'claim:redeem',
         ]);
 
         $admin = User::create([

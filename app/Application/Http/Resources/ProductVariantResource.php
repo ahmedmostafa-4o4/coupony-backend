@@ -26,6 +26,11 @@ class ProductVariantResource extends JsonResource
             'sort_order' => $this->sort_order,
             'is_default' => $this->is_default,
             'is_active' => $this->is_active,
+            'inventory_mode' => $this->inventory_mode?->value ?? $this->inventory_mode,
+            'stock_qty' => $this->stock_qty,
+            'low_stock_threshold' => $this->low_stock_threshold,
+            'allow_backorder' => $this->allow_backorder,
+            'is_in_stock' => $this->isInStock(),
             'attributes' => $this->whenLoaded('attributes', function () {
                 return $this->attributes
                     ->map(fn($attribute) => [

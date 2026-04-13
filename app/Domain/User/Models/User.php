@@ -4,6 +4,8 @@ namespace App\Domain\User\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Store\Models\StoreFollowers;
+use App\Domain\Store\Models\StoreEmployee;
+use App\Domain\Product\Models\OfferClaim;
 use App\Domain\User\Models\UserPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -168,6 +170,17 @@ class User extends Authenticatable
         return $this->hasMany(\App\Domain\Store\Models\Store::class , 'owner_user_id');
     }
 
+    public function storeEmployeeAssignments()
+    {
+        return $this->hasMany(StoreEmployee::class, 'user_id');
+    }
+
+    public function employeeStores()
+    {
+        return $this->belongsToMany(\App\Domain\Store\Models\Store::class, 'store_employees', 'user_id', 'store_id')
+            ->withTimestamps();
+    }
+
     public function userRoles()
     {
         return $this->hasMany(UserRoles::class);
@@ -192,6 +205,16 @@ class User extends Authenticatable
     public function preferences()
     {
         return $this->hasOne(UserPreference::class);
+    }
+
+    public function offerClaims()
+    {
+        return $this->hasMany(OfferClaim::class, 'user_id');
+    }
+
+    public function redeemedOfferClaims()
+    {
+        return $this->hasMany(OfferClaim::class, 'redeemed_by');
     }
 
     /**

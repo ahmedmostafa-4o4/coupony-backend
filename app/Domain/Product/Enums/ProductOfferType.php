@@ -2,11 +2,11 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductType: string
+enum ProductOfferType: string
 {
-    case STANDARD = 'standard';
-    case SERVICE = 'service';
-    case COUPONABLE_ITEM = 'couponable_item';
+    case FIXED = 'fixed';
+    case PERCENTAGE = 'percentage';
+    case BUY_X_GET_Y = 'buy_x_get_y';
 
     public static function values(): array
     {

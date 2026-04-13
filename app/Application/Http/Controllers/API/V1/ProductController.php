@@ -14,6 +14,7 @@ use App\Domain\Product\Actions\DeleteProduct;
 use App\Domain\Product\Actions\UpdateProduct;
 use App\Domain\Product\Actions\UpdateProductStatus;
 use App\Domain\Product\DTOs\ProductData;
+use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\Product;
@@ -42,7 +43,7 @@ class ProductController extends Controller
         Gate::authorize('create', [Product::class, $store]);
 
         try {
-            $product = $this->createProductAction->execute($store, ProductData::fromRequest($request));
+            $product = $this->createProductAction->execute($store, ProductData::fromRequest($request), $request->user());
 
             return $this->successResponse(
                 new ProductResource($product),
@@ -104,7 +105,7 @@ class ProductController extends Controller
         Gate::authorize('update', $product);
 
         try {
-            $updatedProduct = $this->updateProductAction->execute($product, ProductData::fromRequest($request));
+            $updatedProduct = $this->updateProductAction->execute($product, ProductData::fromRequest($request), $request->user());
 
             return $this->successResponse(
                 new ProductResource($updatedProduct),
@@ -186,7 +187,10 @@ class ProductController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($product->status !== ProductStatus::ACTIVE) {
+        if (
+            $product->status !== ProductStatus::ACTIVE
+            || $product->approval_status !== ProductApprovalStatus::APPROVED
+        ) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 

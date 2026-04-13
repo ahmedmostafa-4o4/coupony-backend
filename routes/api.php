@@ -1,6 +1,7 @@
 <?php
 
 use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
+use App\Application\Http\Controllers\API\V1\Admin\ProductRevisionManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\UserManagementController;
 use App\Application\Http\Controllers\API\V1\Auth\AdminRegisterController;
 use App\Application\Http\Controllers\API\V1\Auth\GoogleLoginController;
@@ -14,11 +15,14 @@ use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\MeAddressController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\OnboardingController;
+use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\CategoryController;
 use App\Application\Http\Controllers\API\V1\ProductImageController;
 use App\Application\Http\Controllers\API\V1\ProductController;
+use App\Application\Http\Controllers\API\V1\ProductRevisionController;
 use App\Application\Http\Controllers\API\V1\ProductVariantController;
 use App\Application\Http\Controllers\API\V1\SocialController;
+use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
@@ -87,6 +91,7 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
+        Route::post('/products/{product}/claims', [OfferClaimController::class, 'store'])->name('products.claims.store');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
@@ -99,6 +104,8 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{product}', [ProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
                 Route::patch('/{product}/status', [ProductController::class, 'updateStatus'])->name('status');
+                Route::get('/{product}/revisions', [ProductRevisionController::class, 'index'])->name('revisions.index');
+                Route::get('/{product}/revisions/{revision}', [ProductRevisionController::class, 'show'])->name('revisions.show');
                 Route::get('/{product}/variants', [ProductVariantController::class, 'index'])->name('variants.index');
                 Route::post('/{product}/variants', [ProductVariantController::class, 'store'])->name('variants.store');
                 Route::get('/{product}/variants/{variant}', [ProductVariantController::class, 'show'])->name('variants.show');
@@ -111,6 +118,14 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{product}/images/{image}/primary', [ProductImageController::class, 'setPrimary'])->name('images.primary');
                 Route::delete('/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('images.destroy');
             });
+            Route::prefix('/stores/{store}/offer-claims')
+                ->middleware('role:store_employee')
+                ->name('stores.offer-claims.')
+                ->group(function () {
+                    Route::get('/', [StoreOfferClaimController::class, 'index'])->name('index');
+                    Route::get('/{claim}', [StoreOfferClaimController::class, 'show'])->name('show');
+                    Route::post('/redeem', [StoreOfferClaimController::class, 'redeem'])->name('redeem');
+                });
         });
         Route::get('/me/addresses', [MeAddressController::class, 'index'])->name('me.addresses.index');
         Route::post('/me/addresses', [MeAddressController::class, 'store'])->name('me.addresses.store');
@@ -198,6 +213,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/{store}/verifications', [StoreManagementController::class, 'verificationDocuments'])->name('verifications');
             Route::post('/{store}/verifications/{verification}/approve', [StoreManagementController::class, 'approveDocument'])->name('verifications.approve');
             Route::post('/{store}/verifications/{verification}/reject', [StoreManagementController::class, 'rejectDocument'])->name('verifications.reject');
+        });
+
+        Route::prefix('products')->name('admin.products.')->group(function () {
+            Route::get('/pending', [ProductRevisionManagementController::class, 'pending'])->name('pending');
+            Route::get('/revisions/{revision}', [ProductRevisionManagementController::class, 'show'])->name('revisions.show');
+            Route::post('/revisions/{revision}/approve', [ProductRevisionManagementController::class, 'approve'])->name('revisions.approve');
+            Route::post('/revisions/{revision}/reject', [ProductRevisionManagementController::class, 'reject'])->name('revisions.reject');
         });
 
         // Contact Us Management

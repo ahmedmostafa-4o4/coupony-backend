@@ -21,12 +21,9 @@ class ProductResource extends JsonResource
             'slug' => $this->slug,
             'short_description' => $this->short_description,
             'description' => $this->description,
-            'product_type' => $this->product_type?->value ?? $this->product_type,
-            'base_price' => $this->base_price,
-            'compare_at_price' => $this->compare_at_price,
             'currency' => $this->currency,
-            'sku' => $this->sku,
             'status' => $this->status?->value ?? $this->status,
+            'approval_status' => $this->approval_status?->value ?? $this->approval_status,
             'is_featured' => $this->is_featured,
             'sale_count' => $this->sale_count,
             'redemption_count' => $this->redemption_count,
@@ -42,14 +39,13 @@ class ProductResource extends JsonResource
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
             'images' => ProductImageResource::collection($this->whenLoaded('images')),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
+            'offer' => ProductOfferResource::make($this->whenLoaded('offer')),
             'store' => $this->whenLoaded('store', function () {
                 return [
                     'id' => $this->store?->id,
                     'name' => $this->store?->name,
                 ];
             }),
-            'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

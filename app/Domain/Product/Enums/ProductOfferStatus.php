@@ -2,7 +2,7 @@
 
 namespace App\Domain\Product\Enums;
 
-enum ProductStatus: string
+enum ProductOfferStatus: string
 {
     case ACTIVE = 'active';
     case INACTIVE = 'inactive';
