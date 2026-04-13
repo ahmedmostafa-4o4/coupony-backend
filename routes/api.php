@@ -95,6 +95,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
+        Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
         Route::scopeBindings()->group(function () {
             Route::prefix('/stores/{store}/products')->name('stores.products.')->group(function () {

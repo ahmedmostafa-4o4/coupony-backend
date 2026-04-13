@@ -4,11 +4,13 @@ namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\CreateStoreRequest;
+use App\Application\Http\Requests\UpdateStoreProfileRequest;
 use App\Application\Http\Requests\UpdateStoreRequest;
 use App\Application\Http\Requests\UpdateVerificationDocumentRequest;
 use App\Application\Http\Resources\StoreCollection;
 use App\Application\Http\Resources\StoreResource;
 use App\Domain\Store\Actions\CreateStore;
+use App\Domain\Store\Actions\UpdateStoreProfile;
 use App\Domain\Store\Actions\UpdateStore;
 use App\Domain\Store\Actions\UpdateVerificationDocument;
 use App\Domain\Store\DTOs\StoreData;
@@ -28,6 +30,7 @@ class StoreController extends Controller
     public function __construct(
         private readonly CreateStore $createStoreAction,
         private readonly UpdateStore $updateStoreAction,
+        private readonly UpdateStoreProfile $updateStoreProfileAction,
         private readonly UpdateVerificationDocument $updateVerificationDocumentAction
     ) {
     }
@@ -116,6 +119,53 @@ class StoreController extends Controller
             });
         } catch (Throwable $e) {
             Log::error('Store update failed', [
+                'store_id' => $store->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return $this->errorResponse(
+                __('api.store.update_failed'),
+                500
+            );
+        }
+    }
+
+    /**
+     * Update non-reviewable store profile information.
+     */
+    public function updateProfile(UpdateStoreProfileRequest $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        Gate::authorize('updateProfile', $store);
+
+        $user = $request->user();
+
+        try {
+            return DB::transaction(function () use ($request, $store, $user) {
+                $updatedStore = $this->updateStoreProfileAction->execute(
+                    $store,
+                    $request->validated(),
+                    $request->file('logo_url'),
+                    $request->file('banner_url')
+                );
+
+                $updatedStore->load($this->storeRelations());
+
+                Log::info('Store profile updated successfully', [
+                    'store_id' => $store->id,
+                    'user_id' => $user->id,
+                ]);
+
+                return $this->successResponse(
+                    new StoreResource($updatedStore),
+                    __('api.store.profile_updated')
+                );
+            });
+        } catch (Throwable $e) {
+            Log::error('Store profile update failed', [
                 'store_id' => $store->id,
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),

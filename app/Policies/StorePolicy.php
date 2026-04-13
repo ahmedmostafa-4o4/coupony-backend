@@ -32,6 +32,21 @@ class StorePolicy
     }
 
     /**
+     * Determine if the user can update the store profile.
+     */
+    public function updateProfile(User $user, Store $store): bool
+    {
+        if ($store->owner_user_id !== $user->id) {
+            return false;
+        }
+
+        return !in_array($store->status, [
+            StoreStatus::SUSPENDED,
+            StoreStatus::CLOSED,
+        ], true);
+    }
+
+    /**
      * Determine if the user can update verification documents.
      */
     public function updateVerificationDocuments(User $user, Store $store): bool

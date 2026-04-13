@@ -77,6 +77,7 @@ return [
         'created' => 'Store created successfully. Pending approval.',
         'create_failed' => 'Failed to create store. Please try again later.',
         'updated' => 'Store updated successfully.',
+        'profile_updated' => 'Store profile updated successfully.',
         'update_failed' => 'Failed to update store. Please try again later.',
         'retrieved' => 'Stores retrieved successfully.',
         'retrieve_failed' => 'Failed to retrieve stores. Please try again later.',
