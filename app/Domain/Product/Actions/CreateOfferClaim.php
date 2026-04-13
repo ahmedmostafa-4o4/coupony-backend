@@ -15,6 +15,7 @@ use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Str;
+use Log;
 
 class CreateOfferClaim
 {
@@ -128,7 +129,7 @@ class CreateOfferClaim
         if ($selectedVariantIds === []) {
             throw new \DomainException('At least one active variant must be selected for this claim.');
         }
-
+        Log::debug('Selected variant IDs for claim: ' . implode(', ', $selectedVariantIds));
         return collect($selectedVariantIds)
             ->map(function (string $variantId) use ($variants) {
                 /** @var ProductVariant|null $variant */
