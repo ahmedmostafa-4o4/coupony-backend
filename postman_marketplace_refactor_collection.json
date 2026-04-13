@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "9f2ff221-dc5b-4f5b-87a7-9f8df59b0aa1",
     "name": "Coupony Marketplace Refactor API",
-    "description": "Postman collection for the refactored marketplace flows: public catalog, seller product submissions, admin revision review, customer claims, and store employee redemption/history.",
+    "description": "Postman collection for the refactored marketplace flows: public catalog, seller product submissions, admin revision review, customer claims, and store employee redemption/history. Pricing note: sellers now submit variant original_price only. The backend resolves variant price and compare_at_price from the offer for fixed and percentage offers, while buy_x_get_y keeps pricing as reference data.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -233,6 +233,7 @@
         {
           "name": "Create Product With Fixed Offer",
           "request": {
+            "description": "Creates a seller product submission using the current pricing contract. Do not send variant price or compare_at_price. Send variants.*.original_price and let the backend resolve stored price fields from the fixed offer.",
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
@@ -241,7 +242,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Marketplace Fixed Offer Product\",\n  \"slug\": \"marketplace-fixed-offer-product\",\n  \"short_description\": \"Short description\",\n  \"description\": \"Long description\",\n  \"base_price\": 100,\n  \"compare_at_price\": 120,\n  \"currency\": \"EGP\",\n  \"sku\": \"MKT-FIXED-001\",\n  \"is_featured\": false,\n  \"category_ids\": [{{category_id}}],\n  \"images\": [],\n  \"variants\": [\n    {\n      \"title\": \"Red / XL\",\n      \"option_summary\": \"Color: Red, Size: XL\",\n      \"sku\": \"MKT-FIXED-001-RED-XL\",\n      \"barcode\": \"123456789\",\n      \"price\": 110,\n      \"compare_at_price\": 130,\n      \"currency\": \"EGP\",\n      \"sort_order\": 0,\n      \"is_default\": true,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 8,\n      \"low_stock_threshold\": 2,\n      \"allow_backorder\": false,\n      \"attributes\": [\n        { \"attribute_name\": \"color\", \"attribute_value\": \"red\", \"sort_order\": 0 },\n        { \"attribute_name\": \"size\", \"attribute_value\": \"XL\", \"sort_order\": 1 }\n      ]\n    }\n  ],\n  \"offer\": {\n    \"type\": \"fixed\",\n    \"status\": \"active\",\n    \"label\": \"Launch discount\",\n    \"claim_expiration_minutes\": 1440,\n    \"fixed_amount\": 15,\n    \"percentage_value\": null,\n    \"max_discount\": null,\n    \"buy_qty\": null,\n    \"get_qty\": null,\n    \"allow_mix_buy_variants\": false,\n    \"allow_mix_reward_variants\": false,\n    \"buy_variant_skus\": [],\n    \"reward_variant_skus\": []\n  }\n}"
+              "raw": "{\n  \"title\": \"Marketplace Fixed Offer Product\",\n  \"slug\": \"marketplace-fixed-offer-product\",\n  \"short_description\": \"Short description\",\n  \"description\": \"Long description\",\n  \"currency\": \"EGP\",\n  \"sku\": \"MKT-FIXED-001\",\n  \"is_featured\": false,\n  \"category_ids\": [{{category_id}}],\n  \"images\": [],\n  \"variants\": [\n    {\n      \"title\": \"Red / XL\",\n      \"option_summary\": \"Color: Red, Size: XL\",\n      \"sku\": \"MKT-FIXED-001-RED-XL\",\n      \"barcode\": \"123456789\",\n      \"original_price\": 110,\n      \"currency\": \"EGP\",\n      \"sort_order\": 0,\n      \"is_default\": true,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 8,\n      \"low_stock_threshold\": 2,\n      \"allow_backorder\": false,\n      \"attributes\": [\n        { \"attribute_name\": \"color\", \"attribute_value\": \"red\", \"sort_order\": 0 },\n        { \"attribute_name\": \"size\", \"attribute_value\": \"XL\", \"sort_order\": 1 }\n      ]\n    }\n  ],\n  \"offer\": {\n    \"type\": \"fixed\",\n    \"status\": \"active\",\n    \"label\": \"Launch discount\",\n    \"claim_expiration_minutes\": 1440,\n    \"fixed_amount\": 15,\n    \"percentage_value\": null,\n    \"max_discount\": null,\n    \"buy_qty\": null,\n    \"get_qty\": null,\n    \"allow_mix_buy_variants\": false,\n    \"allow_mix_reward_variants\": false,\n    \"buy_variant_skus\": [],\n    \"reward_variant_skus\": []\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products",
@@ -299,6 +300,7 @@
         {
           "name": "Update Product To Create Pending Revision",
           "request": {
+            "description": "Creates or updates the single pending revision for an already approved product. Live catalog data remains unchanged until admin approval.",
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
@@ -445,6 +447,7 @@
         {
           "name": "Create Claim For Fixed Or Percentage Offer",
           "request": {
+            "description": "Creates a QR claim from a live approved product offer. Stock is not deducted here; deduction happens only on successful redemption.",
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
@@ -480,6 +483,7 @@
         {
           "name": "Create Buy X Get Y Product",
           "request": {
+            "description": "Creates a buy_x_get_y product submission. Variants still submit original_price only; no synthetic discount price is sent by the seller.",
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
@@ -488,7 +492,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Marketplace Buy X Get Y Product\",\n  \"slug\": \"marketplace-buy-x-get-y-product\",\n  \"short_description\": \"Short description\",\n  \"description\": \"Long description\",\n  \"base_price\": 100,\n  \"compare_at_price\": 120,\n  \"currency\": \"EGP\",\n  \"sku\": \"MKT-BXGY-001\",\n  \"is_featured\": false,\n  \"category_ids\": [{{category_id}}],\n  \"images\": [],\n  \"variants\": [\n    {\n      \"title\": \"Buy Variant A\",\n      \"option_summary\": \"Buy A\",\n      \"sku\": \"MKT-BXGY-BUY-A\",\n      \"price\": 100,\n      \"currency\": \"EGP\",\n      \"sort_order\": 0,\n      \"is_default\": true,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 6,\n      \"low_stock_threshold\": 2,\n      \"allow_backorder\": false,\n      \"attributes\": []\n    },\n    {\n      \"title\": \"Buy Variant B\",\n      \"option_summary\": \"Buy B\",\n      \"sku\": \"MKT-BXGY-BUY-B\",\n      \"price\": 100,\n      \"currency\": \"EGP\",\n      \"sort_order\": 1,\n      \"is_default\": false,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 6,\n      \"low_stock_threshold\": 2,\n      \"allow_backorder\": false,\n      \"attributes\": []\n    },\n    {\n      \"title\": \"Reward Variant\",\n      \"option_summary\": \"Reward\",\n      \"sku\": \"MKT-BXGY-REWARD\",\n      \"price\": 0,\n      \"currency\": \"EGP\",\n      \"sort_order\": 2,\n      \"is_default\": false,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 3,\n      \"low_stock_threshold\": 1,\n      \"allow_backorder\": false,\n      \"attributes\": []\n    }\n  ],\n  \"offer\": {\n    \"type\": \"buy_x_get_y\",\n    \"status\": \"active\",\n    \"label\": \"Buy 2 get 1\",\n    \"claim_expiration_minutes\": 1440,\n    \"fixed_amount\": null,\n    \"percentage_value\": null,\n    \"max_discount\": null,\n    \"buy_qty\": 2,\n    \"get_qty\": 1,\n    \"allow_mix_buy_variants\": true,\n    \"allow_mix_reward_variants\": false,\n    \"buy_variant_skus\": [\"MKT-BXGY-BUY-A\", \"MKT-BXGY-BUY-B\"],\n    \"reward_variant_skus\": [\"MKT-BXGY-REWARD\"]\n  }\n}"
+              "raw": "{\n  \"title\": \"Marketplace Buy X Get Y Product\",\n  \"slug\": \"marketplace-buy-x-get-y-product\",\n  \"short_description\": \"Short description\",\n  \"description\": \"Long description\",\n  \"currency\": \"EGP\",\n  \"sku\": \"MKT-BXGY-001\",\n  \"is_featured\": false,\n  \"category_ids\": [{{category_id}}],\n  \"images\": [],\n  \"variants\": [\n    {\n      \"title\": \"Buy Variant A\",\n      \"option_summary\": \"Buy A\",\n      \"sku\": \"MKT-BXGY-BUY-A\",\n      \"original_price\": 100,\n      \"currency\": \"EGP\",\n      \"sort_order\": 0,\n      \"is_default\": true,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 6,\n      \"low_stock_threshold\": 2,\n      \"allow_backorder\": false,\n      \"attributes\": []\n    },\n    {\n      \"title\": \"Buy Variant B\",\n      \"option_summary\": \"Buy B\",\n      \"sku\": \"MKT-BXGY-BUY-B\",\n      \"original_price\": 100,\n      \"currency\": \"EGP\",\n      \"sort_order\": 1,\n      \"is_default\": false,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 6,\n      \"low_stock_threshold\": 2,\n      \"allow_backorder\": false,\n      \"attributes\": []\n    },\n    {\n      \"title\": \"Reward Variant\",\n      \"option_summary\": \"Reward\",\n      \"sku\": \"MKT-BXGY-REWARD\",\n      \"original_price\": 0,\n      \"currency\": \"EGP\",\n      \"sort_order\": 2,\n      \"is_default\": false,\n      \"is_active\": true,\n      \"inventory_mode\": \"tracked\",\n      \"stock_qty\": 3,\n      \"low_stock_threshold\": 1,\n      \"allow_backorder\": false,\n      \"attributes\": []\n    }\n  ],\n  \"offer\": {\n    \"type\": \"buy_x_get_y\",\n    \"status\": \"active\",\n    \"label\": \"Buy 2 get 1\",\n    \"claim_expiration_minutes\": 1440,\n    \"fixed_amount\": null,\n    \"percentage_value\": null,\n    \"max_discount\": null,\n    \"buy_qty\": 2,\n    \"get_qty\": 1,\n    \"allow_mix_buy_variants\": true,\n    \"allow_mix_reward_variants\": false,\n    \"buy_variant_skus\": [\"MKT-BXGY-BUY-A\", \"MKT-BXGY-BUY-B\"],\n    \"reward_variant_skus\": [\"MKT-BXGY-REWARD\"]\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/stores/{{store_id}}/products",
