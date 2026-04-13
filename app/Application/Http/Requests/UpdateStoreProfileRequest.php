@@ -3,6 +3,7 @@
 namespace App\Application\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateStoreProfileRequest extends FormRequest
@@ -14,6 +15,7 @@ class UpdateStoreProfileRequest extends FormRequest
         'logo_url',
         'banner_url',
         'socials',
+        'hours',
     ];
 
     public function authorize(): bool
@@ -32,6 +34,11 @@ class UpdateStoreProfileRequest extends FormRequest
             'socials' => 'nullable|array',
             'socials.*.social_id' => 'required_with:socials|exists:socials,id',
             'socials.*.link' => 'required_with:socials|url|max:500',
+            'hours' => 'nullable|array|size:7',
+            'hours.*.day_of_week' => ['required_with:hours', 'integer', Rule::in(range(0, 6))],
+            'hours.*.open_time' => 'nullable|date_format:H:i',
+            'hours.*.close_time' => 'nullable|date_format:H:i',
+            'hours.*.is_closed' => 'required_with:hours|boolean',
         ];
     }
 
@@ -55,6 +62,47 @@ class UpdateStoreProfileRequest extends FormRequest
 
                 foreach ($unexpectedNestedFields as $field) {
                     $validator->errors()->add("socials.{$index}.{$field}", 'This field is not allowed.');
+                }
+            }
+
+            $hours = $this->input('hours', []);
+
+            foreach ($hours as $index => $hour) {
+                if (!is_array($hour)) {
+                    continue;
+                }
+
+                $unexpectedNestedFields = collect(array_keys($hour))
+                    ->diff(['day_of_week', 'open_time', 'close_time', 'is_closed']);
+
+                foreach ($unexpectedNestedFields as $field) {
+                    $validator->errors()->add("hours.{$index}.{$field}", 'This field is not allowed.');
+                }
+
+                $isClosed = filter_var($hour['is_closed'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                $openTime = $hour['open_time'] ?? null;
+                $closeTime = $hour['close_time'] ?? null;
+
+                if ($isClosed === false) {
+                    if (blank($openTime)) {
+                        $validator->errors()->add("hours.{$index}.open_time", 'The open time field is required when the day is open.');
+                    }
+
+                    if (blank($closeTime)) {
+                        $validator->errors()->add("hours.{$index}.close_time", 'The close time field is required when the day is open.');
+                    }
+                }
+
+                if (!blank($openTime) && !blank($closeTime) && $closeTime <= $openTime) {
+                    $validator->errors()->add("hours.{$index}.close_time", 'The close time must be after the open time.');
+                }
+            }
+
+            if (!empty($hours)) {
+                $dayOfWeeks = collect($hours)->pluck('day_of_week');
+
+                if ($dayOfWeeks->filter(fn ($value) => !is_null($value))->unique()->count() !== 7) {
+                    $validator->errors()->add('hours', 'The hours field must include exactly one entry for each day of the week.');
                 }
             }
         });

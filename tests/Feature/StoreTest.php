@@ -221,6 +221,30 @@ class StoreTest extends TestCase
             ->assertJsonPath('data.status', StoreStatus::ACTIVE->value);
     }
 
+    public function test_owner_can_update_hours_on_active_store()
+    {
+        $owner = User::factory()->create();
+        $store = Store::factory()->active()->create([
+            'owner_user_id' => $owner->id,
+        ]);
+
+        $response = $this->patchStoreProfile($store, [
+            'hours' => $this->validHoursPayload(),
+        ], $owner);
+
+        $response->assertOk()
+            ->assertJsonPath('data.status', StoreStatus::ACTIVE->value)
+            ->assertJsonCount(7, 'data.hours');
+
+        $this->assertDatabaseHas('store_hours', [
+            'store_id' => $store->id,
+            'day_of_week' => 1,
+            'open_time' => '09:00',
+            'close_time' => '17:00',
+            'is_closed' => false,
+        ]);
+    }
+
     public function test_owner_can_patch_profile_on_rejected_store_without_changing_status()
     {
         $owner = User::factory()->create();
@@ -251,6 +275,32 @@ class StoreTest extends TestCase
         );
         $this->assertSame($reviewer->id, $store->rejected_by);
         $this->assertSame('Missing compliance data', $store->rejection_reason);
+    }
+
+    public function test_owner_can_update_hours_on_rejected_store_without_changing_status()
+    {
+        $owner = User::factory()->create();
+        $store = Store::factory()->rejected()->create([
+            'owner_user_id' => $owner->id,
+            'rejected_by' => User::factory(),
+            'rejection_reason' => 'Still rejected',
+        ]);
+
+        $this->patchStoreProfile($store, [
+            'hours' => $this->validHoursPayload(),
+        ], $owner)->assertOk()
+            ->assertJsonPath('data.status', StoreStatus::REJECTED->value);
+
+        $store->refresh();
+
+        $this->assertSame(StoreStatus::REJECTED, $store->status);
+        $this->assertDatabaseHas('store_hours', [
+            'store_id' => $store->id,
+            'day_of_week' => 2,
+            'open_time' => '09:00',
+            'close_time' => '17:00',
+            'is_closed' => false,
+        ]);
     }
 
     public function test_patching_profile_does_not_clear_rejection_fields()
@@ -316,6 +366,51 @@ class StoreTest extends TestCase
         $this->patchStoreProfile($store, [
             'description' => 'Should not pass',
         ], $owner)->assertForbidden();
+    }
+
+    public function test_closed_day_is_handled_correctly()
+    {
+        $owner = User::factory()->create();
+        $store = Store::factory()->active()->create([
+            'owner_user_id' => $owner->id,
+        ]);
+
+        $hours = $this->validHoursPayload();
+        $hours[0] = [
+            'day_of_week' => 0,
+            'open_time' => null,
+            'close_time' => null,
+            'is_closed' => true,
+        ];
+
+        $this->patchStoreProfile($store, [
+            'hours' => $hours,
+        ], $owner)->assertOk();
+
+        $this->assertDatabaseHas('store_hours', [
+            'store_id' => $store->id,
+            'day_of_week' => 0,
+            'open_time' => '00:00',
+            'close_time' => '00:00',
+            'is_closed' => true,
+        ]);
+    }
+
+    public function test_invalid_hour_time_ranges_fail_validation()
+    {
+        $owner = User::factory()->create();
+        $store = Store::factory()->active()->create([
+            'owner_user_id' => $owner->id,
+        ]);
+
+        $hours = $this->validHoursPayload();
+        $hours[3]['open_time'] = '18:00';
+        $hours[3]['close_time'] = '09:00';
+
+        $this->patchStoreProfile($store, [
+            'hours' => $hours,
+        ], $owner)->assertStatus(422)
+            ->assertJsonValidationErrors(['hours.3.close_time']);
     }
 
     public function test_store_profile_socials_sync_works()
@@ -454,5 +549,17 @@ class StoreTest extends TestCase
         );
 
         return UploadedFile::fake()->createWithContent($name, $png);
+    }
+
+    private function validHoursPayload(): array
+    {
+        return collect(range(0, 6))
+            ->map(fn (int $day) => [
+                'day_of_week' => $day,
+                'open_time' => '09:00',
+                'close_time' => '17:00',
+                'is_closed' => false,
+            ])
+            ->all();
     }
 }

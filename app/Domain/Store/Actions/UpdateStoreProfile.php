@@ -26,6 +26,10 @@ class UpdateStoreProfile
             $this->syncSocials($store, $data['socials'] ?? []);
         }
 
+        if (array_key_exists('hours', $data)) {
+            $this->syncHours($store, $data['hours'] ?? []);
+        }
+
         if ($logoFile) {
             $this->replaceFile($store, $logoFile, 'logo_url', 'logo');
         }
@@ -72,5 +76,21 @@ class UpdateStoreProfile
         }
 
         $store->forceFill([$attribute => $newPath])->save();
+    }
+
+    private function syncHours(Store $store, array $hours): void
+    {
+        foreach ($hours as $hour) {
+            $isClosed = (bool) $hour['is_closed'];
+
+            $store->hours()->updateOrCreate(
+                ['day_of_week' => $hour['day_of_week']],
+                [
+                    'open_time' => $isClosed ? '00:00' : $hour['open_time'],
+                    'close_time' => $isClosed ? '00:00' : $hour['close_time'],
+                    'is_closed' => $isClosed,
+                ]
+            );
+        }
     }
 }
