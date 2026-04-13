@@ -16,6 +16,7 @@ class UpdateStoreProfileRequest extends FormRequest
         'banner_url',
         'socials',
         'hours',
+        '_method'
     ];
 
     public function authorize(): bool
@@ -101,7 +102,7 @@ class UpdateStoreProfileRequest extends FormRequest
             if (!empty($hours)) {
                 $dayOfWeeks = collect($hours)->pluck('day_of_week');
 
-                if ($dayOfWeeks->filter(fn ($value) => !is_null($value))->unique()->count() !== 7) {
+                if ($dayOfWeeks->filter(fn($value) => !is_null($value))->unique()->count() !== 7) {
                     $validator->errors()->add('hours', 'The hours field must include exactly one entry for each day of the week.');
                 }
             }
