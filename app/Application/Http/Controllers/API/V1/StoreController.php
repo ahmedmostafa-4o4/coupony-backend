@@ -89,6 +89,8 @@ class StoreController extends Controller
 
         $this->applyAuthenticatedLocale($request);
 
+        Gate::authorize('update', $store);
+
         $user = $request->user();
 
         try {
