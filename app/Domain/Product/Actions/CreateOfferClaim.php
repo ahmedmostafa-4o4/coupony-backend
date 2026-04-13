@@ -129,6 +129,7 @@ class CreateOfferClaim
         if ($selectedVariantIds === []) {
             throw new \DomainException('At least one active variant must be selected for this claim.');
         }
+        Log::debug('Variants for claim: ' . $variants);
         Log::debug('Selected variant IDs for claim: ' . implode(', ', $selectedVariantIds));
         return collect($selectedVariantIds)
             ->map(function (string $variantId) use ($variants) {
