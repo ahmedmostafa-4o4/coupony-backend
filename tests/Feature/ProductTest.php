@@ -48,6 +48,9 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.approval_status', ProductApprovalStatus::PENDING->value)
             ->assertJsonPath('data.offer.type', 'fixed')
             ->assertJsonPath('data.offer.fixed_amount', '15.00')
+            ->assertJsonPath('data.variants.0.original_price', '110.00')
+            ->assertJsonPath('data.variants.0.price', '95.00')
+            ->assertJsonPath('data.variants.0.compare_at_price', '110.00')
             ->assertJsonPath('data.variants.0.title', 'Red / XL')
             ->assertJsonPath('data.variants.0.inventory_mode', 'tracked')
             ->assertJsonPath('data.variants.0.stock_qty', 8)
@@ -237,6 +240,7 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.approval_status', 'approved')
             ->assertJsonPath('data.is_featured', false)
+            ->assertJsonPath('data.variants.0.original_price', (string) ProductVariant::where('product_id', $product->id)->first()->original_price)
             ->assertJsonPath('data.variants.0.inventory_mode', 'tracked')
             ->assertJsonPath('data.variants.0.stock_qty', 7)
             ->assertJsonPath('data.variants.0.low_stock_threshold', 2)
@@ -290,6 +294,9 @@ class ProductTest extends TestCase
             'product_id' => $productId,
             'title' => 'Red / XL',
             'sku' => 'SKU-001-RED-XL',
+            'original_price' => 110,
+            'price' => 95,
+            'compare_at_price' => 110,
             'is_default' => true,
             'inventory_mode' => 'tracked',
             'stock_qty' => 8,
@@ -320,8 +327,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Color: Red, Size: XL',
                     'sku' => 'SKU-001-RED-XL',
                     'barcode' => '123456789',
-                    'price' => 110,
-                    'compare_at_price' => 130,
+                    'original_price' => 110,
                     'currency' => 'EGP',
                     'sort_order' => 0,
                     'is_default' => true,
@@ -333,8 +339,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Color: Blue, Size: L',
                     'sku' => 'SKU-001-BLUE-L',
                     'barcode' => '987654321',
-                    'price' => 115,
-                    'compare_at_price' => 135,
+                    'original_price' => 115,
                     'currency' => 'EGP',
                     'sort_order' => 1,
                     'is_default' => true,
@@ -406,6 +411,143 @@ class ProductTest extends TestCase
             ->assertJsonValidationErrors(['offer.percentage_value']);
     }
 
+    public function test_fixed_offer_resolves_variant_prices_from_original_price(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'offer' => [
+                    'type' => 'fixed',
+                    'status' => 'active',
+                    'fixed_amount' => 15,
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.variants.0.original_price', '110.00')
+            ->assertJsonPath('data.variants.0.price', '95.00')
+            ->assertJsonPath('data.variants.0.compare_at_price', '110.00');
+    }
+
+    public function test_percentage_offer_resolves_variant_prices_from_original_price(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'offer' => [
+                    'type' => 'percentage',
+                    'status' => 'active',
+                    'fixed_amount' => null,
+                    'percentage_value' => 25,
+                    'max_discount' => null,
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.variants.0.original_price', '110.00')
+            ->assertJsonPath('data.variants.0.price', '82.50')
+            ->assertJsonPath('data.variants.0.compare_at_price', '110.00');
+    }
+
+    public function test_negative_fixed_offer_final_price_is_rejected(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'variants' => [[
+                    'title' => 'Low Price Variant',
+                    'option_summary' => 'Low price',
+                    'sku' => 'LOW-PRICE',
+                    'barcode' => '111111111',
+                    'original_price' => 10,
+                    'currency' => 'EGP',
+                    'sort_order' => 0,
+                    'is_default' => true,
+                    'is_active' => true,
+                    'inventory_mode' => 'tracked',
+                    'stock_qty' => 2,
+                    'low_stock_threshold' => 1,
+                    'allow_backorder' => false,
+                    'attributes' => [],
+                ]],
+                'offer' => [
+                    'type' => 'fixed',
+                    'status' => 'active',
+                    'fixed_amount' => 15,
+                ],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Resolved fixed-offer price cannot be negative.');
+    }
+
+    public function test_buy_x_get_y_keeps_reference_pricing_behavior(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'offer' => [
+                    'type' => 'buy_x_get_y',
+                    'status' => 'active',
+                    'buy_qty' => 2,
+                    'get_qty' => 1,
+                    'allow_mix_buy_variants' => true,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => ['SKU-001-RED-XL'],
+                    'reward_variant_skus' => ['SKU-001-RED-XL'],
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.variants.0.original_price', '110.00')
+            ->assertJsonPath('data.variants.0.price', '110.00')
+            ->assertJsonPath('data.variants.0.compare_at_price', null);
+    }
+
+    public function test_seller_cannot_spoof_compare_at_price_for_computed_offer_types(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'images' => [],
+                'variants' => [[
+                    'title' => 'Spoofed Variant',
+                    'option_summary' => 'Spoofed',
+                    'sku' => 'SPOOF-1',
+                    'barcode' => '222222222',
+                    'original_price' => 100,
+                    'price' => 1,
+                    'compare_at_price' => 999,
+                    'currency' => 'EGP',
+                    'sort_order' => 0,
+                    'is_default' => true,
+                    'is_active' => true,
+                    'inventory_mode' => 'tracked',
+                    'stock_qty' => 5,
+                    'low_stock_threshold' => 1,
+                    'allow_backorder' => false,
+                    'attributes' => [],
+                ]],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['variants.0.price', 'variants.0.compare_at_price']);
+    }
+
     public function test_buy_x_get_y_offer_requires_known_target_variant_skus(): void
     {
         $seller = $this->seller();
@@ -444,8 +586,7 @@ class ProductTest extends TestCase
                         'option_summary' => 'Color: Red, Size: XL',
                         'sku' => 'SKU-001-RED-XL',
                         'barcode' => '123456789',
-                        'price' => 110,
-                        'compare_at_price' => 130,
+                        'original_price' => 110,
                         'currency' => 'EGP',
                         'sort_order' => 0,
                         'is_default' => true,
@@ -461,8 +602,7 @@ class ProductTest extends TestCase
                         'option_summary' => 'Color: Blue, Size: L',
                         'sku' => 'SKU-001-BLUE-L',
                         'barcode' => '987654321',
-                        'price' => 115,
-                        'compare_at_price' => 135,
+                        'original_price' => 115,
                         'currency' => 'EGP',
                         'sort_order' => 1,
                         'is_default' => false,
@@ -508,8 +648,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Tracked stock',
                     'sku' => 'TRACKED-NO-STOCK',
                     'barcode' => '111222333',
-                    'price' => 110,
-                    'compare_at_price' => 130,
+                    'original_price' => 110,
                     'currency' => 'EGP',
                     'sort_order' => 0,
                     'is_default' => true,
@@ -541,8 +680,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Unlimited stock',
                     'sku' => 'UNLIMITED-STOCK',
                     'barcode' => '999888777',
-                    'price' => 110,
-                    'compare_at_price' => 130,
+                    'original_price' => 110,
                     'currency' => 'EGP',
                     'sort_order' => 0,
                     'is_default' => true,
@@ -620,8 +758,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Color: Red, Size: XL',
                     'sku' => 'DUPLICATE-SKU',
                     'barcode' => '123456789',
-                    'price' => 110,
-                    'compare_at_price' => 130,
+                    'original_price' => 110,
                     'currency' => 'EGP',
                     'sort_order' => 0,
                     'is_default' => true,
@@ -633,8 +770,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Color: Blue, Size: L',
                     'sku' => 'DUPLICATE-SKU',
                     'barcode' => '987654321',
-                    'price' => 115,
-                    'compare_at_price' => 135,
+                    'original_price' => 115,
                     'currency' => 'EGP',
                     'sort_order' => 1,
                     'is_default' => false,
@@ -676,18 +812,17 @@ class ProductTest extends TestCase
                 'option_summary' => 'Color: Blue, Size: L',
                 'sku' => 'BLUE-L',
                 'barcode' => '123456001',
-                'price' => 140,
-                    'compare_at_price' => 160,
-                    'currency' => 'EGP',
-                    'is_default' => true,
-                    'is_active' => true,
-                    'inventory_mode' => 'tracked',
-                    'stock_qty' => 0,
-                    'low_stock_threshold' => 5,
-                    'allow_backorder' => true,
-                    'attributes' => [
-                        ['attribute_name' => 'color', 'attribute_value' => 'blue', 'sort_order' => 0],
-                        ['attribute_name' => 'size', 'attribute_value' => 'L', 'sort_order' => 1],
+                'original_price' => 140,
+                'currency' => 'EGP',
+                'is_default' => true,
+                'is_active' => true,
+                'inventory_mode' => 'tracked',
+                'stock_qty' => 0,
+                'low_stock_threshold' => 5,
+                'allow_backorder' => true,
+                'attributes' => [
+                    ['attribute_name' => 'color', 'attribute_value' => 'blue', 'sort_order' => 0],
+                    ['attribute_name' => 'size', 'attribute_value' => 'L', 'sort_order' => 1],
                 ],
             ]);
 
@@ -696,6 +831,9 @@ class ProductTest extends TestCase
         $createResponse->assertCreated()
             ->assertJsonPath('data.sku', 'BLUE-L')
             ->assertJsonPath('data.is_default', true)
+            ->assertJsonPath('data.original_price', '140.00')
+            ->assertJsonPath('data.price', '130.00')
+            ->assertJsonPath('data.compare_at_price', '140.00')
             ->assertJsonPath('data.inventory_mode', 'tracked')
             ->assertJsonPath('data.stock_qty', 0)
             ->assertJsonPath('data.low_stock_threshold', 5)
@@ -705,8 +843,7 @@ class ProductTest extends TestCase
         $updateResponse = $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$product->id}/variants/{$variantId}", [
                 'title' => 'Blue / XL',
-                'price' => 150,
-                'compare_at_price' => 170,
+                'original_price' => 150,
                 'is_active' => false,
                 'stock_qty' => 4,
             ]);
@@ -714,12 +851,18 @@ class ProductTest extends TestCase
         $updateResponse->assertOk()
             ->assertJsonPath('data.title', 'Blue / XL')
             ->assertJsonPath('data.is_active', false)
+            ->assertJsonPath('data.original_price', '150.00')
+            ->assertJsonPath('data.price', '140.00')
+            ->assertJsonPath('data.compare_at_price', '150.00')
             ->assertJsonPath('data.stock_qty', 4);
 
         $this->assertDatabaseHas('product_variants', [
             'id' => $variantId,
             'title' => 'Blue / XL',
             'is_active' => false,
+            'original_price' => 150,
+            'price' => 140,
+            'compare_at_price' => 150,
             'inventory_mode' => 'tracked',
             'stock_qty' => 4,
             'allow_backorder' => true,
@@ -741,8 +884,7 @@ class ProductTest extends TestCase
             ->postJson("/api/v1/stores/{$store->id}/products/{$product->id}/variants", [
                 'title' => 'Second Variant',
                 'sku' => 'DEFAULT-TWO',
-                'price' => 125,
-                'compare_at_price' => 145,
+                'original_price' => 125,
                 'currency' => 'EGP',
                 'is_default' => true,
             ]);
@@ -880,8 +1022,6 @@ class ProductTest extends TestCase
             'slug' => 'example-product',
             'short_description' => 'Short description',
             'description' => 'Long description',
-            'base_price' => 100,
-            'compare_at_price' => 120,
             'currency' => 'EGP',
             'sku' => 'SKU-001',
             'is_featured' => false,
@@ -899,8 +1039,7 @@ class ProductTest extends TestCase
                     'option_summary' => 'Color: Red, Size: XL',
                     'sku' => 'SKU-001-RED-XL',
                     'barcode' => '123456789',
-                    'price' => 110,
-                    'compare_at_price' => 130,
+                    'original_price' => 110,
                     'currency' => 'EGP',
                     'sort_order' => 0,
                     'is_default' => true,

@@ -403,8 +403,19 @@ class OfferClaimTest extends TestCase
             ->postJson("/api/v1/stores/{$store->id}/products", [
                 'title' => 'Blocked Product',
                 'slug' => 'blocked-product',
-                'base_price' => 100,
                 'currency' => 'EGP',
+                'variants' => [[
+                    'title' => 'Blocked Variant',
+                    'sku' => 'BLOCKED-VAR',
+                    'original_price' => 100,
+                    'currency' => 'EGP',
+                    'is_default' => true,
+                    'is_active' => true,
+                    'inventory_mode' => 'tracked',
+                    'stock_qty' => 5,
+                    'allow_backorder' => false,
+                    'attributes' => [],
+                ]],
                 'offer' => ['type' => 'fixed', 'fixed_amount' => 10],
             ])
             ->assertForbidden();

@@ -37,8 +37,6 @@ class UpdateProductRequest extends FormRequest
             ],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
-            'base_price' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'currency' => ['sometimes', 'required', 'string', 'size:3'],
             'sku' => [
                 'nullable',
@@ -60,8 +58,9 @@ class UpdateProductRequest extends FormRequest
             'variants.*.option_summary' => ['nullable', 'string', 'max:255'],
             'variants.*.sku' => ['nullable', 'string', 'max:100'],
             'variants.*.barcode' => ['nullable', 'string', 'max:100'],
-            'variants.*.price' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.original_price' => ['required_with:variants', 'numeric', 'min:0'],
+            'variants.*.price' => ['prohibited'],
+            'variants.*.compare_at_price' => ['prohibited'],
             'variants.*.currency' => ['required_with:variants', 'string', 'size:3'],
             'variants.*.sort_order' => ['nullable', 'integer'],
             'variants.*.is_default' => ['nullable', 'boolean'],
@@ -98,16 +97,6 @@ class UpdateProductRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->exists('compare_at_price') && $this->input('compare_at_price') !== null) {
-                $basePrice = $this->exists('base_price')
-                    ? $this->input('base_price')
-                    : $this->route('product')->base_price;
-
-                if ((float) $this->input('compare_at_price') < (float) $basePrice) {
-                    $validator->errors()->add('compare_at_price', __('validation.custom.product.compare_at_price'));
-                }
-            }
-
             $variants = collect($this->input('variants', []) ?? []);
 
             if ($variants->isEmpty()) {
@@ -131,19 +120,6 @@ class UpdateProductRequest extends FormRequest
             }
 
             foreach ($variants as $index => $variant) {
-                if (
-                    array_key_exists('price', $variant)
-                    && array_key_exists('compare_at_price', $variant)
-                    && $variant['price'] !== null
-                    && $variant['compare_at_price'] !== null
-                    && (float) $variant['compare_at_price'] < (float) $variant['price']
-                ) {
-                    $validator->errors()->add(
-                        "variants.{$index}.compare_at_price",
-                        __('validation.custom.variants.compare_at_price')
-                    );
-                }
-
                 $inventoryMode = $variant['inventory_mode'] ?? InventoryMode::UNLIMITED->value;
                 $stockQty = $variant['stock_qty'] ?? null;
 

@@ -14,6 +14,7 @@ class CreateProduct
     public function __construct(
         private readonly ProductRepository $products,
         private readonly CreateOrUpdatePendingProductRevision $revisions,
+        private readonly ResolveVariantOfferPricing $pricing,
     )
     {
     }
@@ -24,7 +25,12 @@ class CreateProduct
 
         try {
             return DB::transaction(function () use ($store, $data, $submittedBy, &$storedPaths) {
-                $product = $this->products->create($store, $data->attributes());
+                $resolvedVariants = $this->pricing->resolve($data->variants(), $data->offer());
+                $pricingSummary = $this->pricing->deriveProductPricingSummary($resolvedVariants);
+                $product = $this->products->create($store, [
+                    ...$data->attributes(),
+                    ...$pricingSummary,
+                ]);
 
                 if ($data->hasCategoryIds()) {
                     $this->products->syncCategories($product, $data->categoryIds());
@@ -36,7 +42,7 @@ class CreateProduct
                 }
 
                 if ($data->hasVariants()) {
-                    $this->products->replaceVariants($product, $data->variants());
+                    $this->products->replaceVariants($product, $resolvedVariants);
                 }
 
                 if ($data->hasOffer()) {

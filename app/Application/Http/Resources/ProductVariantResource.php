@@ -20,6 +20,7 @@ class ProductVariantResource extends JsonResource
             'option_summary' => $this->option_summary,
             'sku' => $this->sku,
             'barcode' => $this->barcode,
+            'original_price' => $this->original_price,
             'price' => $this->price,
             'compare_at_price' => $this->compare_at_price,
             'currency' => $this->currency,

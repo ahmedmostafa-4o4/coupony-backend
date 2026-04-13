@@ -34,8 +34,9 @@ class UpdateProductVariantRequest extends FormRequest
                     ->ignore($variant->id),
             ],
             'barcode' => ['nullable', 'string', 'max:100'],
-            'price' => ['nullable', 'numeric', 'min:0'],
-            'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'original_price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'price' => ['prohibited'],
+            'compare_at_price' => ['prohibited'],
             'currency' => ['sometimes', 'required', 'string', 'size:3'],
             'sort_order' => ['nullable', 'integer'],
             'is_default' => ['sometimes', 'boolean'],
@@ -50,18 +51,6 @@ class UpdateProductVariantRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (!$this->exists('compare_at_price') || $this->input('compare_at_price') === null) {
-                return;
-            }
-
-            $price = $this->exists('price')
-                ? $this->input('price')
-                : $this->route('variant')->price;
-
-            if ($price !== null && (float) $this->input('compare_at_price') < (float) $price) {
-                $validator->errors()->add('compare_at_price', __('validation.custom.variants.compare_at_price'));
-            }
-
             $inventoryMode = $this->input(
                 'inventory_mode',
                 $this->route('variant')->inventory_mode?->value ?? $this->route('variant')->inventory_mode ?? InventoryMode::UNLIMITED->value

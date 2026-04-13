@@ -31,8 +31,6 @@ class CreateProductRequest extends FormRequest
             ],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
-            'base_price' => ['required', 'numeric', 'min:0'],
-            'compare_at_price' => ['nullable', 'numeric', 'gte:base_price'],
             'currency' => ['required', 'string', 'size:3'],
             'sku' => [
                 'nullable',
@@ -47,13 +45,14 @@ class CreateProductRequest extends FormRequest
             'images.*.file' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp'],
             'images.*.sort_order' => ['nullable', 'integer'],
             'images.*.is_primary' => ['nullable', 'boolean'],
-            'variants' => ['nullable', 'array'],
+            'variants' => ['required', 'array', 'min:1'],
             'variants.*.title' => ['required', 'string', 'max:255'],
             'variants.*.option_summary' => ['nullable', 'string', 'max:255'],
             'variants.*.sku' => ['nullable', 'string', 'max:100'],
             'variants.*.barcode' => ['nullable', 'string', 'max:100'],
-            'variants.*.price' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.original_price' => ['required', 'numeric', 'min:0'],
+            'variants.*.price' => ['prohibited'],
+            'variants.*.compare_at_price' => ['prohibited'],
             'variants.*.currency' => ['required_with:variants', 'string', 'size:3'],
             'variants.*.sort_order' => ['nullable', 'integer'],
             'variants.*.is_default' => ['nullable', 'boolean'],
@@ -108,19 +107,6 @@ class CreateProductRequest extends FormRequest
             }
 
             foreach ($variants as $index => $variant) {
-                if (
-                    array_key_exists('price', $variant)
-                    && array_key_exists('compare_at_price', $variant)
-                    && $variant['price'] !== null
-                    && $variant['compare_at_price'] !== null
-                    && (float) $variant['compare_at_price'] < (float) $variant['price']
-                ) {
-                    $validator->errors()->add(
-                        "variants.{$index}.compare_at_price",
-                        __('validation.custom.variants.compare_at_price')
-                    );
-                }
-
                 $inventoryMode = $variant['inventory_mode'] ?? InventoryMode::UNLIMITED->value;
                 $stockQty = $variant['stock_qty'] ?? null;
 

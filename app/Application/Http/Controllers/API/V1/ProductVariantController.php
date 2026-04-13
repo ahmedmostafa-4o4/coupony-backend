@@ -54,6 +54,8 @@ class ProductVariantController extends Controller
                 __('api.variants.created'),
                 201
             );
+        } catch (\InvalidArgumentException|\DomainException $throwable) {
+            return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.variants.create_failed'), 500);
         }
@@ -86,6 +88,8 @@ class ProductVariantController extends Controller
                 new ProductVariantResource($variant),
                 __('api.variants.updated')
             );
+        } catch (\InvalidArgumentException|\DomainException $throwable) {
+            return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.variants.update_failed'), 500);
         }

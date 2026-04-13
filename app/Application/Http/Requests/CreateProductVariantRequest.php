@@ -31,8 +31,9 @@ class CreateProductVariantRequest extends FormRequest
                 ),
             ],
             'barcode' => ['nullable', 'string', 'max:100'],
-            'price' => ['nullable', 'numeric', 'min:0'],
-            'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'original_price' => ['required', 'numeric', 'min:0'],
+            'price' => ['prohibited'],
+            'compare_at_price' => ['prohibited'],
             'currency' => ['required', 'string', 'size:3'],
             'sort_order' => ['nullable', 'integer'],
             'is_default' => ['sometimes', 'boolean'],
@@ -51,14 +52,6 @@ class CreateProductVariantRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (
-                $this->filled('price')
-                && $this->filled('compare_at_price')
-                && (float) $this->input('compare_at_price') < (float) $this->input('price')
-            ) {
-                $validator->errors()->add('compare_at_price', __('validation.custom.variants.compare_at_price'));
-            }
-
             $attributeNames = collect($this->input('attributes', []))
                 ->pluck('attribute_name')
                 ->filter(fn($value) => filled($value))

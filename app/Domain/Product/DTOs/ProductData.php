@@ -29,8 +29,6 @@ class ProductData
             'slug',
             'short_description',
             'description',
-            'base_price',
-            'compare_at_price',
             'currency',
             'sku',
             'is_featured',
@@ -64,8 +62,9 @@ class ProductData
                     'option_summary' => $variant['option_summary'] ?? null,
                     'sku' => $variant['sku'] ?? null,
                     'barcode' => $variant['barcode'] ?? null,
-                    'price' => $variant['price'] ?? null,
-                    'compare_at_price' => $variant['compare_at_price'] ?? null,
+                    'original_price' => array_key_exists('original_price', $variant) && $variant['original_price'] !== null
+                        ? (float) $variant['original_price']
+                        : null,
                     'currency' => $variant['currency'] ?? null,
                     'sort_order' => (int) ($variant['sort_order'] ?? 0),
                     'is_default' => (bool) ($variant['is_default'] ?? false),

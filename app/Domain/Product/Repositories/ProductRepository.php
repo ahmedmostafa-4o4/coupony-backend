@@ -105,6 +105,7 @@ class ProductRepository
                 'option_summary' => $variantData['option_summary'],
                 'sku' => $variantData['sku'],
                 'barcode' => $variantData['barcode'],
+                'original_price' => $variantData['original_price'],
                 'price' => $variantData['price'],
                 'compare_at_price' => $variantData['compare_at_price'],
                 'currency' => $variantData['currency'],
@@ -320,6 +321,7 @@ class ProductRepository
                     'option_summary' => $variant->option_summary,
                     'sku' => $variant->sku,
                     'barcode' => $variant->barcode,
+                    'original_price' => $variant->original_price,
                     'price' => $variant->price,
                     'compare_at_price' => $variant->compare_at_price,
                     'currency' => $variant->currency,
@@ -412,6 +414,7 @@ class ProductRepository
             'option_summary' => $attributes['option_summary'] ?? null,
             'sku' => $attributes['sku'] ?? null,
             'barcode' => $attributes['barcode'] ?? null,
+            'original_price' => $attributes['original_price'],
             'price' => $attributes['price'] ?? null,
             'compare_at_price' => $attributes['compare_at_price'] ?? null,
             'currency' => $attributes['currency'],
@@ -444,6 +447,16 @@ class ProductRepository
         }
 
         return $this->loadVariant($variant->fresh());
+    }
+
+    public function syncDerivedProductPricing(Product $product, array $pricingSummary): Product
+    {
+        $product->update([
+            'base_price' => $pricingSummary['base_price'],
+            'compare_at_price' => $pricingSummary['compare_at_price'],
+        ]);
+
+        return $product->fresh();
     }
 
     public function deleteVariant(Product $product, ProductVariant $variant): bool

@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class CreateOrUpdatePendingProductRevision
 {
-    public function __construct(private readonly ProductRepository $products)
+    public function __construct(
+        private readonly ProductRepository $products,
+        private readonly ResolveVariantOfferPricing $pricing,
+    )
     {
     }
 
@@ -82,6 +85,14 @@ class CreateOrUpdatePendingProductRevision
 
         if ($data->hasOffer()) {
             $payload['offer'] = $data->offer();
+        }
+
+        if ($payload['offer'] !== null && $payload['variants'] !== []) {
+            $payload['variants'] = $this->pricing->resolve($payload['variants'], $payload['offer']);
+            $payload['product'] = [
+                ...$payload['product'],
+                ...$this->pricing->deriveProductPricingSummary($payload['variants']),
+            ];
         }
 
         return $payload;

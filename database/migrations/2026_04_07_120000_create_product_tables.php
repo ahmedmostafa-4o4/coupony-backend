@@ -69,6 +69,7 @@ return new class extends Migration
                 $table->string('option_summary')->nullable();
                 $table->string('sku', 100)->nullable();
                 $table->string('barcode', 100)->nullable();
+                $table->decimal('original_price', 12, 2);
                 $table->decimal('price', 12, 2)->nullable();
                 $table->decimal('compare_at_price', 12, 2)->nullable();
                 $table->char('currency', 3)->default('EGP');

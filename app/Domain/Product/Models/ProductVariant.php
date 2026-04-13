@@ -24,6 +24,7 @@ class ProductVariant extends Model
         'option_summary',
         'sku',
         'barcode',
+        'original_price',
         'price',
         'compare_at_price',
         'currency',
@@ -41,6 +42,7 @@ class ProductVariant extends Model
     protected function casts(): array
     {
         return [
+            'original_price' => 'decimal:2',
             'price' => 'decimal:2',
             'compare_at_price' => 'decimal:2',
             'sort_order' => 'integer',
@@ -74,6 +76,8 @@ class ProductVariant extends Model
             } else {
                 $variant->stock_qty ??= 0;
             }
+
+            $variant->original_price ??= $variant->price ?? 0;
         });
     }
 
