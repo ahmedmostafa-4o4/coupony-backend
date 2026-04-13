@@ -9,6 +9,7 @@ use Illuminate\Validation\Validator;
 class UpdateStoreProfileRequest extends FormRequest
 {
     private const ALLOWED_TOP_LEVEL_FIELDS = [
+        'name',
         'description',
         'email',
         'phone',
@@ -27,6 +28,7 @@ class UpdateStoreProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',

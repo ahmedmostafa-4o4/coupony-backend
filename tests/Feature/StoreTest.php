@@ -207,6 +207,7 @@ class StoreTest extends TestCase
         ]);
 
         $response = $this->patchStoreProfile($store, [
+            'name' => 'Updated Store Name',
             'description' => 'Updated profile description',
             'email' => 'seller@example.com',
             'phone' => '+201234567890',
@@ -215,6 +216,7 @@ class StoreTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', __('api.store.profile_updated'))
+            ->assertJsonPath('data.name', 'Updated Store Name')
             ->assertJsonPath('data.description', 'Updated profile description')
             ->assertJsonPath('data.email', 'seller@example.com')
             ->assertJsonPath('data.phone', '+201234567890')
@@ -521,11 +523,11 @@ class StoreTest extends TestCase
         ]);
 
         $this->patchStoreProfile($store, [
-            'name' => 'Blocked Name Change',
+            'name' => 'Allowed Name Change',
             'tax_id' => 'NEW-TAX-ID',
             'status' => StoreStatus::PENDING->value,
         ], $owner)->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'tax_id', 'status']);
+            ->assertJsonValidationErrors(['tax_id', 'status']);
 
         $this->assertDatabaseHas('stores', [
             'id' => $store->id,

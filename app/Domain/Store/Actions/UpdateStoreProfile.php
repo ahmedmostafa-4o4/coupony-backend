@@ -15,7 +15,7 @@ class UpdateStoreProfile
         ?UploadedFile $bannerFile = null
     ): Store {
         $store->fill(
-            collect($data)->only(['description', 'email', 'phone'])->all()
+            collect($data)->only(['name', 'description', 'email', 'phone'])->all()
         );
 
         if ($store->isDirty()) {
