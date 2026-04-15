@@ -21,7 +21,6 @@ class UpdateProduct
 
     public function execute(Product $product, ProductData $data, User $submittedBy): Product
     {
-        Log::info('Updating product', $data->attributes());
         $storedPaths = [];
         $deletedPaths = [];
 
