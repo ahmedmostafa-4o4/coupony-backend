@@ -16,47 +16,51 @@ class CreateOrUpdatePendingProductRevision
     public function __construct(
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
-    )
-    {
+    ) {
     }
 
     public function execute(Product $product, ProductData $data, User $submittedBy): ProductRevision
     {
-        return DB::transaction(function () use ($product, $data, $submittedBy) {
-            $product = $product->fresh();
-            $pendingRevision = $this->products->pendingRevision($product);
-            $payload = $product->approval_status === \App\Domain\Product\Enums\ProductApprovalStatus::APPROVED
-                ? $this->mergePayload($product, $data, $pendingRevision?->payload ?? $this->products->snapshotPayload($product))
-                : $this->products->snapshotPayload($product);
 
-            if ($pendingRevision) {
-                $pendingRevision->update([
-                    'action' => ProductRevisionAction::RESUBMIT,
+        try {
+            return DB::transaction(function () use ($product, $data, $submittedBy) {
+                $product = $product->fresh();
+                $pendingRevision = $this->products->pendingRevision($product);
+                $payload = $product->approval_status === \App\Domain\Product\Enums\ProductApprovalStatus::APPROVED
+                    ? $this->mergePayload($product, $data, $pendingRevision?->payload ?? $this->products->snapshotPayload($product))
+                    : $this->products->snapshotPayload($product);
+
+                if ($pendingRevision) {
+                    $pendingRevision->update([
+                        'action' => ProductRevisionAction::RESUBMIT,
+                        'base_revision_no' => $product->published_revision_no ?: null,
+                        'submitted_by' => $submittedBy->id,
+                        'submitted_at' => now(),
+                        'reviewed_by' => null,
+                        'reviewed_at' => null,
+                        'rejection_reason' => null,
+                        'admin_notes' => null,
+                        'payload' => $payload,
+                    ]);
+
+                    return $pendingRevision->fresh();
+                }
+
+                return $product->revisions()->create([
+                    'revision_no' => $this->products->nextRevisionNumber($product),
+                    'action' => $product->published_revision_no > 0
+                        ? ProductRevisionAction::UPDATE
+                        : ProductRevisionAction::CREATE,
+                    'status' => ProductRevisionStatus::PENDING,
                     'base_revision_no' => $product->published_revision_no ?: null,
                     'submitted_by' => $submittedBy->id,
                     'submitted_at' => now(),
-                    'reviewed_by' => null,
-                    'reviewed_at' => null,
-                    'rejection_reason' => null,
-                    'admin_notes' => null,
                     'payload' => $payload,
                 ]);
-
-                return $pendingRevision->fresh();
-            }
-
-            return $product->revisions()->create([
-                'revision_no' => $this->products->nextRevisionNumber($product),
-                'action' => $product->published_revision_no > 0
-                    ? ProductRevisionAction::UPDATE
-                    : ProductRevisionAction::CREATE,
-                'status' => ProductRevisionStatus::PENDING,
-                'base_revision_no' => $product->published_revision_no ?: null,
-                'submitted_by' => $submittedBy->id,
-                'submitted_at' => now(),
-                'payload' => $payload,
-            ]);
-        });
+            });
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     private function mergePayload(Product $product, ProductData $data, array $payload): array
