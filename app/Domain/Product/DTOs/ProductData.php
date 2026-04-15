@@ -4,6 +4,7 @@ namespace App\Domain\Product\DTOs;
 
 use App\Domain\Product\Enums\ProductOfferStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Log;
 
 class ProductData
 {
@@ -42,7 +43,7 @@ class ProductData
                 $attributes[$key] = $request->input($key);
             }
         }
-
+        Log::info('Extracted attributes from request', $attributes);
         $imageFiles = $request->allFiles()['images'] ?? [];
         $images = collect($request->input('images', []) ?? [])
             ->values()
