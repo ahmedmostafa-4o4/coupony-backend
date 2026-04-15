@@ -10,6 +10,7 @@ use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Repositories\ProductRepository;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
+use Log;
 
 class CreateOrUpdatePendingProductRevision
 {
@@ -59,6 +60,11 @@ class CreateOrUpdatePendingProductRevision
                 ]);
             });
         } catch (\Exception $e) {
+            Log::error("Failed to create or update pending product revision for product ID {$product->id}: " . $e->getMessage(), [
+                'product_id' => $product->id,
+                'user_id' => $submittedBy->id,
+                'exception' => $e,
+            ]);
             throw $e;
         }
     }
