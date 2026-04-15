@@ -2,6 +2,7 @@
 
 namespace App\Domain\Product\DTOs;
 
+use App\Domain\Product\Enums\ProductOfferStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProductData
@@ -92,7 +93,7 @@ class ProductData
         $offerInput = $request->input('offer');
         $offer = is_array($offerInput) ? [
             'type' => $offerInput['type'] ?? null,
-            'status' => $offerInput['status'] ?? null,
+            'status' => $offerInput['status'] ?? ProductOfferStatus::ACTIVE->value,
             'label' => $offerInput['label'] ?? null,
             'starts_at' => $offerInput['starts_at'] ?? null,
             'ends_at' => $offerInput['ends_at'] ?? null,

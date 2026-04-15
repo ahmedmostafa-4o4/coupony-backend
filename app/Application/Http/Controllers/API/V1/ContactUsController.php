@@ -28,14 +28,14 @@ class ContactUsController extends Controller implements HasMiddleware
 
         try {
             $customers = DB::table('contact_us_customer')->orderBy('created_at', 'desc')->get();
-            
+
             return response()->json([
                 'message' => __('api.contact.customer_contacts_retrieved'),
                 'data' => $customers,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve customer contacts', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.contact.customer_contacts_failed'),
             ], 500);
@@ -48,14 +48,14 @@ class ContactUsController extends Controller implements HasMiddleware
 
         try {
             $sellers = DB::table('contact_us_seller')->orderBy('created_at', 'desc')->get();
-            
+
             return response()->json([
                 'message' => __('api.contact.seller_contacts_retrieved'),
                 'data' => $sellers,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve seller contacts', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.contact.seller_contacts_failed'),
             ], 500);
@@ -102,7 +102,7 @@ class ContactUsController extends Controller implements HasMiddleware
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to submit customer contact', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.contact.customer_submit_failed'),
             ], 500);
@@ -117,9 +117,11 @@ class ContactUsController extends Controller implements HasMiddleware
             $attempts = RateLimiter::attempts($key);
 
             $validatedData = $request->validate([
-                'store_name' => 'required|string|max:255',
+                'store_name' => 'nullable|string|max:255',
                 'phone_number' => 'required|string|max:20',
             ]);
+
+            $validatedData['store_name'] = $validatedData['store_name'] ?? 'N/A';
 
             DB::table('contact_us_seller')->insert([
                 array_merge($validatedData, ['created_at' => now(), 'updated_at' => now()]),
@@ -140,7 +142,7 @@ class ContactUsController extends Controller implements HasMiddleware
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to submit seller contact', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.contact.seller_submit_failed'),
             ], 500);
