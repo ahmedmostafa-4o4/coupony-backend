@@ -8,6 +8,7 @@ use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Repositories\ProductRepository;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
+use Log;
 
 class UpdateProduct
 {
@@ -15,12 +16,12 @@ class UpdateProduct
         private readonly ProductRepository $products,
         private readonly CreateOrUpdatePendingProductRevision $revisions,
         private readonly ResolveVariantOfferPricing $pricing,
-    )
-    {
+    ) {
     }
 
     public function execute(Product $product, ProductData $data, User $submittedBy): Product
     {
+        Log::info('Updating product', $data->attributes());
         $storedPaths = [];
         $deletedPaths = [];
 
