@@ -104,13 +104,11 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Store $store, Product $product): JsonResponse
     {
-        Log::info("Request", ['request' => $request->all()]);
         $this->applyAuthenticatedLocale($request);
         Gate::authorize('update', $product);
-
         try {
             $updatedProduct = $this->updateProductAction->execute($product, ProductData::fromRequest($request), $request->user());
-
+            Log::info('Product updated successfully', $updatedProduct->toArray());
             return $this->successResponse(
                 new ProductResource($updatedProduct),
                 __('api.product.updated')
