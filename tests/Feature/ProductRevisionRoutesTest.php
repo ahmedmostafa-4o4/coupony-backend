@@ -136,7 +136,15 @@ class ProductRevisionRoutesTest extends TestCase
 
         $updateResponse->assertOk()
             ->assertJsonPath('data.title', 'Revision Product')
-            ->assertJsonPath('data.approval_status', ProductApprovalStatus::APPROVED->value);
+            ->assertJsonPath('data.approval_status', ProductApprovalStatus::APPROVED->value)
+            ->assertJsonPath('data.pending_revision.status', ProductRevisionStatus::PENDING->value)
+            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title');
+
+        $this->actingAs($seller, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/products/{$productId}")
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Revision Product')
+            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title');
 
         $pendingRevision = ProductRevision::query()
             ->where('product_id', $productId)

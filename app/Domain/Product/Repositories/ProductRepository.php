@@ -667,6 +667,7 @@ class ProductRepository
             'images',
             'variants.attributes',
             'offer.targets',
+            'pendingRevision',
         ];
     }
 

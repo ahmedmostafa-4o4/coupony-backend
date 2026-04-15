@@ -46,6 +46,11 @@ class ProductResource extends JsonResource
                     'name' => $this->store?->name,
                 ];
             }),
+            'pending_revision' => $this->whenLoaded('pendingRevision', function () {
+                return $this->pendingRevision
+                    ? ProductRevisionResource::make($this->pendingRevision)->resolve()
+                    : null;
+            }),
         ];
     }
 }
