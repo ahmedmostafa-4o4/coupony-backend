@@ -67,7 +67,7 @@ class UpdateProduct
                 }
 
                 $this->revisions->execute($product, $data, $submittedBy);
-                Log::info('Product updated successfully', $this->products->loadSellerProduct($product)->toArray());
+                Log::info('Product updated successfully....', $this->products->loadSellerProduct($product)->toArray());
                 return $this->products->loadSellerProduct($product);
             });
         } catch (\Throwable $throwable) {
