@@ -43,7 +43,6 @@ class ProductData
                 $attributes[$key] = $request->input($key);
             }
         }
-        Log::info('Extracted attributes from request', $attributes);
         $imageFiles = $request->allFiles()['images'] ?? [];
         $images = collect($request->input('images', []) ?? [])
             ->values()
@@ -116,6 +115,7 @@ class ProductData
             'reward_variant_skus' => array_values($offerInput['reward_variant_skus'] ?? []),
         ] : [];
 
+        Log::info("offer", $offer);
         return new self(
             attributes: $attributes,
             categoryIds: array_values($request->input('category_ids', []) ?? []),
