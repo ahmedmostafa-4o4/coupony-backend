@@ -115,7 +115,13 @@ class ProductData
             'reward_variant_skus' => array_values($offerInput['reward_variant_skus'] ?? []),
         ] : [];
 
-        Log::info("offer", $offer);
+        Log::info('Product data', [
+            'attributes' => $attributes,
+            'category_ids' => array_values($request->input('category_ids', []) ?? []),
+            'images' => $images,
+            'variants' => $variants,
+            'offer' => $offer,
+        ]);
         return new self(
             attributes: $attributes,
             categoryIds: array_values($request->input('category_ids', []) ?? []),
