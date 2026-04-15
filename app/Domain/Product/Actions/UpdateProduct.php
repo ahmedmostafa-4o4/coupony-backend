@@ -24,7 +24,6 @@ class UpdateProduct
         $storedPaths = [];
         $deletedPaths = [];
 
-        Log::info('product data', $data->attributes());
 
         try {
             return DB::transaction(function () use ($product, $data, $submittedBy, &$storedPaths, &$deletedPaths) {
@@ -68,7 +67,7 @@ class UpdateProduct
                 }
 
                 $this->revisions->execute($product, $data, $submittedBy);
-
+                Log::info('Product updated successfully', $this->products->loadSellerProduct($product)->toArray());
                 return $this->products->loadSellerProduct($product);
             });
         } catch (\Throwable $throwable) {
