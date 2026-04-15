@@ -25,6 +25,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Log;
 
 class ProductController extends Controller
 {
@@ -50,7 +51,7 @@ class ProductController extends Controller
                 __('api.product.created'),
                 201
             );
-        } catch (\InvalidArgumentException|\DomainException $throwable) {
+        } catch (\InvalidArgumentException | \DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.product.create_failed'), 500);
@@ -103,6 +104,7 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Store $store, Product $product): JsonResponse
     {
+        Log::info("Request", ['request' => $request->all()]);
         $this->applyAuthenticatedLocale($request);
         Gate::authorize('update', $product);
 
@@ -113,7 +115,7 @@ class ProductController extends Controller
                 new ProductResource($updatedProduct),
                 __('api.product.updated')
             );
-        } catch (\InvalidArgumentException|\DomainException $throwable) {
+        } catch (\InvalidArgumentException | \DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.product.update_failed'), 500);
