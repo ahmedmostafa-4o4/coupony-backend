@@ -24,6 +24,8 @@ class UpdateProduct
         $storedPaths = [];
         $deletedPaths = [];
 
+        Log::info('product data', $data->attributes());
+
         try {
             return DB::transaction(function () use ($product, $data, $submittedBy, &$storedPaths, &$deletedPaths) {
                 if ($product->approval_status === \App\Domain\Product\Enums\ProductApprovalStatus::APPROVED) {
