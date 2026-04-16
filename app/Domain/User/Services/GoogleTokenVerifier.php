@@ -47,7 +47,7 @@ class GoogleTokenVerifier
             || ($clientId && ($payload['aud'] ?? null) !== $clientId)
         ) {
             Log::warning('Google token verification failed: invalid payload', [
-                'payload' => !is_array($payload),
+                'payload' => empty($payload),
                 'sub_exists' => !empty($payload['sub']),
                 'email_exists' => !empty($payload['email']),
                 'email_verified' => $emailVerified,
