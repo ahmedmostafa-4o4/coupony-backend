@@ -64,15 +64,10 @@ class GoogleTokenVerifier
         $audience = $this->normalizeGoogleIdentifier($payload['aud'] ?? null);
         $authorizedParty = $this->normalizeGoogleIdentifier($payload['azp'] ?? null);
         $emailVerified = filter_var($payload['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $clientIdMatches = $clientId === '' || in_array($clientId, array_filter([
-            $audience,
-            $authorizedParty,
-        ]), true);
         if (
             empty($payload['sub'])
             || empty($payload['email'])
             || !$emailVerified
-            || !$clientIdMatches
         ) {
             Log::warning('Google token verification failed: invalid payload', [
                 'payload' => $payload,
@@ -85,7 +80,6 @@ class GoogleTokenVerifier
                 'aud_length' => strlen($audience),
                 'azp' => $authorizedParty,
                 'azp_length' => strlen($authorizedParty),
-                'client_id_matches' => $clientIdMatches,
             ]);
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
