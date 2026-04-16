@@ -25,7 +25,7 @@ class ProductRevisionRoutesTest extends TestCase
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
 
-        Storage::fake('public');
+        Storage::persistentFake('public');
     }
 
     public function test_seller_can_list_and_view_product_revisions(): void

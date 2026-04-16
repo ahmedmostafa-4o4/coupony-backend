@@ -1,6 +1,7 @@
 <?php
 
 use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
+use App\Application\Http\Controllers\API\V1\Admin\ProductManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\ProductRevisionManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\UserManagementController;
 use App\Application\Http\Controllers\API\V1\Auth\AdminRegisterController;
@@ -221,6 +222,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/revisions/{revision}', [ProductRevisionManagementController::class, 'show'])->name('revisions.show');
             Route::post('/revisions/{revision}/approve', [ProductRevisionManagementController::class, 'approve'])->name('revisions.approve');
             Route::post('/revisions/{revision}/reject', [ProductRevisionManagementController::class, 'reject'])->name('revisions.reject');
+            Route::get('/', [ProductManagementController::class, 'index'])->name('index');
+            Route::post('/', [ProductManagementController::class, 'store'])->name('store');
+            Route::get('/{product}', [ProductManagementController::class, 'show'])->name('show');
+            Route::patch('/{product}', [ProductManagementController::class, 'update'])->name('update');
+            Route::delete('/{product}', [ProductManagementController::class, 'destroy'])->name('destroy');
         });
 
         // Contact Us Management

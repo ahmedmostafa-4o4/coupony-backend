@@ -595,6 +595,30 @@ class ProductRepository
             ->paginate($perPage);
     }
 
+    public function adminPaginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        return Product::query()
+            ->with($this->adminRelations())
+            ->when(
+                filled($filters['status'] ?? null),
+                fn(Builder $query) => $query->where('status', $filters['status'])
+            )
+            ->when(
+                filled($filters['approval_status'] ?? null),
+                fn(Builder $query) => $query->where('approval_status', $filters['approval_status'])
+            )
+            ->when(
+                filled($filters['store_id'] ?? null),
+                fn(Builder $query) => $query->where('store_id', $filters['store_id'])
+            )
+            ->when(
+                filled($filters['search'] ?? null),
+                fn(Builder $query) => $this->applySearch($query, $filters['search'])
+            )
+            ->latest()
+            ->paginate($perPage);
+    }
+
     public function publicPaginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Product::query()
@@ -645,6 +669,11 @@ class ProductRepository
         return $product->load($this->sellerRelations());
     }
 
+    public function loadAdminProduct(Product $product): Product
+    {
+        return $product->load($this->adminRelations());
+    }
+
     public function loadPublicProduct(Product $product): Product
     {
         return $product->load($this->publicRelations());
@@ -679,6 +708,18 @@ class ProductRepository
             'images',
             'variants' => fn($query) => $query->where('is_active', true)->with('attributes'),
             'offer.targets',
+        ];
+    }
+
+    public function adminRelations(): array
+    {
+        return [
+            'store',
+            'categories',
+            'images',
+            'variants.attributes',
+            'offer.targets',
+            'pendingRevision',
         ];
     }
 
