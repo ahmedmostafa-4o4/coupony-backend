@@ -46,6 +46,9 @@ class GoogleTokenVerifier
             || !$emailVerified
             || ($clientId && ($payload['aud'] ?? null) !== $clientId)
         ) {
+            Log::warning('Google token verification failed: invalid payload', [
+                'payload' => $payload,
+            ]);
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
             ]);
