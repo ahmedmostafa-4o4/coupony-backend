@@ -51,7 +51,7 @@ class GoogleTokenVerifier
                 'sub_exists' => !empty($payload['sub']),
                 'email_exists' => !empty($payload['email']),
                 'email_verified' => $emailVerified,
-                'aud_matches' => $clientId ? (($payload['aud'] ?? null) === $clientId) : 'not checked',
+                'aud_matches' => $clientId && (($payload['aud'] ?? null) === $clientId),
             ]);
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
