@@ -11,6 +11,16 @@ class GoogleTokenVerifier
 {
     public function verifyIdToken(string $idToken): array
     {
+        if (!$this->looksLikeJwt($idToken)) {
+            Log::warning('Google token verification failed: malformed id token', [
+                'token_preview' => $this->tokenPreview($idToken),
+            ]);
+
+            throw ValidationException::withMessages([
+                'id_token' => [__('api.auth.invalid_credentials')],
+            ]);
+        }
+
         try {
             $response = Http::timeout(10)
                 ->acceptJson()
@@ -19,16 +29,24 @@ class GoogleTokenVerifier
                 ]);
             Log::info('Google token verification response', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'token_preview' => $this->tokenPreview($idToken),
+                'body' => $response->json() ?? $response->body(),
             ]);
         } catch (ConnectionException $e) {
             Log::error('Failed to reach Google token verification endpoint', [
                 'error' => $e->getMessage(),
+                'token_preview' => $this->tokenPreview($idToken),
             ]);
 
             throw new \RuntimeException('Google token verification is unavailable.', previous: $e);
         }
         if ($response->status() != 200) {
+            Log::warning('Google token verification rejected by Google', [
+                'status' => $response->status(),
+                'token_preview' => $this->tokenPreview($idToken),
+                'body' => $response->json() ?? $response->body(),
+            ]);
+
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
             ]);
@@ -59,5 +77,15 @@ class GoogleTokenVerifier
         }
 
         return $payload;
+    }
+
+    private function looksLikeJwt(string $idToken): bool
+    {
+        return preg_match('/^[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+$/', $idToken) === 1;
+    }
+
+    private function tokenPreview(string $idToken): string
+    {
+        return substr($idToken, 0, 12) . '...';
     }
 }

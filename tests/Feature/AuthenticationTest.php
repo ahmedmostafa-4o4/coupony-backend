@@ -342,7 +342,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/auth/google', [
-            'id_token' => 'valid-google-token',
+            'id_token' => 'header.payload.signature',
             'role' => 'customer',
             'device_name' => 'Pixel',
         ]);
@@ -394,7 +394,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/auth/google', [
-            'id_token' => 'valid-google-token',
+            'id_token' => 'header.payload.signature',
             'role' => 'customer',
         ]);
 
@@ -419,12 +419,27 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/auth/google', [
-            'id_token' => 'invalid-google-token',
+            'id_token' => 'header.payload.signature',
             'role' => 'customer',
         ]);
 
         $response->assertStatus(401)
             ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')]);
+    }
+
+    public function test_user_cannot_login_with_malformed_google_token()
+    {
+        Http::fake();
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => '{"sub":"google-user-123"}',
+            'role' => 'customer',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')]);
+
+        Http::assertNothingSent();
     }
 
     public function test_customer_can_delete_own_account_with_current_password()
