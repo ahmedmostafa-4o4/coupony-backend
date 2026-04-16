@@ -28,7 +28,7 @@ class GoogleTokenVerifier
 
             throw new \RuntimeException('Google token verification is unavailable.', previous: $e);
         }
-        if ($response->status() !== 200) {
+        if ($response->status() != 200) {
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
             ]);
