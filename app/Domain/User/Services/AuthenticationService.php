@@ -32,13 +32,6 @@ class AuthenticationService
         $requestedRole = $context['role'] ?? null;
         $user = User::where('email', $email)->first();
 
-        if (!$this->hasher->check($password, $user->password_hash)) {
-            Log::info('Invalid Password', [
-                'email' => $email,
-                'user_id' => $user->id,
-            ]);
-        }
-
         if (!$user || !$this->hasher->check($password, $user->password_hash)) {
             Log::warning('Login failed: invalid credentials', [
                 'email' => $email,
