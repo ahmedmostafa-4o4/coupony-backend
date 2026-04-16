@@ -17,6 +17,10 @@ class GoogleTokenVerifier
                 ->get('https://oauth2.googleapis.com/tokeninfo', [
                     'id_token' => $idToken,
                 ]);
+            Log::info('Google token verification response', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
         } catch (ConnectionException $e) {
             Log::error('Failed to reach Google token verification endpoint', [
                 'error' => $e->getMessage(),

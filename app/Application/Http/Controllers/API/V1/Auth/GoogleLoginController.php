@@ -37,6 +37,7 @@ class GoogleLoginController extends Controller
 
         try {
             $googleUser = $this->googleTokenVerifier->verifyIdToken($request->input('id_token'));
+
             $user = $this->resolveUserFromGooglePayload($googleUser, $request, $context);
 
             if ($user->status !== 'active') {
