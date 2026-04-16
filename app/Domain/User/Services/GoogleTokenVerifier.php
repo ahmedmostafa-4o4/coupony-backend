@@ -73,7 +73,13 @@ class GoogleTokenVerifier
             $audience,
             $authorizedParty,
         ]), true);
-
+        Log::info('Google token verification details', [
+            'email_verified' => $emailVerified,
+            'client_id' => $clientId,
+            'audience' => $audience,
+            'authorized_party' => $authorizedParty,
+            'client_id_matches' => $clientIdMatches,
+        ]);
         if (
             empty($payload['sub'])
             || empty($payload['email'])
