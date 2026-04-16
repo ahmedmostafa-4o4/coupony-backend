@@ -40,15 +40,18 @@ class GoogleTokenVerifier
         $emailVerified = filter_var($payload['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         if (
-            empty($payload)
+            !is_array($payload)
             || empty($payload['sub'])
             || empty($payload['email'])
             || !$emailVerified
             || ($clientId && ($payload['aud'] ?? null) !== $clientId)
         ) {
             Log::warning('Google token verification failed: invalid payload', [
-                'payload' => $payload,
-
+                'payload' => !is_array($payload),
+                'sub_exists' => !empty($payload['sub']),
+                'email_exists' => !empty($payload['email']),
+                'email_verified' => $emailVerified,
+                'aud_matches' => $clientId ? (($payload['aud'] ?? null) === $clientId) : 'not checked',
             ]);
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
