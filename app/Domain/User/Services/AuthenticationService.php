@@ -112,7 +112,7 @@ class AuthenticationService
      */
     public function issueTokensForUser(User $user, array $context = []): array
     {
-        $this->assertUserCanLoginWithRole($user, $context['role'] ?? null);
+        $this->assertUserCanLoginWithRoleSocial($user, $context['role'] ?? null);
 
         // Generate tokens
         $accessToken = $this->generateAccessToken($user, $context);
@@ -298,6 +298,14 @@ class AuthenticationService
         }
 
         if ($requestedRole === 'seller' && !$user->hasAnyRole(['seller', 'seller_pending'])) {
+            throw ValidationException::withMessages([
+                'role' => [__('api.common.unauthorized')],
+            ]);
+        }
+    }
+    private function assertUserCanLoginWithRoleSocial(User $user, ?string $requestedRole): void
+    {
+        if ($requestedRole === 'admin' && !$user->hasRole('admin')) {
             throw ValidationException::withMessages([
                 'role' => [__('api.common.unauthorized')],
             ]);
