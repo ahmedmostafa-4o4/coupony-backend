@@ -28,6 +28,7 @@ class CreateStoreTest extends TestCase
         $this->createStore = new CreateStore($this->storeRepository);
 
         // Create roles
+        Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
     }
@@ -112,6 +113,7 @@ class CreateStoreTest extends TestCase
     public function test_create_store_assigns_seller_pending_role()
     {
         $owner = User::factory()->create();
+        $owner->assignRole('customer');
         $category = StoreCategory::factory()->create();
 
         $storeData = new StoreData(
@@ -129,6 +131,23 @@ class CreateStoreTest extends TestCase
 
         $owner->refresh();
         $this->assertTrue($owner->hasRole('seller_pending'));
+        $this->assertTrue($owner->hasRole('customer'));
+        $this->assertFalse($owner->hasRole('seller'));
+
+        $sellerPendingRoleId = Role::where('name', 'seller_pending')->value('id');
+        $sellerRoleId = Role::where('name', 'seller')->value('id');
+        $store = Store::where('name', 'Test Store')->firstOrFail();
+
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $owner->id,
+            'role_id' => $sellerPendingRoleId,
+            'store_id' => null,
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $owner->id,
+            'role_id' => $sellerRoleId,
+            'store_id' => $store->id,
+        ]);
     }
 
     public function test_create_store_creates_default_hours()

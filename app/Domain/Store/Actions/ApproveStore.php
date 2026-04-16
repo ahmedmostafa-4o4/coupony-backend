@@ -6,8 +6,10 @@ use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Events\StoreApproved;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Spatie\Permission\Models\Role;
 
 class ApproveStore
 {
@@ -18,7 +20,6 @@ class ApproveStore
         }
 
         return DB::transaction(function () use ($store, $admin, $notes) {
-            // Update store status
             $store->update([
                 'status' => StoreStatus::ACTIVE,
                 'approved_at' => now(),
@@ -26,21 +27,52 @@ class ApproveStore
                 'admin_notes' => $notes,
             ]);
 
-            // Update owner role from seller_pending to seller
             $owner = $store->owner;
+            $sellerPendingRoleId = Role::where('name', 'seller_pending')->value('id');
+            $sellerRoleId = Role::where('name', 'seller')->value('id');
+
+            if ($sellerPendingRoleId === null || $sellerRoleId === null) {
+                throw new \RuntimeException('Seller roles are not configured.');
+            }
+
             if ($owner->hasRole('seller_pending')) {
                 $owner->removeRole('seller_pending');
+            }
+
+            if (!$owner->hasRole('seller')) {
                 $owner->assignRole('seller');
             }
 
-            // Mark verifications as approved
+            UserRoles::where([
+                'user_id' => $owner->id,
+                'role_id' => $sellerPendingRoleId,
+                'store_id' => null,
+            ])->delete();
+
+            UserRoles::firstOrCreate([
+                'user_id' => $owner->id,
+                'role_id' => $sellerRoleId,
+                'store_id' => null,
+            ], [
+                'granted_at' => now(),
+                'granted_by_user_id' => $admin->id,
+            ]);
+
+            UserRoles::firstOrCreate([
+                'user_id' => $owner->id,
+                'role_id' => $sellerRoleId,
+                'store_id' => $store->id,
+            ], [
+                'granted_at' => now(),
+                'granted_by_user_id' => $admin->id,
+            ]);
+
             $store->verifications()->update([
                 'status' => 'approved',
                 'verified_at' => now(),
                 'verified_by' => $admin->id,
             ]);
 
-            // Dispatch event
             event(new StoreApproved($store, $admin));
 
             Log::info('Store approved', [

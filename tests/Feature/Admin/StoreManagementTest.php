@@ -5,7 +5,9 @@ namespace Tests\Feature\Admin;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class StoreManagementTest extends TestCase
@@ -20,16 +22,24 @@ class StoreManagementTest extends TestCase
         parent::setUp();
 
         // Create roles
-        \Spatie\Permission\Models\Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
-        \Spatie\Permission\Models\Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
-        \Spatie\Permission\Models\Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
-        \Spatie\Permission\Models\Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
 
         $this->admin = User::factory()->create();
         $this->admin->assignRole('admin');
 
         $this->seller = User::factory()->create();
+        $this->seller->assignRole('customer');
         $this->seller->assignRole('seller_pending');
+
+        UserRoles::create([
+            'user_id' => $this->seller->id,
+            'role_id' => Role::where('name', 'seller_pending')->value('id'),
+            'store_id' => null,
+            'granted_at' => now(),
+        ]);
     }
 
     public function test_admin_can_view_pending_stores()
@@ -90,6 +100,21 @@ class StoreManagementTest extends TestCase
         $this->seller->refresh();
         $this->assertTrue($this->seller->hasRole('seller'));
         $this->assertFalse($this->seller->hasRole('seller_pending'));
+        $this->assertDatabaseMissing('user_roles', [
+            'user_id' => $this->seller->id,
+            'role_id' => Role::where('name', 'seller_pending')->value('id'),
+            'store_id' => null,
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $this->seller->id,
+            'role_id' => Role::where('name', 'seller')->value('id'),
+            'store_id' => null,
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $this->seller->id,
+            'role_id' => Role::where('name', 'seller')->value('id'),
+            'store_id' => $store->id,
+        ]);
     }
 
     public function test_admin_can_reject_pending_store()
@@ -123,7 +148,7 @@ class StoreManagementTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson("/api/v1/admin/stores/{$store->id}/approve");
 
-        $response->assertStatus(500);
+        $response->assertStatus(400);
     }
 
     public function test_cannot_reject_non_pending_store()
@@ -137,7 +162,7 @@ class StoreManagementTest extends TestCase
                 'reason' => 'Test reason',
             ]);
 
-        $response->assertStatus(500);
+        $response->assertStatus(400);
     }
 
     public function test_admin_can_view_store_statistics()

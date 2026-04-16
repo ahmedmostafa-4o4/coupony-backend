@@ -61,11 +61,7 @@ class AuthenticationService
             ]);
         }
 
-        if ($requestedRole === 'admin' && !$user->hasRole($requestedRole)) {
-            throw ValidationException::withMessages([
-                'role' => [__('api.common.unauthorized')],
-            ]);
-        }
+        $this->assertUserCanLoginWithRole($user, $requestedRole);
 
 
         // Generate tokens
@@ -116,6 +112,8 @@ class AuthenticationService
      */
     public function issueTokensForUser(User $user, array $context = []): array
     {
+        $this->assertUserCanLoginWithRole($user, $context['role'] ?? null);
+
         // Generate tokens
         $accessToken = $this->generateAccessToken($user, $context);
         $refreshToken = $this->generateRefreshToken($user);
@@ -289,5 +287,20 @@ class AuthenticationService
     {
         $user->tokens()->delete();
         $user->sessions()->delete();
+    }
+
+    private function assertUserCanLoginWithRole(User $user, ?string $requestedRole): void
+    {
+        if ($requestedRole === 'admin' && !$user->hasRole('admin')) {
+            throw ValidationException::withMessages([
+                'role' => [__('api.common.unauthorized')],
+            ]);
+        }
+
+        if ($requestedRole === 'seller' && !$user->hasAnyRole(['seller', 'seller_pending'])) {
+            throw ValidationException::withMessages([
+                'role' => [__('api.common.unauthorized')],
+            ]);
+        }
     }
 }

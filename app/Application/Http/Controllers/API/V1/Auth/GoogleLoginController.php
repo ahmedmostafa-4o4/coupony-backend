@@ -8,14 +8,12 @@ use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Actions\RegisterUser;
 use App\Domain\User\DTOs\UserData;
 use App\Domain\User\Models\User;
-use App\Domain\User\Models\UserRoles;
 use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Services\GoogleTokenVerifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Spatie\Permission\Models\Role;
 
 class GoogleLoginController extends Controller
 {
@@ -47,8 +45,6 @@ class GoogleLoginController extends Controller
             }
 
             $requestedRole = $request->input('role');
-
-            $this->ensureRoleForSocialLogin($user, $requestedRole);
 
             $user->loadMissing(['profile', 'roles', 'stores']);
 
@@ -203,41 +199,6 @@ class GoogleLoginController extends Controller
             'first_name' => $firstName,
             'last_name' => implode(' ', $parts),
         ];
-    }
-
-    private function ensureRoleForSocialLogin(User $user, string $requestedRole): void
-    {
-        if ($requestedRole === 'customer') {
-            $this->assignRoleIfMissing($user, 'customer');
-
-            return;
-        }
-
-        if ($requestedRole === 'seller' && !$user->hasAnyRole(['seller', 'seller_pending'])) {
-            $this->assignRoleIfMissing($user, 'customer');
-            $this->assignRoleIfMissing($user, 'seller_pending');
-        }
-    }
-
-    private function assignRoleIfMissing(User $user, string $roleName): void
-    {
-        $roleId = Role::where('name', $roleName)->value('id');
-
-        if ($roleId === null) {
-            throw new \RuntimeException("Role [{$roleName}] is not configured.");
-        }
-
-        if (!$user->hasRole($roleName)) {
-            $user->assignRole($roleName);
-        }
-
-        UserRoles::firstOrCreate([
-            'user_id' => $user->id,
-            'role_id' => $roleId,
-            'store_id' => null,
-        ], [
-            'granted_at' => now(),
-        ]);
     }
 
     private function isOnboardingCompleted(string $userId, ?string $role): bool

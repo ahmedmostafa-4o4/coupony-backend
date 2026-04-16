@@ -28,7 +28,7 @@ class RegisterUser
         return DB::transaction(function () use ($data, $context) {
             $primaryRole = isset($context['admin_id'])
                 ? 'admin'
-                : ($data->role === 'seller' ? 'seller_pending' : 'customer');
+                : 'customer';
 
             $user = $this->users->create([
                 'email' => $data->email,
@@ -48,9 +48,7 @@ class RegisterUser
                 ]);
             }
 
-            $rolesToAssign = $primaryRole === 'seller_pending'
-                ? ['customer', 'seller_pending']
-                : [$primaryRole];
+            $rolesToAssign = [$primaryRole];
 
             foreach ($rolesToAssign as $roleName) {
                 $this->assignGlobalRole(

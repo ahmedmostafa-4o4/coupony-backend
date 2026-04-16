@@ -3,11 +3,12 @@
 namespace App\Domain\Store\Actions;
 
 use App\Domain\Store\DTOs\StoreData;
-use App\Domain\Store\Events\StoreCreated;
 use App\Domain\Store\Enums\StoreStatus;
+use App\Domain\Store\Events\StoreCreated;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Repositories\StoreRepository;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
@@ -18,17 +19,13 @@ class CreateStore
      * Create a new class instance.
      */
     public function __construct(
-        private
-        StoreRepository $stores,
+        private StoreRepository $stores,
     ) {
-
     }
 
     public function execute(User $owner, StoreData $data): Store
     {
         return DB::transaction(function () use ($data, $owner) {
-
-            // ✅ توحيد الـ owner: استخدم $owner->id بدل $data->ownerUserId (أأمن)
             $store = $this->stores->create([
                 'owner_user_id' => $owner->id,
                 'name' => $data->name,
@@ -38,20 +35,15 @@ class CreateStore
                 'status' => StoreStatus::PENDING,
             ]);
 
-            // ✅ categories
             $store->categories()->sync($data->categories);
 
-            // ✅ Address: بما إن العلاقة morphToMany + pivot addressables
-            // ماينفعش create() من العلاقة. بنعمل Address::create وبعدين attach على الـ pivot
-            $store->addBranchAddress(
-                [
-                    'address_line1' => $data->address_line1,
-                    'city' => $data->city,
-                    'address_line2' => $data->address_line2,
-                    'latitude' => $data->latitude,
-                    'longitude' => $data->longitude,
-                ]
-            );
+            $store->addBranchAddress([
+                'address_line1' => $data->address_line1,
+                'city' => $data->city,
+                'address_line2' => $data->address_line2,
+                'latitude' => $data->latitude,
+                'longitude' => $data->longitude,
+            ]);
 
             if (!empty($data->socials)) {
                 $store->socials()->createMany(
@@ -64,7 +56,6 @@ class CreateStore
                 );
             }
 
-            // ✅ Documents / Verifications
             $docs = [
                 'commercial_register' => $data->commercial_register,
                 'tax_card' => $data->tax_card,
@@ -82,21 +73,33 @@ class CreateStore
                 }
             }
 
-            // ✅ Roles: تقليل التكرار + جلب role id مرة واحدة
+            $sellerPendingRoleId = Role::where('name', 'seller_pending')->value('id');
             $sellerRoleId = Role::where('name', 'seller')->value('id');
 
-            // لو مش seller ولا seller_pending -> خليه seller_pending
-            if (!$owner->hasAnyRole(['seller', 'seller_pending'])) {
+            if ($sellerPendingRoleId === null || $sellerRoleId === null) {
+                throw new \RuntimeException('Seller roles are not configured.');
+            }
+
+            if (!$owner->hasRole('seller_pending') && !$owner->hasRole('seller')) {
                 $owner->assignRole('seller_pending');
             }
 
-            $store->userRoles()->create([
+            UserRoles::firstOrCreate([
+                'user_id' => $owner->id,
+                'role_id' => $sellerPendingRoleId,
+                'store_id' => null,
+            ], [
+                'granted_at' => now(),
+            ]);
+
+            $store->userRoles()->firstOrCreate([
                 'user_id' => $owner->id,
                 'role_id' => $sellerRoleId,
                 'store_id' => $store->id,
+            ], [
+                'granted_at' => now(),
             ]);
 
-            // ✅ default hours
             $this->createDefaultStoreHours($store);
 
             event(new StoreCreated($store));
@@ -109,6 +112,7 @@ class CreateStore
             return $store;
         });
     }
+
     private function createDefaultStoreHours(Store $store): void
     {
         $defaultHours = [
@@ -123,7 +127,4 @@ class CreateStore
 
         $store->hours()->createMany($defaultHours);
     }
-
-
-
 }

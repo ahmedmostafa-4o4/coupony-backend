@@ -58,6 +58,69 @@ class AuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_user_with_only_customer_role_cannot_login_as_seller()
+    {
+        $user = User::factory()->create([
+            'email' => 'customer-only@example.com',
+            'password_hash' => bcrypt('password123'),
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'customer-only@example.com',
+            'password' => 'password123',
+            'role' => 'seller',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.common.unauthorized')])
+            ->assertJsonValidationErrors(['role']);
+    }
+
+    public function test_user_with_seller_pending_role_can_login_as_seller()
+    {
+        $user = User::factory()->create([
+            'email' => 'seller-pending@example.com',
+            'password_hash' => bcrypt('password123'),
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+        $user->assignRole('seller_pending');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'seller-pending@example.com',
+            'password' => 'password123',
+            'role' => 'seller',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
+    }
+
+    public function test_user_with_seller_role_can_login_as_seller()
+    {
+        $user = User::factory()->create([
+            'email' => 'seller@example.com',
+            'password_hash' => bcrypt('password123'),
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+        $user->assignRole('seller');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'seller@example.com',
+            'password' => 'password123',
+            'role' => 'seller',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
+    }
+
     public function test_user_cannot_login_with_invalid_credentials()
     {
         User::factory()->create([
@@ -369,6 +432,36 @@ class AuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_google_login_as_seller_first_time_does_not_assign_seller_pending_and_is_unauthorized()
+    {
+        config()->set('services.google.client_id', 'google-client-id');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'google-seller-123',
+                'email' => 'google-seller@example.com',
+                'email_verified' => 'true',
+                'given_name' => 'Google',
+                'family_name' => 'Seller',
+                'aud' => 'google-client-id',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'header.payload.signature',
+            'role' => 'seller',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.common.unauthorized')])
+            ->assertJsonValidationErrors(['role']);
+
+        $user = User::where('email', 'google-seller@example.com')->firstOrFail();
+        $this->assertTrue($user->hasRole('customer'));
+        $this->assertFalse($user->hasRole('seller_pending'));
+        $this->assertFalse($user->hasRole('seller'));
+    }
+
     public function test_existing_user_is_linked_to_google_by_email()
     {
         config()->set('services.google.client_id', 'google-client-id');
@@ -408,6 +501,72 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_google_login_as_seller_is_allowed_for_user_with_seller_pending()
+    {
+        config()->set('services.google.client_id', 'google-client-id');
+
+        $user = User::factory()->create([
+            'email' => 'pending-google@example.com',
+            'provider' => 'google',
+            'provider_id' => 'google-pending-456',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+        $user->assignRole('seller_pending');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'google-pending-456',
+                'email' => 'pending-google@example.com',
+                'email_verified' => true,
+                'given_name' => 'Pending',
+                'family_name' => 'Seller',
+                'aud' => 'google-client-id',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'header.payload.signature',
+            'role' => 'seller',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
+    }
+
+    public function test_google_login_as_seller_is_allowed_for_user_with_seller_role()
+    {
+        config()->set('services.google.client_id', 'google-client-id');
+
+        $user = User::factory()->create([
+            'email' => 'approved-google@example.com',
+            'provider' => 'google',
+            'provider_id' => 'google-seller-789',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+        $user->assignRole('seller');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => 'google-seller-789',
+                'email' => 'approved-google@example.com',
+                'email_verified' => true,
+                'given_name' => 'Approved',
+                'family_name' => 'Seller',
+                'aud' => 'google-client-id',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'header.payload.signature',
+            'role' => 'seller',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
     }
 
     public function test_user_cannot_login_with_invalid_google_token()

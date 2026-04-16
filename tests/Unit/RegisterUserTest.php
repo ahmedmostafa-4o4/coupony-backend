@@ -30,6 +30,7 @@ class RegisterUserTest extends TestCase
 
         // Create roles
         Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
     }
@@ -124,7 +125,7 @@ class RegisterUserTest extends TestCase
         $this->assertFalse($user->hasRole('admin'));
     }
 
-    public function test_register_seller_assigns_customer_and_seller_pending_roles()
+    public function test_register_seller_assigns_only_customer_role()
     {
         $userData = new UserData(
             firstName: 'Seller',
@@ -138,7 +139,8 @@ class RegisterUserTest extends TestCase
         $user = $this->registerUser->execute($userData, ['ip_address' => '127.0.0.1']);
 
         $this->assertTrue($user->hasRole('customer'));
-        $this->assertTrue($user->hasRole('seller_pending'));
+        $this->assertFalse($user->hasRole('seller_pending'));
+        $this->assertFalse($user->hasRole('seller'));
         $this->assertFalse($user->hasRole('admin'));
     }
 

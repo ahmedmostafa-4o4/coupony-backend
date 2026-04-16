@@ -22,6 +22,7 @@ class StoreTest extends TestCase
     {
         parent::setUp();
 
+        Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller_pending', 'guard_name' => 'sanctum']);
 
@@ -37,7 +38,7 @@ class StoreTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'Test Store',
             'description' => 'A test store description',
             'phone' => '+1234567890',
@@ -57,9 +58,7 @@ class StoreTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
             'message',
-            'data' => [
-                'store',
-            ],
+            'data',
         ]);
 
         $this->assertDatabaseHas('stores', [
@@ -72,7 +71,7 @@ class StoreTest extends TestCase
     {
         $category = StoreCategory::factory()->create();
 
-        $response = $this->postJson('/api/v1/store/create', [
+        $response = $this->postJson('/api/v1/stores', [
             'name' => 'Test Store',
             'phone' => '+1234567890',
             'categories' => [$category->id],
@@ -87,7 +86,7 @@ class StoreTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'phone' => '+1234567890',
         ]);
 
@@ -101,7 +100,7 @@ class StoreTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'Test Store',
         ]);
 
@@ -115,7 +114,7 @@ class StoreTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'Test Store',
             'phone' => '+1234567890',
         ]);
@@ -124,33 +123,35 @@ class StoreTest extends TestCase
             ->assertJsonValidationErrors(['categories']);
     }
 
-    public function test_store_creation_requires_verification_documents()
+    public function test_store_creation_allows_missing_verification_documents()
     {
         $user = User::factory()->create();
         $category = StoreCategory::factory()->create();
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'Test Store',
             'phone' => '+1234567890',
             'address_line1' => '123 Main St',
             'city' => 'Test City',
+            'latitude' => '40.7128',
+            'longitude' => '-74.0060',
             'categories' => [$category->id],
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['verification_docs']);
+        $response->assertStatus(201);
     }
 
     public function test_store_creation_assigns_seller_pending_role()
     {
         $user = User::factory()->create();
+        $user->assignRole('customer');
         $category = StoreCategory::factory()->create();
         $token = $user->createToken('test-token')->plainTextToken;
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'Test Store',
             'description' => 'A test store',
             'phone' => '+1234567890',
@@ -169,6 +170,23 @@ class StoreTest extends TestCase
 
         $user->refresh();
         $this->assertTrue($user->hasRole('seller_pending'));
+        $this->assertTrue($user->hasRole('customer'));
+        $this->assertFalse($user->hasRole('seller'));
+
+        $store = Store::where('owner_user_id', $user->id)->firstOrFail();
+        $sellerPendingRoleId = Role::where('name', 'seller_pending')->value('id');
+        $sellerRoleId = Role::where('name', 'seller')->value('id');
+
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $user->id,
+            'role_id' => $sellerPendingRoleId,
+            'store_id' => null,
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $user->id,
+            'role_id' => $sellerRoleId,
+            'store_id' => $store->id,
+        ]);
     }
 
     public function test_store_creation_creates_default_hours()
@@ -178,7 +196,7 @@ class StoreTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v1/store/create', [
+            ->postJson('/api/v1/stores', [
             'name' => 'Test Store',
             'description' => 'A test store',
             'phone' => '+1234567890',

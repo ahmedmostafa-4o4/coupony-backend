@@ -116,7 +116,7 @@ class UserJourneyTest extends TestCase
         $verifyResponse->assertStatus(200);
         $accessToken = $verifyResponse->json('data.access_token');
 
-        // Step 3: Login as seller
+        // Step 3: Seller login is denied before store creation
         $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email' => 'john.seller@example.com',
             'password' => 'password123',
@@ -124,22 +124,13 @@ class UserJourneyTest extends TestCase
             'role' => 'seller',
         ]);
 
-        $loginResponse->assertStatus(200)
-            ->assertJsonPath('data.role', 'seller')
-            ->assertJsonPath('data.is_store_owner', false)
-            ->assertJsonStructure([
-            'data' => [
-                'access_token',
-                'refresh_token',
-            ],
-        ]);
-
-        $newAccessToken = $loginResponse->json('data.access_token');
+        $loginResponse->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.common.unauthorized')]);
 
         // Step 4: Create store
         $category = StoreCategory::factory()->create();
 
-        $storeResponse = $this->withHeader('Authorization', "Bearer {$newAccessToken}")
+        $storeResponse = $this->withHeader('Authorization', "Bearer {$accessToken}")
             ->postJson('/api/v1/stores', [
             'name' => 'John\'s Store',
             'description' => 'A great store',
@@ -164,6 +155,17 @@ class UserJourneyTest extends TestCase
         $user = User::where('email', 'john.seller@example.com')->first();
         $this->assertTrue($user->hasRole('seller_pending'));
         $this->assertCount(1, $user->stores);
+
+        // Step 6: Seller login is now allowed
+        $sellerLoginResponse = $this->postJson('/api/v1/auth/login', [
+            'email' => 'john.seller@example.com',
+            'password' => 'password123',
+            'device_name' => 'Test Device',
+            'role' => 'seller',
+        ]);
+
+        $sellerLoginResponse->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
     }
 
     public function test_password_reset_journey()
