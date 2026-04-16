@@ -54,22 +54,44 @@ class GoogleTokenVerifier
 
         $payload = $response->json();
 
-        $clientId = config('services.google.client_id');
+        if (!is_array($payload)) {
+            Log::warning('Google token verification failed: payload is not an array', [
+                'payload' => $payload,
+                'token_preview' => $this->tokenPreview($idToken),
+            ]);
+
+            throw ValidationException::withMessages([
+                'id_token' => [__('api.auth.invalid_credentials')],
+            ]);
+        }
+
+        $clientId = $this->normalizeGoogleIdentifier(config('services.google.client_id'));
+        $audience = $this->normalizeGoogleIdentifier($payload['aud'] ?? null);
+        $authorizedParty = $this->normalizeGoogleIdentifier($payload['azp'] ?? null);
         $emailVerified = filter_var($payload['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $clientIdMatches = $clientId === '' || in_array($clientId, array_filter([
+            $audience,
+            $authorizedParty,
+        ]), true);
 
         if (
-            !is_array($payload)
-            || empty($payload['sub'])
+            empty($payload['sub'])
             || empty($payload['email'])
             || !$emailVerified
-            || ($clientId && ($payload['aud'] ?? null) !== $clientId)
+            || !$clientIdMatches
         ) {
             Log::warning('Google token verification failed: invalid payload', [
                 'payload' => $payload,
                 'sub_exists' => !empty($payload['sub']),
                 'email_exists' => !empty($payload['email']),
                 'email_verified' => $emailVerified,
-                'aud_matches' => $clientId && (($payload['aud'] ?? null) === $clientId),
+                'client_id' => $clientId,
+                'client_id_length' => strlen($clientId),
+                'aud' => $audience,
+                'aud_length' => strlen($audience),
+                'azp' => $authorizedParty,
+                'azp_length' => strlen($authorizedParty),
+                'client_id_matches' => $clientIdMatches,
             ]);
             throw ValidationException::withMessages([
                 'id_token' => [__('api.auth.invalid_credentials')],
@@ -87,5 +109,10 @@ class GoogleTokenVerifier
     private function tokenPreview(string $idToken): string
     {
         return substr($idToken, 0, 12) . '...';
+    }
+
+    private function normalizeGoogleIdentifier(mixed $value): string
+    {
+        return trim((string) ($value ?? ''));
     }
 }
