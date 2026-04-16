@@ -67,7 +67,7 @@ class RegistrationTest extends TestCase
         ]);
     }
 
-    public function test_seller_registration_assigns_only_customer_role()
+    public function test_seller_registration_assigns_seller_pending_role()
     {
         $this->postJson('/api/v1/auth/register', [
             'first_name' => 'Seller',
@@ -80,8 +80,8 @@ class RegistrationTest extends TestCase
 
         $user = User::where('email', 'seller@example.com')->first();
 
-        $this->assertTrue($user->hasRole('customer'));
-        $this->assertFalse($user->hasRole('seller_pending'));
+        $this->assertFalse($user->hasRole('customer'));
+        $this->assertTrue($user->hasRole('seller_pending'));
         $this->assertFalse($user->hasRole('seller'));
     }
 

@@ -79,6 +79,32 @@ class AuthenticationTest extends TestCase
             ->assertJsonValidationErrors(['role']);
     }
 
+    public function test_seller_registered_user_login_as_customer_shows_customer_role_on_first_login()
+    {
+        $user = User::factory()->create([
+            'email' => 'seller-first-customer@example.com',
+            'password_hash' => bcrypt('password123'),
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('seller_pending');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'seller-first-customer@example.com',
+            'password' => 'password123',
+            'role' => 'customer',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.role', 'customer');
+
+        $roles = $response->json('data.user.roles');
+
+        $this->assertIsArray($roles);
+        $this->assertContains('seller_pending', $roles);
+        $this->assertContains('customer', $roles);
+    }
+
     public function test_user_with_seller_pending_role_can_login_as_seller()
     {
         $user = User::factory()->create([
@@ -432,7 +458,7 @@ class AuthenticationTest extends TestCase
         ]);
     }
 
-    public function test_google_login_as_seller_first_time_does_not_assign_seller_pending_and_is_unauthorized()
+    public function test_google_login_as_seller_first_time_assigns_seller_pending_and_is_allowed()
     {
         config()->set('services.google.client_id', 'google-client-id');
 
@@ -452,13 +478,12 @@ class AuthenticationTest extends TestCase
             'role' => 'seller',
         ]);
 
-        $response->assertStatus(401)
-            ->assertJsonFragment(['message' => __('api.common.unauthorized')])
-            ->assertJsonValidationErrors(['role']);
+        $response->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
 
         $user = User::where('email', 'google-seller@example.com')->firstOrFail();
-        $this->assertTrue($user->hasRole('customer'));
-        $this->assertFalse($user->hasRole('seller_pending'));
+        $this->assertFalse($user->hasRole('customer'));
+        $this->assertTrue($user->hasRole('seller_pending'));
         $this->assertFalse($user->hasRole('seller'));
     }
 

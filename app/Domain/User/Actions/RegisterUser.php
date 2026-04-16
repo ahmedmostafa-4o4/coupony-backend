@@ -28,7 +28,7 @@ class RegisterUser
         return DB::transaction(function () use ($data, $context) {
             $primaryRole = isset($context['admin_id'])
                 ? 'admin'
-                : 'customer';
+                : ($data->role === 'seller' ? 'seller_pending' : 'customer');
 
             $user = $this->users->create([
                 'email' => $data->email,

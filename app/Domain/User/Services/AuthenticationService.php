@@ -2,7 +2,6 @@
 
 namespace App\Domain\User\Services;
 
-use App\Application\Http\Resources\UserResource;
 use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
 use App\Domain\User\Events\UserLoggedIn;
@@ -94,11 +93,12 @@ class AuthenticationService
             ]);
         }
 
-        event(new UserLoggedIn($user, $context));
+        $responseUser = $user->fresh()->loadMissing(['profile', 'roles', 'stores']);
+
+        event(new UserLoggedIn($responseUser, $context));
 
         return [
-            // 'user' => new UserResource($user->load('profile', 'preferences')),
-            'user' => new UserResource($user),
+            'user' => $responseUser,
             'session' => $session,
             'access_token' => $accessToken->plainTextToken,
             'refresh_token' => $refreshToken,
@@ -112,7 +112,19 @@ class AuthenticationService
      */
     public function issueTokensForUser(User $user, array $context = []): array
     {
-        $this->assertUserCanLoginWithRoleSocial($user, $context['role'] ?? null);
+        $requestedRole = $context['role'] ?? null;
+
+        if ($requestedRole === 'customer' && !$user->hasRole($requestedRole)) {
+            $user->assignRole($requestedRole);
+            $user->userRoles()->updateOrCreate([
+                'role_id' => Role::where('name', $requestedRole)->first()->id,
+                'user_id' => $user->id,
+                'store_id' => null,
+            ], [
+                'granted_at' => now(),
+            ]);
+        }
+        $this->assertUserCanLoginWithRole($user, $context['role'] ?? null);
 
         // Generate tokens
         $accessToken = $this->generateAccessToken($user, $context);
@@ -133,10 +145,12 @@ class AuthenticationService
             'last_activity' => now()->timestamp,
         ]);
 
-        event(new UserLoggedIn($user, $context));
+        $responseUser = $user->fresh()->loadMissing(['profile', 'roles', 'stores']);
+
+        event(new UserLoggedIn($responseUser, $context));
 
         return [
-            'user' => new UserResource($user),
+            'user' => $responseUser,
             'session' => $session,
             'access_token' => $accessToken->plainTextToken,
             'refresh_token' => $refreshToken,
@@ -199,8 +213,6 @@ class AuthenticationService
      */
     private function getUserAbilities(User $user): array
     {
-        $abilities = ['*']; // Default: all abilities
-
         // If using spatie/laravel-permission
         if ($user->hasRole('admin')) {
             return ['*'];
@@ -228,7 +240,7 @@ class AuthenticationService
             ];
         }
 
-        return $abilities;
+        return [];
     }
 
     /**
@@ -298,14 +310,6 @@ class AuthenticationService
         }
 
         if ($requestedRole === 'seller' && !$user->hasAnyRole(['seller', 'seller_pending'])) {
-            throw ValidationException::withMessages([
-                'role' => [__('api.common.unauthorized')],
-            ]);
-        }
-    }
-    private function assertUserCanLoginWithRoleSocial(User $user, ?string $requestedRole): void
-    {
-        if ($requestedRole === 'admin' && !$user->hasRole('admin')) {
             throw ValidationException::withMessages([
                 'role' => [__('api.common.unauthorized')],
             ]);

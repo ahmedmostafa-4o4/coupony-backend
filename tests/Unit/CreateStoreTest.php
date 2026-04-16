@@ -9,6 +9,7 @@ use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreCategory;
 use App\Domain\Store\Repositories\StoreRepository;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -196,5 +197,41 @@ class CreateStoreTest extends TestCase
 
         $store = Store::where('name', 'Test Store')->first();
         $this->assertCount(4, $store->verifications);
+    }
+
+    public function test_create_store_does_not_create_duplicate_seller_pending_role_rows()
+    {
+        $owner = User::factory()->create();
+        $owner->assignRole('seller_pending');
+
+        $sellerPendingRoleId = Role::where('name', 'seller_pending')->value('id');
+
+        UserRoles::create([
+            'user_id' => $owner->id,
+            'role_id' => $sellerPendingRoleId,
+            'store_id' => null,
+            'granted_at' => now(),
+        ]);
+
+        $category = StoreCategory::factory()->create();
+
+        $storeData = new StoreData(
+            name: 'Duplicate Check Store',
+            description: 'A test store',
+            ownerUserId: $owner->id,
+            address_line1: '123 Main St',
+            city: 'Test City',
+            phone: '+1234567890',
+            email: $owner->email,
+            categories: [$category->id]
+        );
+
+        $this->createStore->execute($owner, $storeData);
+
+        $this->assertSame(1, UserRoles::query()
+            ->where('user_id', $owner->id)
+            ->where('role_id', $sellerPendingRoleId)
+            ->whereNull('store_id')
+            ->count());
     }
 }

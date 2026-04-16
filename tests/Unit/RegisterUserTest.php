@@ -125,7 +125,7 @@ class RegisterUserTest extends TestCase
         $this->assertFalse($user->hasRole('admin'));
     }
 
-    public function test_register_seller_assigns_only_customer_role()
+    public function test_register_seller_assigns_seller_pending_role()
     {
         $userData = new UserData(
             firstName: 'Seller',
@@ -138,8 +138,8 @@ class RegisterUserTest extends TestCase
 
         $user = $this->registerUser->execute($userData, ['ip_address' => '127.0.0.1']);
 
-        $this->assertTrue($user->hasRole('customer'));
-        $this->assertFalse($user->hasRole('seller_pending'));
+        $this->assertFalse($user->hasRole('customer'));
+        $this->assertTrue($user->hasRole('seller_pending'));
         $this->assertFalse($user->hasRole('seller'));
         $this->assertFalse($user->hasRole('admin'));
     }

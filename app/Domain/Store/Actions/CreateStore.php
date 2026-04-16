@@ -81,15 +81,14 @@ class CreateStore
 
             if (!$owner->hasRole('seller_pending') && !$owner->hasRole('seller')) {
                 $owner->assignRole('seller_pending');
+                UserRoles::firstOrCreate([
+                    'user_id' => $owner->id,
+                    'role_id' => $sellerPendingRoleId,
+                    'store_id' => null,
+                ], [
+                    'granted_at' => now(),
+                ]);
             }
-
-            UserRoles::firstOrCreate([
-                'user_id' => $owner->id,
-                'role_id' => $sellerPendingRoleId,
-                'store_id' => null,
-            ], [
-                'granted_at' => now(),
-            ]);
 
             $store->userRoles()->firstOrCreate([
                 'user_id' => $owner->id,
