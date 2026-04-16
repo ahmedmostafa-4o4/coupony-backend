@@ -4,7 +4,6 @@ namespace App\Domain\Product\DTOs;
 
 use App\Domain\Product\Enums\ProductOfferStatus;
 use Illuminate\Foundation\Http\FormRequest;
-use Log;
 
 class ProductData
 {
@@ -115,13 +114,6 @@ class ProductData
             'reward_variant_skus' => array_values($offerInput['reward_variant_skus'] ?? []),
         ] : [];
 
-        Log::info('Product data', [
-            'attributes' => $attributes,
-            'category_ids' => array_values($request->input('category_ids', []) ?? []),
-            'images' => $images,
-            'variants' => $variants,
-            'offer' => $offer,
-        ]);
         return new self(
             attributes: $attributes,
             categoryIds: array_values($request->input('category_ids', []) ?? []),

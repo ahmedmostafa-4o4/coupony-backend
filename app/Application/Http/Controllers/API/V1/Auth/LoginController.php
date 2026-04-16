@@ -175,10 +175,6 @@ class LoginController extends Controller
         ]);
 
         try {
-            Log::info('updateMe', [
-                'user_id' => $user->id,
-                'validated_data' => $validated,
-            ]);
             DB::transaction(function () use ($validated, $user, $request) {
                 $userFields = collect($validated)->only([
                     'phone_number',

@@ -10,7 +10,6 @@ use App\Domain\Store\Repositories\StoreRepository;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
 class CreateStore
@@ -103,11 +102,6 @@ class CreateStore
             $this->createDefaultStoreHours($store);
 
             event(new StoreCreated($store));
-
-            Log::info('Store created', [
-                'store_id' => $store->id,
-                'owner_id' => $owner->id,
-            ]);
 
             return $store;
         });

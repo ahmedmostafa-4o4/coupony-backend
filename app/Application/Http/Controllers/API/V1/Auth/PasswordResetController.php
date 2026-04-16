@@ -46,11 +46,6 @@ class PasswordResetController extends Controller
                 channel: OtpChannels::EMAIL->value
             );
 
-            Log::info('Password reset OTP sent', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => __('api.password_reset.code_sent'),
@@ -99,19 +94,13 @@ class PasswordResetController extends Controller
             if ($result['success']) {
                 // Generate a temporary token for password reset
                 $resetToken = bin2hex(random_bytes(32));
-                
+
                 // Store reset token in cache for 15 minutes
                 cache()->put(
                     "password_reset:{$resetToken}",
                     ['user_id' => $user->id, 'email' => $user->email],
                     now()->addMinutes(15)
                 );
-
-                Log::info('Password reset OTP verified', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                ]);
-
                 return response()->json([
                     'success' => true,
                     'message' => __('api.password_reset.code_verified'),
@@ -158,7 +147,7 @@ class PasswordResetController extends Controller
         try {
             return DB::transaction(function () use ($request) {
                 $resetToken = $request->input('reset_token');
-                
+
                 // Retrieve reset data from cache
                 $resetData = cache()->get("password_reset:{$resetToken}");
 
@@ -188,11 +177,6 @@ class PasswordResetController extends Controller
 
                 // Remove reset token from cache
                 cache()->forget("password_reset:{$resetToken}");
-
-                Log::info('Password reset successful', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                ]);
 
                 return response()->json([
                     'success' => true,
@@ -236,10 +220,6 @@ class PasswordResetController extends Controller
             );
 
             if ($result['success']) {
-                Log::info('Password reset OTP resent', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                ]);
 
                 return response()->json([
                     'success' => true,

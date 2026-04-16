@@ -8,7 +8,6 @@ use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
 class ApproveStore
@@ -74,12 +73,6 @@ class ApproveStore
             ]);
 
             event(new StoreApproved($store, $admin));
-
-            Log::info('Store approved', [
-                'store_id' => $store->id,
-                'admin_id' => $admin->id,
-                'owner_id' => $owner->id,
-            ]);
 
             return $store->fresh();
         });

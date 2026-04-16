@@ -7,7 +7,6 @@ use App\Domain\Store\Events\StoreRejected;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class RejectStore
 {
@@ -35,13 +34,6 @@ class RejectStore
 
             // Dispatch event
             event(new StoreRejected($store, $admin, $reason));
-
-            Log::info('Store rejected', [
-                'store_id' => $store->id,
-                'admin_id' => $admin->id,
-                'owner_id' => $store->owner_user_id,
-                'reason' => $reason,
-            ]);
 
             return $store->fresh();
         });

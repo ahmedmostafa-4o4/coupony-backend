@@ -59,11 +59,6 @@ class StoreController extends Controller
                 // Load relationships
                 $store->load($this->storeRelations());
 
-                Log::info('Store created successfully', [
-                    'store_id' => $store->id,
-                    'user_id' => $user->id,
-                ]);
-
                 return $this->successResponse(
                     new StoreResource($store),
                     __('api.store.created'),
@@ -107,11 +102,6 @@ class StoreController extends Controller
                 // Load relationships
                 $updatedStore->load($this->storeRelations());
 
-                Log::info('Store updated successfully', [
-                    'store_id' => $store->id,
-                    'user_id' => $user->id,
-                ]);
-
                 return $this->successResponse(
                     new StoreResource($updatedStore),
                     __('api.store.updated')
@@ -153,11 +143,6 @@ class StoreController extends Controller
                 );
 
                 $updatedStore->load($this->storeRelations());
-
-                Log::info('Store profile updated successfully', [
-                    'store_id' => $store->id,
-                    'user_id' => $user->id,
-                ]);
 
                 return $this->successResponse(
                     new StoreResource($updatedStore),
@@ -238,12 +223,6 @@ class StoreController extends Controller
                     $documentType,
                     $path
                 );
-
-                Log::info('Verification document updated', [
-                    'store_id' => $store->id,
-                    'document_type' => $documentType,
-                    'user_id' => $user->id,
-                ]);
 
                 return $this->successResponse(
                     $verification,

@@ -27,11 +27,6 @@ class GoogleTokenVerifier
                 ->get('https://oauth2.googleapis.com/tokeninfo', [
                     'id_token' => $idToken,
                 ]);
-            Log::info('Google token verification response', [
-                'status' => $response->status(),
-                'token_preview' => $this->tokenPreview($idToken),
-                'body' => $response->json() ?? $response->body(),
-            ]);
         } catch (ConnectionException $e) {
             Log::error('Failed to reach Google token verification endpoint', [
                 'error' => $e->getMessage(),
@@ -73,13 +68,6 @@ class GoogleTokenVerifier
             $audience,
             $authorizedParty,
         ]), true);
-        Log::info('Google token verification details', [
-            'email_verified' => $emailVerified,
-            'client_id' => $clientId,
-            'audience' => $audience,
-            'authorized_party' => $authorizedParty,
-            'client_id_matches' => $clientIdMatches,
-        ]);
         if (
             empty($payload['sub'])
             || empty($payload['email'])

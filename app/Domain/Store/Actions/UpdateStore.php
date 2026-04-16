@@ -6,10 +6,9 @@ use App\Domain\Store\DTOs\StoreData;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Events\StoreUpdated;
 use App\Domain\Store\Models\Store;
-use App\Domain\Store\Models\StoreSocial;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\Storage;
-use Log;
+
 
 class UpdateStore
 {
@@ -91,13 +90,6 @@ class UpdateStore
                 'rejection_reason' => null,
             ]);
         }
-
-
-        //  Log::info('Store update executed', [
-        //     'store_id' => $store->id,
-        //     'user_id' => $user->id,
-        //     'status_after' => $store->status,
-        // ]);
 
         // Dispatch event
         event(new StoreUpdated($store, $user));

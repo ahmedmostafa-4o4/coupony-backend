@@ -6,7 +6,6 @@ use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class CloseStore
 {
@@ -20,13 +19,6 @@ class CloseStore
             $store->update([
                 'status' => StoreStatus::CLOSED,
                 'admin_notes' => $reason,
-            ]);
-
-            Log::info('Store closed', [
-                'store_id' => $store->id,
-                'admin_id' => $admin->id,
-                'owner_id' => $store->owner_user_id,
-                'reason' => $reason,
             ]);
 
             return $store->fresh();
