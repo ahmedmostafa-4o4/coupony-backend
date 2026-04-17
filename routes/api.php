@@ -24,6 +24,7 @@ use App\Application\Http\Controllers\API\V1\ProductRevisionController;
 use App\Application\Http\Controllers\API\V1\ProductVariantController;
 use App\Application\Http\Controllers\API\V1\SocialController;
 use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
+use App\Application\Http\Controllers\API\V1\StoreAddressController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
@@ -99,6 +100,13 @@ Route::prefix('v1')->group(function () {
         Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
         Route::scopeBindings()->group(function () {
+            Route::prefix('/stores/{store}/addresses')->name('stores.addresses.')->group(function () {
+                Route::get('/', [StoreAddressController::class, 'index'])->name('index');
+                Route::post('/', [StoreAddressController::class, 'store'])->name('store');
+                Route::get('/{address}', [StoreAddressController::class, 'show'])->name('show');
+                Route::patch('/{address}', [StoreAddressController::class, 'update'])->name('update');
+                Route::delete('/{address}', [StoreAddressController::class, 'destroy'])->name('destroy');
+            });
             Route::prefix('/stores/{store}/products')->name('stores.products.')->group(function () {
                 Route::post('/', [ProductController::class, 'store'])->name('store');
                 Route::get('/', [ProductController::class, 'sellerIndex'])->name('index');

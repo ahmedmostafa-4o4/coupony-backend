@@ -69,6 +69,11 @@ class StorePolicy
             || $user->hasRole(['admin', 'super_admin']);
     }
 
+    public function manageAddresses(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id;
+    }
+
     public function accessClaims(User $user, Store $store): bool
     {
         return $user->hasRole('store_employee')
