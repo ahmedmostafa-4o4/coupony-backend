@@ -5,6 +5,7 @@ namespace App\Domain\Product\Actions;
 use App\Domain\Product\DTOs\ProductData;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Repositories\ProductRepository;
+use App\Domain\Product\Support\PrepareProductIdentifiers;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class CreateProduct
         private readonly ProductRepository $products,
         private readonly CreateOrUpdatePendingProductRevision $revisions,
         private readonly ResolveVariantOfferPricing $pricing,
+        private readonly PrepareProductIdentifiers $identifiers,
     )
     {
     }
@@ -25,6 +27,7 @@ class CreateProduct
 
         try {
             return DB::transaction(function () use ($store, $data, $submittedBy, &$storedPaths) {
+                $data = $this->identifiers->forCreate($store, $data);
                 $resolvedVariants = $this->pricing->resolve($data->variants(), $data->offer());
                 $pricingSummary = $this->pricing->deriveProductPricingSummary($resolvedVariants);
                 $product = $this->products->create($store, [

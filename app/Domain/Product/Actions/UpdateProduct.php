@@ -6,6 +6,7 @@ use App\Domain\Product\DTOs\ProductData;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Repositories\ProductRepository;
+use App\Domain\Product\Support\PrepareProductIdentifiers;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
 use Log;
@@ -16,6 +17,7 @@ class UpdateProduct
         private readonly ProductRepository $products,
         private readonly CreateOrUpdatePendingProductRevision $revisions,
         private readonly ResolveVariantOfferPricing $pricing,
+        private readonly PrepareProductIdentifiers $identifiers,
     ) {
     }
 
@@ -27,6 +29,8 @@ class UpdateProduct
 
         try {
             return DB::transaction(function () use ($product, $data, $submittedBy, &$storedPaths, &$deletedPaths) {
+                $data = $this->identifiers->forUpdate($product, $data);
+
                 if ($product->approval_status === \App\Domain\Product\Enums\ProductApprovalStatus::APPROVED) {
                     $this->revisions->execute($product, $data, $submittedBy);
 

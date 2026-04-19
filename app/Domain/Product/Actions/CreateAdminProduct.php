@@ -7,6 +7,7 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Repositories\ProductRepository;
+use App\Domain\Product\Support\PrepareProductIdentifiers;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ class CreateAdminProduct
     public function __construct(
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
+        private readonly PrepareProductIdentifiers $identifiers,
     ) {
     }
 
@@ -25,6 +27,7 @@ class CreateAdminProduct
 
         try {
             return DB::transaction(function () use ($store, $data, $admin, &$storedPaths) {
+                $data = $this->identifiers->forCreate($store, $data);
                 $resolvedVariants = $this->pricing->resolve($data->variants(), $data->offer());
                 $pricingSummary = $this->pricing->deriveProductPricingSummary($resolvedVariants);
 

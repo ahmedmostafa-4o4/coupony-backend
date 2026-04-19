@@ -61,6 +61,7 @@ class ProductTest extends TestCase
         $this->assertDatabaseHas('products', [
             'store_id' => $store->id,
             'slug' => 'example-product',
+            'sku' => 'SKU-001',
             'status' => ProductStatus::INACTIVE->value,
             'approval_status' => ProductApprovalStatus::PENDING->value,
         ]);
@@ -274,6 +275,65 @@ class ProductTest extends TestCase
         $this->assertDatabaseHas('product_categories', [
             'product_id' => $productId,
             'category_id' => $categories[1]->id,
+        ]);
+    }
+
+    public function test_seller_create_without_slug_and_sku_generates_identifiers_for_product_and_variants(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'title' => 'جزمة',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Black / 42',
+                        'option_summary' => 'Color: Black, Size: 42',
+                        'sku' => null,
+                        'barcode' => '123456789',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            [
+                                'attribute_name' => 'color',
+                                'attribute_value' => 'black',
+                                'sort_order' => 0,
+                            ],
+                            [
+                                'attribute_name' => 'size',
+                                'attribute_value' => '42',
+                                'sort_order' => 1,
+                            ],
+                        ],
+                    ],
+                ],
+            ]));
+
+        $productId = $response->json('data.id');
+
+        $response->assertCreated()
+            ->assertJsonPath('data.slug', 'gazma')
+            ->assertJsonPath('data.variants.0.sku', 'VAR-SHO-GAZ-BLK-42');
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'slug' => 'gazma',
+            'sku' => 'PRD-SHO-GAZ',
+        ]);
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $productId,
+            'sku' => 'VAR-SHO-GAZ-BLK-42',
         ]);
     }
 
@@ -742,6 +802,87 @@ class ProductTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['slug']);
+    }
+
+    public function test_duplicate_titles_in_same_store_get_unique_generated_slug_and_sku_suffixes(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $firstResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'title' => 'Running Shoes',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Black / 42',
+                        'option_summary' => 'Color: Black, Size: 42',
+                        'sku' => null,
+                        'barcode' => '123456789',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'color', 'attribute_value' => 'black', 'sort_order' => 0],
+                            ['attribute_name' => 'size', 'attribute_value' => '42', 'sort_order' => 1],
+                        ],
+                    ],
+                ],
+            ]));
+
+        $secondResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'title' => 'Running Shoes',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Blue / 43',
+                        'option_summary' => 'Color: Blue, Size: 43',
+                        'sku' => null,
+                        'barcode' => '987654321',
+                        'original_price' => 115,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 5,
+                        'low_stock_threshold' => 1,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'color', 'attribute_value' => 'blue', 'sort_order' => 0],
+                            ['attribute_name' => 'size', 'attribute_value' => '43', 'sort_order' => 1],
+                        ],
+                    ],
+                ],
+            ]));
+
+        $firstProductId = $firstResponse->json('data.id');
+        $secondProductId = $secondResponse->json('data.id');
+
+        $firstResponse->assertCreated()->assertJsonPath('data.slug', 'running-shoes');
+        $secondResponse->assertCreated()->assertJsonPath('data.slug', 'running-shoes-2');
+
+        $this->assertDatabaseHas('products', [
+            'id' => $firstProductId,
+            'slug' => 'running-shoes',
+            'sku' => 'PRD-SHO-RUN',
+        ]);
+        $this->assertDatabaseHas('products', [
+            'id' => $secondProductId,
+            'slug' => 'running-shoes-2',
+            'sku' => 'PRD-SHO-RUN-2',
+        ]);
     }
 
     public function test_variant_sku_uniqueness_per_product_is_enforced(): void

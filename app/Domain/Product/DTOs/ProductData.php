@@ -171,4 +171,34 @@ class ProductData
     {
         return $this->hasOffer;
     }
+
+    public function withAttributes(array $attributes): self
+    {
+        return new self(
+            attributes: $attributes,
+            categoryIds: $this->categoryIds,
+            images: $this->images,
+            variants: $this->variants,
+            offer: $this->offer,
+            hasCategoryIds: $this->hasCategoryIds,
+            hasImages: $this->hasImages,
+            hasVariants: $this->hasVariants,
+            hasOffer: $this->hasOffer,
+        );
+    }
+
+    public function withVariants(array $variants): self
+    {
+        return new self(
+            attributes: $this->attributes,
+            categoryIds: $this->categoryIds,
+            images: $this->images,
+            variants: $variants,
+            offer: $this->offer,
+            hasCategoryIds: $this->hasCategoryIds,
+            hasImages: $this->hasImages,
+            hasVariants: $this->hasVariants,
+            hasOffer: $this->hasOffer,
+        );
+    }
 }

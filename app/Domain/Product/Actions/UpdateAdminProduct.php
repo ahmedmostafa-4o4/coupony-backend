@@ -9,6 +9,7 @@ use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Repositories\ProductRepository;
+use App\Domain\Product\Support\PrepareProductIdentifiers;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +18,7 @@ class UpdateAdminProduct
     public function __construct(
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
+        private readonly PrepareProductIdentifiers $identifiers,
     ) {
     }
 
@@ -27,6 +29,7 @@ class UpdateAdminProduct
 
         try {
             return DB::transaction(function () use ($product, $data, $admin, &$storedPaths, &$deletedPaths) {
+                $data = $this->identifiers->forUpdate($product, $data);
                 [$resolvedVariants, $pricingSummary] = $this->resolvePricingState($product, $data);
                 $stateAttributes = $this->liveStateAttributes($product, $admin);
 

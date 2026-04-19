@@ -24,7 +24,7 @@ class CreateProductRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
-                'required',
+                'nullable',
                 'string',
                 'max:255',
                 Rule::unique('products', 'slug')->where(fn($query) => $query->where('store_id', $store->id)),

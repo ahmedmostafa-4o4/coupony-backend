@@ -97,6 +97,7 @@ class ProductManagementTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $productId,
             'store_id' => $store->id,
+            'sku' => 'ADMIN-SKU-001',
             'status' => ProductStatus::ACTIVE->value,
             'approval_status' => ProductApprovalStatus::APPROVED->value,
             'approved_by' => $admin->id,
@@ -104,6 +105,54 @@ class ProductManagementTest extends TestCase
         $this->assertDatabaseHas('product_categories', [
             'product_id' => $productId,
             'category_id' => $category->id,
+        ]);
+    }
+
+    public function test_admin_create_without_slug_and_sku_generates_identifiers(): void
+    {
+        $admin = $this->admin();
+        $store = $this->storeFor($this->seller());
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/admin/products', $this->payload([
+                'store_id' => $store->id,
+                'title' => 'Running Shoes',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Blue / XL',
+                        'option_summary' => 'Color: Blue, Size: XL',
+                        'sku' => null,
+                        'barcode' => '123456789',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'color', 'attribute_value' => 'blue', 'sort_order' => 0],
+                            ['attribute_name' => 'size', 'attribute_value' => 'XL', 'sort_order' => 1],
+                        ],
+                    ],
+                ],
+            ]));
+
+        $productId = $response->json('data.id');
+
+        $response->assertCreated()
+            ->assertJsonPath('data.slug', 'running-shoes')
+            ->assertJsonPath('data.variants.0.sku', 'VAR-SHO-RUN-BLU-XL');
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'slug' => 'running-shoes',
+            'sku' => 'PRD-SHO-RUN',
         ]);
     }
 

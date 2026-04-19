@@ -160,6 +160,42 @@ class ProductRevisionRoutesTest extends TestCase
         ]);
     }
 
+    public function test_blank_slug_on_approved_seller_update_regenerates_only_pending_revision_slug(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'slug' => 'manual-slug',
+                'images' => [],
+            ]));
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'title' => 'جزمة رياضي',
+                'slug' => '',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.slug', 'manual-slug')
+            ->assertJsonPath('data.pending_revision.payload.product.slug', 'gazma-ryady')
+            ->assertJsonPath('data.pending_revision.payload.product.title', 'جزمة رياضي');
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'slug' => 'manual-slug',
+            'title' => 'Revision Product',
+        ]);
+    }
+
     private function seller(): User
     {
         $seller = User::factory()->create();
