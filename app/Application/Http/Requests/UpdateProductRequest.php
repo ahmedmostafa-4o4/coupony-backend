@@ -2,6 +2,7 @@
 
 namespace App\Application\Http\Requests;
 
+use App\Application\Http\Requests\Concerns\PreparesProductVariantValidation;
 use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Enums\ProductOfferStatus;
 use App\Domain\Product\Enums\ProductOfferType;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
+    use PreparesProductVariantValidation;
+
     public function authorize(): bool
     {
         return true;
@@ -98,41 +101,36 @@ class UpdateProductRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $variants = collect($this->input('variants', []) ?? []);
+            $preparedVariantSkus = $this->preparedVariantSkuKeys();
 
-            if ($variants->isEmpty()) {
-                return;
-            }
+            if ($variants->isNotEmpty()) {
+                $defaultCount = $variants->filter(fn(array $variant) => (bool) ($variant['is_default'] ?? false))->count();
 
-            $defaultCount = $variants->filter(fn(array $variant) => (bool) ($variant['is_default'] ?? false))->count();
-
-            if ($defaultCount > 1) {
-                $validator->errors()->add('variants', __('validation.custom.variants.single_default'));
-            }
-
-            $duplicateSkus = $variants
-                ->pluck('sku')
-                ->filter(fn($sku) => filled($sku))
-                ->map(fn($sku) => mb_strtolower((string) $sku))
-                ->duplicates();
-
-            if ($duplicateSkus->isNotEmpty()) {
-                $validator->errors()->add('variants', __('validation.custom.variants.unique_sku'));
-            }
-
-            foreach ($variants as $index => $variant) {
-                $inventoryMode = $variant['inventory_mode'] ?? InventoryMode::UNLIMITED->value;
-                $stockQty = $variant['stock_qty'] ?? null;
-
-                if ($inventoryMode === InventoryMode::TRACKED->value && $stockQty === null) {
-                    $validator->errors()->add("variants.{$index}.stock_qty", 'The stock qty field is required when inventory mode is tracked.');
+                if ($defaultCount > 1) {
+                    $validator->errors()->add('variants', __('validation.custom.variants.single_default'));
                 }
 
-                if ($inventoryMode === InventoryMode::UNLIMITED->value && array_key_exists('stock_qty', $variant) && $stockQty !== null) {
-                    $validator->errors()->add("variants.{$index}.stock_qty", 'The stock qty field must be empty when inventory mode is unlimited.');
+                $duplicateSkus = $preparedVariantSkus->duplicates();
+
+                if ($duplicateSkus->isNotEmpty()) {
+                    $validator->errors()->add('variants', __('validation.custom.variants.unique_sku'));
                 }
 
-                if ($inventoryMode === InventoryMode::UNLIMITED->value && array_key_exists('low_stock_threshold', $variant) && $variant['low_stock_threshold'] !== null) {
-                    $validator->errors()->add("variants.{$index}.low_stock_threshold", 'The low stock threshold field must be empty when inventory mode is unlimited.');
+                foreach ($variants as $index => $variant) {
+                    $inventoryMode = $variant['inventory_mode'] ?? InventoryMode::UNLIMITED->value;
+                    $stockQty = $variant['stock_qty'] ?? null;
+
+                    if ($inventoryMode === InventoryMode::TRACKED->value && $stockQty === null) {
+                        $validator->errors()->add("variants.{$index}.stock_qty", 'The stock qty field is required when inventory mode is tracked.');
+                    }
+
+                    if ($inventoryMode === InventoryMode::UNLIMITED->value && array_key_exists('stock_qty', $variant) && $stockQty !== null) {
+                        $validator->errors()->add("variants.{$index}.stock_qty", 'The stock qty field must be empty when inventory mode is unlimited.');
+                    }
+
+                    if ($inventoryMode === InventoryMode::UNLIMITED->value && array_key_exists('low_stock_threshold', $variant) && $variant['low_stock_threshold'] !== null) {
+                        $validator->errors()->add("variants.{$index}.low_stock_threshold", 'The low stock threshold field must be empty when inventory mode is unlimited.');
+                    }
                 }
             }
 
@@ -146,15 +144,13 @@ class UpdateProductRequest extends FormRequest
 
             $offer = $this->input('offer', []);
             $offerType = $offer['type'] ?? null;
-            $variantSkuSource = $this->exists('variants')
-                ? $variants
-                : $this->route('product')->variants()->get(['sku']);
-
-            $variantSkus = collect($variantSkuSource)
-                ->pluck('sku')
-                ->filter(fn($sku) => filled($sku))
-                ->map(fn($sku) => mb_strtolower((string) $sku))
-                ->values();
+            $variantSkus = $this->exists('variants')
+                ? $preparedVariantSkus
+                : $this->route('product')->variants()->get(['sku'])
+                    ->pluck('sku')
+                    ->filter(fn($sku) => filled($sku))
+                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->values();
 
             if ($offerType === ProductOfferType::FIXED->value && empty($offer['fixed_amount'])) {
                 $validator->errors()->add('offer.fixed_amount', 'The fixed amount field is required when offer type is fixed.');

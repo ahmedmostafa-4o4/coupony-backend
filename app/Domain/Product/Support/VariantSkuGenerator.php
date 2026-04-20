@@ -70,13 +70,13 @@ class VariantSkuGenerator
             ->filter(fn($attribute) => is_array($attribute))
             ->map(function (array $attribute) {
                 return [
-                    'name' => Str::lower(trim((string) ($attribute['attribute_name'] ?? ''))),
+                    'name' => $this->codes->canonicalAttributeName((string) ($attribute['attribute_name'] ?? '')),
                     'value' => (string) ($attribute['attribute_value'] ?? ''),
                 ];
             })
             ->filter(fn(array $attribute) => $attribute['value'] !== '');
 
-        $prioritized = collect(['color', 'colour', 'size'])
+        $prioritized = collect(['color', 'size'])
             ->flatMap(fn(string $name) => $collection->filter(fn(array $attribute) => $attribute['name'] === $name)->take(1))
             ->values();
 

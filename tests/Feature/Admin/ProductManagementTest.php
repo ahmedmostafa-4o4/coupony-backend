@@ -156,6 +156,56 @@ class ProductManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_create_buy_x_get_y_accepts_generated_variant_sku_targets(): void
+    {
+        $admin = $this->admin();
+        $store = $this->storeFor($this->seller());
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/admin/products', $this->payload([
+                'store_id' => $store->id,
+                'title' => 'Running Shoes',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Black / 42',
+                        'option_summary' => 'Color: Black, Size: 42',
+                        'sku' => null,
+                        'barcode' => '123456789',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'color', 'attribute_value' => 'black', 'sort_order' => 0],
+                            ['attribute_name' => 'size', 'attribute_value' => '42', 'sort_order' => 1],
+                        ],
+                    ],
+                ],
+                'offer' => [
+                    'type' => 'buy_x_get_y',
+                    'status' => 'active',
+                    'buy_qty' => 1,
+                    'get_qty' => 1,
+                    'allow_mix_buy_variants' => false,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => ['VAR-SHO-RUN-BLK-42'],
+                    'reward_variant_skus' => ['VAR-SHO-RUN-BLK-42'],
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.offer.type', 'buy_x_get_y')
+            ->assertJsonPath('data.variants.0.sku', 'VAR-SHO-RUN-BLK-42');
+    }
+
     public function test_admin_can_update_an_approved_product_directly(): void
     {
         $product = Product::factory()->active()->approved()->create([

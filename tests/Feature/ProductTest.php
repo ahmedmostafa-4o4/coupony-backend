@@ -576,6 +576,112 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.variants.0.compare_at_price', null);
     }
 
+    public function test_buy_x_get_y_offer_accepts_generated_variant_skus_on_seller_create(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'title' => 'Running Shoes',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Black / 42',
+                        'option_summary' => 'Color: Black, Size: 42',
+                        'sku' => null,
+                        'barcode' => '123456789',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'color', 'attribute_value' => 'black', 'sort_order' => 0],
+                            ['attribute_name' => 'size', 'attribute_value' => '42', 'sort_order' => 1],
+                        ],
+                    ],
+                ],
+                'offer' => [
+                    'type' => 'buy_x_get_y',
+                    'status' => 'active',
+                    'buy_qty' => 1,
+                    'get_qty' => 1,
+                    'allow_mix_buy_variants' => false,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => ['VAR-SHO-RUN-BLK-42'],
+                    'reward_variant_skus' => ['VAR-SHO-RUN-BLK-42'],
+                ],
+            ]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.offer.type', 'buy_x_get_y')
+            ->assertJsonPath('data.variants.0.sku', 'VAR-SHO-RUN-BLK-42');
+    }
+
+    public function test_duplicate_generated_variant_skus_are_validated_from_prepared_values(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
+                'title' => 'جزمة',
+                'slug' => null,
+                'sku' => null,
+                'images' => [],
+                'variants' => [
+                    [
+                        'title' => 'Black / 42',
+                        'option_summary' => 'Color: Black, Size: 42',
+                        'sku' => 'VAR-SHO-GAZ-BLK-42',
+                        'barcode' => '123456789',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'لون', 'attribute_value' => 'أسود', 'sort_order' => 0],
+                            ['attribute_name' => 'مقاس', 'attribute_value' => '42', 'sort_order' => 1],
+                        ],
+                    ],
+                    [
+                        'title' => 'Black / 42 Copy',
+                        'option_summary' => 'Color: Black, Size: 42',
+                        'sku' => 'var-sho-gaz-blk-42',
+                        'barcode' => '987654321',
+                        'original_price' => 115,
+                        'currency' => 'EGP',
+                        'sort_order' => 1,
+                        'is_default' => false,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 5,
+                        'low_stock_threshold' => 1,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            ['attribute_name' => 'لون', 'attribute_value' => 'أسود', 'sort_order' => 0],
+                            ['attribute_name' => 'مقاس', 'attribute_value' => '42', 'sort_order' => 1],
+                        ],
+                    ],
+                ],
+            ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['variants']);
+    }
+
     public function test_seller_cannot_spoof_compare_at_price_for_computed_offer_types(): void
     {
         $seller = $this->seller();

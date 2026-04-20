@@ -2,6 +2,7 @@
 
 namespace App\Application\Http\Requests;
 
+use App\Application\Http\Requests\Concerns\PreparesProductVariantValidation;
 use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Enums\ProductOfferStatus;
 use App\Domain\Product\Enums\ProductOfferType;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class AdminUpdateProductRequest extends FormRequest
 {
+    use PreparesProductVariantValidation;
+
     public function authorize(): bool
     {
         return true;
@@ -95,6 +98,7 @@ class AdminUpdateProductRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $variants = collect($this->input('variants', []) ?? []);
+            $preparedVariantSkus = $this->preparedVariantSkuKeys();
 
             if ($variants->isNotEmpty()) {
                 $defaultCount = $variants->filter(fn(array $variant) => (bool) ($variant['is_default'] ?? false))->count();
@@ -103,11 +107,7 @@ class AdminUpdateProductRequest extends FormRequest
                     $validator->errors()->add('variants', __('validation.custom.variants.single_default'));
                 }
 
-                $duplicateSkus = $variants
-                    ->pluck('sku')
-                    ->filter(fn($sku) => filled($sku))
-                    ->map(fn($sku) => mb_strtolower((string) $sku))
-                    ->duplicates();
+                $duplicateSkus = $preparedVariantSkus->duplicates();
 
                 if ($duplicateSkus->isNotEmpty()) {
                     $validator->errors()->add('variants', __('validation.custom.variants.unique_sku'));
@@ -141,15 +141,13 @@ class AdminUpdateProductRequest extends FormRequest
 
             $offer = $this->input('offer', []);
             $offerType = $offer['type'] ?? null;
-            $variantSkuSource = $this->exists('variants')
-                ? $variants
-                : $this->route('product')->variants()->get(['sku']);
-
-            $variantSkus = collect($variantSkuSource)
-                ->pluck('sku')
-                ->filter(fn($sku) => filled($sku))
-                ->map(fn($sku) => mb_strtolower((string) $sku))
-                ->values();
+            $variantSkus = $this->exists('variants')
+                ? $preparedVariantSkus
+                : $this->route('product')->variants()->get(['sku'])
+                    ->pluck('sku')
+                    ->filter(fn($sku) => filled($sku))
+                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->values();
 
             if ($offerType === ProductOfferType::FIXED->value && empty($offer['fixed_amount'])) {
                 $validator->errors()->add('offer.fixed_amount', 'The fixed amount field is required when offer type is fixed.');

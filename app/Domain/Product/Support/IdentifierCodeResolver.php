@@ -53,8 +53,7 @@ class IdentifierCodeResolver
             return Str::upper($fallback);
         }
 
-        $transliterated = $this->transliterator->transliterate($value, '-');
-        $compact = Str::lower(str_replace('-', '', $transliterated));
+        $compact = $this->compactTransliteratedValue($value);
         $mapped = Arr::get(config('product_identifiers.attribute_codes', []), $compact);
 
         if (is_string($mapped) && $mapped !== '') {
@@ -74,6 +73,25 @@ class IdentifierCodeResolver
         return Str::upper(Str::substr($token, 0, 3));
     }
 
+    public function canonicalAttributeName(?string $value): ?string
+    {
+        $compact = $this->compactTransliteratedValue($value);
+
+        if ($compact === '') {
+            return null;
+        }
+
+        foreach (config('product_identifiers.attribute_name_aliases', []) as $canonical => $aliases) {
+            foreach ((array) $aliases as $alias) {
+                if ($compact === Str::lower((string) $alias)) {
+                    return $canonical;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function firstMeaningfulToken(?string $value): ?string
     {
         $transliterated = $this->transliterator->transliterate($value, '-');
@@ -91,5 +109,12 @@ class IdentifierCodeResolver
             ->first(fn(string $item) => $item !== '' && !in_array($item, $stopWords, true));
 
         return $token ?: null;
+    }
+
+    public function compactTransliteratedValue(?string $value): string
+    {
+        $transliterated = $this->transliterator->transliterate($value, '-');
+
+        return Str::lower(str_replace('-', '', $transliterated));
     }
 }

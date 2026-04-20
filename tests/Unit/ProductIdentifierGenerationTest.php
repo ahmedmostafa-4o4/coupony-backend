@@ -4,7 +4,9 @@ namespace Tests\Unit;
 
 use App\Domain\Product\DTOs\ProductData;
 use App\Domain\Product\Support\ArabicSlugTransliterator;
+use App\Domain\Product\Support\IdentifierCodeResolver;
 use App\Domain\Product\Support\PrepareProductIdentifiers;
+use App\Domain\Product\Support\VariantSkuGenerator;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +83,31 @@ class ProductIdentifierGenerationTest extends TestCase
         $this->assertSame('gazma', $prepared->attributes()['slug']);
         $this->assertSame('PRD-SHO-GAZ', $prepared->attributes()['sku']);
         $this->assertSame('VAR-SHO-GAZ-BLK-42', $prepared->variants()[0]['sku']);
+    }
+
+    public function test_resolve_attribute_code_maps_common_arabic_values_to_stable_codes(): void
+    {
+        $resolver = app(IdentifierCodeResolver::class);
+
+        $this->assertSame('BLK', $resolver->resolveAttributeCode('أسود'));
+        $this->assertSame('WHT', $resolver->resolveAttributeCode('أبيض'));
+        $this->assertSame('BLU', $resolver->resolveAttributeCode('أزرق'));
+    }
+
+    public function test_variant_sku_generation_supports_arabic_attribute_names_and_values(): void
+    {
+        $generator = app(VariantSkuGenerator::class);
+
+        $variants = $generator->generateMany([[
+            'title' => 'Black / 42',
+            'sku' => null,
+            'attributes' => [
+                ['attribute_name' => 'لون', 'attribute_value' => 'أسود', 'sort_order' => 0],
+                ['attribute_name' => 'مقاس', 'attribute_value' => '42', 'sort_order' => 1],
+            ],
+        ]], 'جزمة');
+
+        $this->assertSame('VAR-SHO-GAZ-BLK-42', $variants[0]['sku']);
     }
 
     private function storeForSeller(): Store
