@@ -449,10 +449,9 @@ class ProductRevisionRoutesTest extends TestCase
             ->getJson("/api/v1/stores/{$store->id}/products")
             ->assertOk()
             ->assertJsonPath('data.0.id', $productId)
-            ->assertJsonPath('data.0.requested_changes.status', ProductRevisionStatus::REJECTED->value)
-            ->assertJsonPath('data.0.requested_changes.requested_changes.0.section', 'variants')
-            ->assertJsonPath('data.0.requested_changes.requested_changes.0.selector.sku', 'SKU-REV-RED-XL')
-            ->assertJsonPath('data.0.requested_changes.requested_changes.0.field', 'original_price');
+            ->assertJsonPath('data.0.requested_changes.0.section', 'variants')
+            ->assertJsonPath('data.0.requested_changes.0.selector.sku', 'SKU-REV-RED-XL')
+            ->assertJsonPath('data.0.requested_changes.0.field', 'original_price');
     }
 
     public function test_seller_update_with_direct_only_field_updates_live_product_without_pending_revision(): void

@@ -48,8 +48,8 @@ class ProductResource extends JsonResource
             }),
             'requested_changes' => $this->whenLoaded('latestRequestedChangesRevision', function () {
                 return $this->latestRequestedChangesRevision
-                    ? ProductRevisionResource::make($this->latestRequestedChangesRevision)->resolve()
-                    : null;
+                    ? ($this->latestRequestedChangesRevision->requested_changes ?? [])
+                    : [];
             }),
             'pending_revision' => $this->whenLoaded('pendingRevision', function () {
                 return $this->pendingRevision
