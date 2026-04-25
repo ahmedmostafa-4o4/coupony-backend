@@ -429,6 +429,8 @@ class ProductRevisionRoutesTest extends TestCase
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
 
+        $originalVariantId = Product::query()->findOrFail($productId)->variants()->value('id');
+
         $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
                 'is_featured' => true,
@@ -462,6 +464,8 @@ class ProductRevisionRoutesTest extends TestCase
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
 
+        $originalVariantId = Product::query()->findOrFail($productId)->variants()->value('id');
+
         $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
                 'title' => 'Directly Updated Title',
@@ -493,6 +497,8 @@ class ProductRevisionRoutesTest extends TestCase
 
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $originalVariantId = Product::query()->findOrFail($productId)->variants()->value('id');
 
         $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
@@ -568,6 +574,8 @@ class ProductRevisionRoutesTest extends TestCase
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
 
+        $originalVariantId = Product::query()->findOrFail($productId)->variants()->value('id');
+
         $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
                 'variants' => [
@@ -614,6 +622,11 @@ class ProductRevisionRoutesTest extends TestCase
             ->assertJsonPath('data.variants.0.original_price', '110.00')
             ->assertJsonPath('data.pending_revision.review_fields', ['variants'])
             ->assertJsonPath('data.pending_revision.payload.variants.0.original_price', '200.00');
+
+        $this->assertSame(
+            $originalVariantId,
+            Product::query()->findOrFail($productId)->variants()->value('id')
+        );
     }
 
     public function test_approved_variant_mixed_fields_apply_direct_values_live_and_reviewable_values_to_revision(): void
@@ -754,6 +767,48 @@ class ProductRevisionRoutesTest extends TestCase
         $this->assertNotSame($imagePath, data_get($pendingRevision->payload, 'images.0.image_url'));
     }
 
+    public function test_approved_mixed_image_update_applies_metadata_live_and_keeps_file_pending(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $imagePath = Product::query()->findOrFail($productId)->images()->value('image_url');
+
+        $this->actingAs($seller, 'sanctum')
+            ->put("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'images' => [
+                    [
+                        'image_url' => $imagePath,
+                        'file' => UploadedFile::fake()->create('replacement.jpg', 100, 'image/jpeg'),
+                        'sort_order' => 5,
+                        'is_primary' => true,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.images.0.path', $imagePath)
+            ->assertJsonPath('data.images.0.sort_order', 5)
+            ->assertJsonPath('data.images.0.is_primary', true)
+            ->assertJsonPath('data.pending_revision.review_fields', ['images']);
+
+        $pendingRevision = ProductRevision::query()
+            ->where('product_id', $productId)
+            ->where('status', ProductRevisionStatus::PENDING)
+            ->firstOrFail();
+
+        $this->assertNotSame($imagePath, data_get($pendingRevision->payload, 'images.0.image_url'));
+    }
+
     public function test_seller_update_with_mixed_fields_updates_direct_field_and_creates_review_revision(): void
     {
         $seller = $this->seller();
@@ -793,7 +848,7 @@ class ProductRevisionRoutesTest extends TestCase
         $this->assertSame(['sku'], $pendingRevision->review_fields);
     }
 
-    public function test_blank_slug_on_approved_seller_update_regenerates_live_slug_directly(): void
+    public function test_slug_update_does_not_apply_directly_when_unclassified(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -813,17 +868,16 @@ class ProductRevisionRoutesTest extends TestCase
 
         $response = $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
-                'title' => 'جزمة رياضي',
-                'slug' => '',
+                'slug' => 'changed-slug',
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.slug', 'gazma-ryady')
+            ->assertJsonPath('data.slug', 'manual-slug')
             ->assertJsonPath('data.pending_revision', null);
 
         $this->assertDatabaseHas('products', [
             'id' => $productId,
-            'slug' => 'gazma-ryady',
+            'slug' => 'manual-slug',
         ]);
     }
 

@@ -86,10 +86,14 @@ class UpdateProduct
         $reviewAttributes = [];
 
         foreach ($data->attributes() as $field => $value) {
+            if (ProductDirectUpdateFields::isTopLevelDirect($field)) {
+                $directAttributes[$field] = $value;
+                continue;
+            }
+
             if (ProductReviewFields::requiresReview($field)) {
                 $reviewAttributes[$field] = $value;
-            } else {
-                $directAttributes[$field] = $value;
+                continue;
             }
         }
 
@@ -136,9 +140,11 @@ class UpdateProduct
         }
 
         if ($data->hasVariants()) {
-            [$directVariants, $requiresVariantReview] = $this->splitApprovedVariants($product, $data->variants());
+            [$directVariants, $requiresVariantReview, $hasDirectVariantChanges] = $this->splitApprovedVariants($product, $data->variants());
 
-            $directData = $directData->withVariants($directVariants);
+            if ($hasDirectVariantChanges) {
+                $directData = $directData->withVariants($directVariants);
+            }
 
             if ($requiresVariantReview) {
                 $reviewData = $reviewData->withVariants($data->variants());
@@ -147,9 +153,13 @@ class UpdateProduct
         }
 
         if ($data->hasImages()) {
-            $directData = $directData->withImages($data->images());
+            [$requiresImageReview, $hasDirectImageChanges] = $this->inspectApprovedImages($product, $data->images());
 
-            if ($this->imagesRequireReview($product, $data->images())) {
+            if ($hasDirectImageChanges) {
+                $directData = $directData->withImages($data->images());
+            }
+
+            if ($requiresImageReview) {
                 $reviewData = $reviewData->withImages($data->images());
                 $reviewFields[] = 'images';
             }
@@ -192,6 +202,7 @@ class UpdateProduct
             ->all();
 
         $requiresReview = count($variants) !== count($currentVariants);
+        $hasDirectChanges = false;
         $liveVariants = [];
 
         foreach ($currentVariants as $index => $currentVariant) {
@@ -200,6 +211,10 @@ class UpdateProduct
 
             foreach (ProductDirectUpdateFields::VARIANT as $field) {
                 if (array_key_exists($field, $requestedVariant)) {
+                    if (($requestedVariant[$field] ?? null) !== ($currentVariant[$field] ?? null)) {
+                        $hasDirectChanges = true;
+                    }
+
                     $liveVariant[$field] = $requestedVariant[$field];
                 }
             }
@@ -221,19 +236,60 @@ class UpdateProduct
         }
 
         if (! $requiresReview) {
-            return [$variants, false];
+            return [$variants, false, $hasDirectChanges];
         }
 
-        return [$liveVariants, true];
+        return [$liveVariants, true, $hasDirectChanges];
     }
 
-    private function imagesRequireReview(Product $product, array $images): bool
+    private function inspectApprovedImages(Product $product, array $images): array
     {
+        $product->loadMissing('images');
+
         if (count($images) !== $product->images->count()) {
-            return true;
+            return [true, true];
         }
 
-        return collect($images)->contains(fn (array $image) => ($image['file'] ?? null) !== null);
+        $imagesById = $product->images->keyBy('id');
+        $imagesByPath = $product->images->keyBy('image_url');
+        $hasDirectChanges = false;
+        $requiresReview = false;
+
+        foreach ($images as $index => $imageData) {
+            $target = null;
+
+            if (filled($imageData['id'] ?? null)) {
+                $target = $imagesById->get((int) $imageData['id']);
+            }
+
+            if (! $target && filled($imageData['image_url'] ?? null)) {
+                $target = $imagesByPath->get($imageData['image_url']);
+            }
+
+            if (! $target) {
+                $target = $product->images->get($index);
+            }
+
+            if (! $target) {
+                $requiresReview = true;
+                $hasDirectChanges = true;
+                continue;
+            }
+
+            if (($imageData['file'] ?? null) !== null) {
+                $requiresReview = true;
+            }
+
+            if (array_key_exists('sort_order', $imageData) && (int) $imageData['sort_order'] !== (int) $target->sort_order) {
+                $hasDirectChanges = true;
+            }
+
+            if (array_key_exists('is_primary', $imageData) && (bool) $imageData['is_primary'] !== (bool) $target->is_primary) {
+                $hasDirectChanges = true;
+            }
+        }
+
+        return [$requiresReview, $hasDirectChanges];
     }
 
     private function applyApprovedDirectUpdate(
