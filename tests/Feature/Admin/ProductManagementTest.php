@@ -295,7 +295,7 @@ class ProductManagementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_seller_product_workflow_still_creates_pending_revision_after_approval(): void
+    public function test_seller_direct_field_update_applies_live_after_approval_without_pending_revision(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -316,9 +316,8 @@ class ProductManagementTest extends TestCase
                 'title' => 'Seller Pending Edit',
             ])
             ->assertOk()
-            ->assertJsonPath('data.title', 'Admin Managed Product')
-            ->assertJsonPath('data.pending_revision.status', ProductRevisionStatus::PENDING->value)
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'Seller Pending Edit');
+            ->assertJsonPath('data.title', 'Seller Pending Edit')
+            ->assertJsonPath('data.pending_revision', null);
     }
 
     public function test_existing_admin_revision_endpoints_still_work(): void

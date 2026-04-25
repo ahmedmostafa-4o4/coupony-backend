@@ -46,6 +46,8 @@ class ProductData
             ->values()
             ->map(function (array $image, int $index) use ($imageFiles) {
                 return [
+                    'id' => $image['id'] ?? null,
+                    'image_url' => $image['image_url'] ?? null,
                     'file' => data_get($imageFiles, "{$index}.file"),
                     'sort_order' => (int) ($image['sort_order'] ?? 0),
                     'is_primary' => (bool) ($image['is_primary'] ?? false),
@@ -214,7 +216,7 @@ class ProductData
         );
     }
 
-    public function withVariants(array $variants): self
+    public function withVariants(array $variants, ?bool $hasVariants = null): self
     {
         return new self(
             attributes: $this->attributes,
@@ -223,6 +225,51 @@ class ProductData
             variants: $variants,
             offer: $this->offer,
             hasCategoryIds: $this->hasCategoryIds,
+            hasImages: $this->hasImages,
+            hasVariants: $hasVariants ?? true,
+            hasOffer: $this->hasOffer,
+        );
+    }
+
+    public function withImages(array $images, ?bool $hasImages = null): self
+    {
+        return new self(
+            attributes: $this->attributes,
+            categoryIds: $this->categoryIds,
+            images: $images,
+            variants: $this->variants,
+            offer: $this->offer,
+            hasCategoryIds: $this->hasCategoryIds,
+            hasImages: $hasImages ?? true,
+            hasVariants: $this->hasVariants,
+            hasOffer: $this->hasOffer,
+        );
+    }
+
+    public function withOffer(array $offer, ?bool $hasOffer = null): self
+    {
+        return new self(
+            attributes: $this->attributes,
+            categoryIds: $this->categoryIds,
+            images: $this->images,
+            variants: $this->variants,
+            offer: $offer,
+            hasCategoryIds: $this->hasCategoryIds,
+            hasImages: $this->hasImages,
+            hasVariants: $this->hasVariants,
+            hasOffer: $hasOffer ?? true,
+        );
+    }
+
+    public function withCategoryIds(array $categoryIds, ?bool $hasCategoryIds = null): self
+    {
+        return new self(
+            attributes: $this->attributes,
+            categoryIds: $categoryIds,
+            images: $this->images,
+            variants: $this->variants,
+            offer: $this->offer,
+            hasCategoryIds: $hasCategoryIds ?? true,
             hasImages: $this->hasImages,
             hasVariants: $this->hasVariants,
             hasOffer: $this->hasOffer,

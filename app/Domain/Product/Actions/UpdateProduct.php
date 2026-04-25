@@ -7,6 +7,7 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Repositories\ProductRepository;
+use App\Domain\Product\Support\ProductDirectUpdateFields;
 use App\Domain\Product\Support\PrepareProductIdentifiers;
 use App\Domain\Product\Support\ProductReviewFields;
 use App\Domain\User\Models\User;
@@ -54,32 +55,315 @@ class UpdateProduct
         array &$storedPaths,
         array &$deletedPaths,
     ): Product {
-        $touchedFields = $data->touchedFields();
+        $split = $this->splitApprovedProductData($product, $data);
+        /** @var ProductData $directData */
+        $directData = $split['directData'];
+        /** @var ProductData $reviewData */
+        $reviewData = $split['reviewData'];
+        $reviewFields = $split['reviewFields'];
 
-        $reviewFields = collect($touchedFields)
-            ->filter(fn (string $field) => ProductReviewFields::requiresReview($field))
-            ->values()
-            ->all();
-
-        $directFields = collect($touchedFields)
-            ->reject(fn (string $field) => ProductReviewFields::requiresReview($field))
-            ->values()
-            ->all();
-
-        if ($directFields !== []) {
-            $product = $this->applyLiveUpdate($product, $data->onlyFields($directFields), $storedPaths, $deletedPaths);
+        if ($directData->touchedFields() !== []) {
+            $product = $this->applyApprovedDirectUpdate($product, $directData, $storedPaths, $deletedPaths);
         }
 
         if ($reviewFields !== []) {
             $this->revisions->execute(
                 $product->fresh(),
-                $data->onlyFields($reviewFields),
+                $reviewData,
                 $submittedBy,
                 $reviewFields
             );
         }
 
         return $this->products->loadSellerProduct($product->fresh());
+    }
+
+    private function splitApprovedProductData(Product $product, ProductData $data): array
+    {
+        $product->loadMissing('categories:id', 'images', 'variants.attributes', 'offer.targets.variant');
+
+        $directAttributes = [];
+        $reviewAttributes = [];
+
+        foreach ($data->attributes() as $field => $value) {
+            if (ProductReviewFields::requiresReview($field)) {
+                $reviewAttributes[$field] = $value;
+            } else {
+                $directAttributes[$field] = $value;
+            }
+        }
+
+        $directData = new ProductData(
+            attributes: $directAttributes,
+            categoryIds: [],
+            images: [],
+            variants: [],
+            offer: [],
+            hasCategoryIds: false,
+            hasImages: false,
+            hasVariants: false,
+            hasOffer: false,
+        );
+
+        $reviewData = new ProductData(
+            attributes: $reviewAttributes,
+            categoryIds: [],
+            images: [],
+            variants: [],
+            offer: [],
+            hasCategoryIds: false,
+            hasImages: false,
+            hasVariants: false,
+            hasOffer: false,
+        );
+
+        $reviewFields = array_values(array_filter(array_keys($reviewAttributes), fn (string $field) => ProductReviewFields::requiresReview($field)));
+
+        if ($data->hasCategoryIds()) {
+            $currentCategoryIds = $product->categories->pluck('id')->values()->all();
+
+            if ($data->categoryIds() !== $currentCategoryIds) {
+                $reviewData = $reviewData->withCategoryIds($data->categoryIds());
+                $reviewFields[] = 'category_ids';
+            }
+        }
+
+        if ($data->hasOffer()) {
+            if (! $this->offerDataEquals($data->offer(), $this->currentOfferData($product))) {
+                $reviewData = $reviewData->withOffer($data->offer());
+                $reviewFields[] = 'offer';
+            }
+        }
+
+        if ($data->hasVariants()) {
+            [$directVariants, $requiresVariantReview] = $this->splitApprovedVariants($product, $data->variants());
+
+            $directData = $directData->withVariants($directVariants);
+
+            if ($requiresVariantReview) {
+                $reviewData = $reviewData->withVariants($data->variants());
+                $reviewFields[] = 'variants';
+            }
+        }
+
+        if ($data->hasImages()) {
+            $directData = $directData->withImages($data->images());
+
+            if ($this->imagesRequireReview($product, $data->images())) {
+                $reviewData = $reviewData->withImages($data->images());
+                $reviewFields[] = 'images';
+            }
+        }
+
+        return [
+            'directData' => $directData,
+            'reviewData' => $reviewData,
+            'reviewFields' => array_values(array_unique($reviewFields)),
+        ];
+    }
+
+    private function splitApprovedVariants(Product $product, array $variants): array
+    {
+        $currentVariants = $product->variants
+            ->map(fn (ProductVariant $variant) => [
+                'title' => $variant->title,
+                'option_summary' => $variant->option_summary,
+                'sku' => $variant->sku,
+                'barcode' => $variant->barcode,
+                'original_price' => (float) $variant->original_price,
+                'currency' => $variant->currency,
+                'sort_order' => $variant->sort_order,
+                'is_default' => $variant->is_default,
+                'is_active' => $variant->is_active,
+                'inventory_mode' => $variant->inventory_mode?->value ?? $variant->inventory_mode,
+                'stock_qty' => $variant->stock_qty,
+                'low_stock_threshold' => $variant->low_stock_threshold,
+                'allow_backorder' => $variant->allow_backorder,
+                'attributes' => $variant->attributes
+                    ->map(fn ($attribute) => [
+                        'attribute_name' => $attribute->attribute_name,
+                        'attribute_value' => $attribute->attribute_value,
+                        'sort_order' => $attribute->sort_order,
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->values()
+            ->all();
+
+        $requiresReview = count($variants) !== count($currentVariants);
+        $liveVariants = [];
+
+        foreach ($currentVariants as $index => $currentVariant) {
+            $requestedVariant = $variants[$index] ?? $currentVariant;
+            $liveVariant = $currentVariant;
+
+            foreach (ProductDirectUpdateFields::VARIANT as $field) {
+                if (array_key_exists($field, $requestedVariant)) {
+                    $liveVariant[$field] = $requestedVariant[$field];
+                }
+            }
+
+            $liveVariants[] = $liveVariant;
+        }
+
+        foreach ($variants as $index => $requestedVariant) {
+            $currentVariant = $currentVariants[$index] ?? null;
+
+            if (! $currentVariant) {
+                $requiresReview = true;
+                continue;
+            }
+
+            if ($this->variantReviewDataDiffers($requestedVariant, $currentVariant)) {
+                $requiresReview = true;
+            }
+        }
+
+        if (! $requiresReview) {
+            return [$variants, false];
+        }
+
+        return [$liveVariants, true];
+    }
+
+    private function imagesRequireReview(Product $product, array $images): bool
+    {
+        if (count($images) !== $product->images->count()) {
+            return true;
+        }
+
+        return collect($images)->contains(fn (array $image) => ($image['file'] ?? null) !== null);
+    }
+
+    private function applyApprovedDirectUpdate(
+        Product $product,
+        ProductData $data,
+        array &$storedPaths,
+        array &$deletedPaths,
+    ): Product {
+        [$resolvedVariants, $pricingSummary] = $this->resolvePricingState($product, $data);
+
+        if ($data->attributes() !== []) {
+            $product = $this->products->update($product, [
+                ...$data->attributes(),
+                ...$pricingSummary,
+            ]);
+        } elseif ($data->hasVariants()) {
+            $product = $this->products->syncDerivedProductPricing($product, $pricingSummary);
+        }
+
+        if ($data->hasImages()) {
+            $this->products->updateImageMetadata($product, $data->images());
+        }
+
+        if ($data->hasVariants()) {
+            $this->products->replaceVariants($product, $resolvedVariants);
+        }
+
+        return $product->fresh();
+    }
+
+    private function variantReviewDataDiffers(array $requestedVariant, array $currentVariant): bool
+    {
+        foreach (['option_summary', 'sku', 'original_price', 'currency'] as $field) {
+            if ($field === 'original_price') {
+                if (! $this->sameNumericValue($requestedVariant[$field] ?? null, $currentVariant[$field] ?? null)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (($requestedVariant[$field] ?? null) !== ($currentVariant[$field] ?? null)) {
+                return true;
+            }
+        }
+
+        return ($requestedVariant['attributes'] ?? []) !== ($currentVariant['attributes'] ?? []);
+    }
+
+    private function currentOfferData(Product $product): array
+    {
+        return [
+            'type' => $product->offer?->type?->value ?? $product->offer?->type,
+            'status' => $product->offer?->status?->value ?? $product->offer?->status,
+            'label' => $product->offer?->label,
+            'starts_at' => $product->offer?->starts_at?->toIso8601String(),
+            'ends_at' => $product->offer?->ends_at?->toIso8601String(),
+            'claim_expiration_minutes' => $product->offer?->claim_expiration_minutes,
+            'fixed_amount' => $this->normalizeOptionalNumber($product->offer?->fixed_amount),
+            'percentage_value' => $this->normalizeOptionalNumber($product->offer?->percentage_value),
+            'max_discount' => $this->normalizeOptionalNumber($product->offer?->max_discount),
+            'buy_qty' => $product->offer?->buy_qty,
+            'get_qty' => $product->offer?->get_qty,
+            'allow_mix_buy_variants' => $product->offer?->allow_mix_buy_variants,
+            'allow_mix_reward_variants' => $product->offer?->allow_mix_reward_variants,
+            'buy_variant_skus' => $product->offer?->targets
+                ? $product->offer->targets
+                    ->where('role', \App\Domain\Product\Enums\ProductOfferTargetRole::BUY)
+                    ->pluck('variant.sku')
+                    ->filter()
+                    ->values()
+                    ->all()
+                : [],
+            'reward_variant_skus' => $product->offer?->targets
+                ? $product->offer->targets
+                    ->where('role', \App\Domain\Product\Enums\ProductOfferTargetRole::REWARD)
+                    ->pluck('variant.sku')
+                    ->filter()
+                    ->values()
+                    ->all()
+                : [],
+        ];
+    }
+
+    private function offerDataEquals(array $incomingOffer, array $currentOffer): bool
+    {
+        foreach ([
+            'type',
+            'status',
+            'label',
+            'starts_at',
+            'ends_at',
+            'claim_expiration_minutes',
+            'buy_qty',
+            'get_qty',
+            'allow_mix_buy_variants',
+            'allow_mix_reward_variants',
+            'buy_variant_skus',
+            'reward_variant_skus',
+        ] as $field) {
+            if (($incomingOffer[$field] ?? null) !== ($currentOffer[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        foreach (['fixed_amount', 'percentage_value', 'max_discount'] as $field) {
+            if (! $this->sameNumericValue($incomingOffer[$field] ?? null, $currentOffer[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function sameNumericValue(mixed $left, mixed $right): bool
+    {
+        if ($left === null || $right === null) {
+            return $left === $right;
+        }
+
+        return (float) $left === (float) $right;
+    }
+
+    private function normalizeOptionalNumber(mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return (float) $value;
     }
 
     private function applyLiveUpdate(

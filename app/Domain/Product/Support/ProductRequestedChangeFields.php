@@ -12,24 +12,13 @@ final class ProductRequestedChangeFields
 
         'images' => [
             'file',
-            'sort_order',
-            'is_primary',
         ],
 
         'variants' => [
-            'title',
             'option_summary',
             'sku',
-            'barcode',
             'original_price',
             'currency',
-            'sort_order',
-            'is_default',
-            'is_active',
-            'inventory_mode',
-            'stock_qty',
-            'low_stock_threshold',
-            'allow_backorder',
         ],
 
         'variant_attributes' => [

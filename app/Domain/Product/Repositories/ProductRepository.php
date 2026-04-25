@@ -248,8 +248,12 @@ class ProductRepository
 
         $records = collect($images)
             ->map(function (array $image) use ($product, &$storedPaths) {
-                $path = $image['file']->store("products/{$product->id}/images", 'public');
-                $storedPaths[] = $path;
+                $path = $image['image_url'] ?? null;
+
+                if ($image['file'] ?? null) {
+                    $path = $image['file']->store("products/{$product->id}/images", 'public');
+                    $storedPaths[] = $path;
+                }
 
                 return [
                     'image_url' => $path,
@@ -263,6 +267,56 @@ class ProductRepository
             'stored' => $storedPaths,
             'images' => $records,
         ];
+    }
+
+    public function updateImageMetadata(Product $product, array $images): void
+    {
+        $product->loadMissing('images');
+
+        $imagesById = $product->images->keyBy('id');
+        $imagesByPath = $product->images->keyBy('image_url');
+        $matchedImages = [];
+
+        foreach ($images as $index => $imageData) {
+            $target = null;
+
+            if (filled($imageData['id'] ?? null)) {
+                $target = $imagesById->get((int) $imageData['id']);
+            }
+
+            if (! $target && filled($imageData['image_url'] ?? null)) {
+                $target = $imagesByPath->get($imageData['image_url']);
+            }
+
+            if (! $target) {
+                $target = $product->images->get($index);
+            }
+
+            if (! $target) {
+                continue;
+            }
+
+            $matchedImages[] = [
+                'model' => $target,
+                'sort_order' => (int) ($imageData['sort_order'] ?? $target->sort_order),
+                'is_primary' => (bool) ($imageData['is_primary'] ?? $target->is_primary),
+            ];
+        }
+
+        if ($matchedImages === []) {
+            return;
+        }
+
+        if (collect($matchedImages)->contains(fn (array $image) => $image['is_primary'])) {
+            $product->images()->update(['is_primary' => false]);
+        }
+
+        foreach ($matchedImages as $image) {
+            $product->images()->whereKey($image['model']->getKey())->update([
+                'sort_order' => $image['sort_order'],
+                'is_primary' => $image['is_primary'],
+            ]);
+        }
     }
 
     public function replaceImagesFromSnapshot(Product $product, array $images): void

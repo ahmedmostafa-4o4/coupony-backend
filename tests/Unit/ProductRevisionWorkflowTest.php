@@ -164,6 +164,230 @@ class ProductRevisionWorkflowTest extends TestCase
         $this->assertSame(0, $product->revisions()->where('status', ProductRevisionStatus::PENDING)->count());
     }
 
+    public function test_approved_title_and_description_update_live_without_creating_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'title' => 'Direct title',
+            'description' => 'Direct description',
+        ]), $seller);
+
+        $product->refresh();
+
+        $this->assertSame('Direct title', $product->title);
+        $this->assertSame('Direct description', $product->description);
+        $this->assertSame(0, $product->revisions()->where('status', ProductRevisionStatus::PENDING)->count());
+    }
+
+    public function test_approved_variant_direct_only_update_applies_immediately_without_creating_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'variants' => [[
+                'title' => 'Direct Variant Title',
+                'option_summary' => 'Color: Red, Size: XL',
+                'sku' => 'SKU-001-RED-XL',
+                'barcode' => '987654321',
+                'original_price' => 110,
+                'currency' => 'EGP',
+                'sort_order' => 3,
+                'is_default' => true,
+                'is_active' => false,
+                'inventory_mode' => 'tracked',
+                'stock_qty' => 12,
+                'low_stock_threshold' => 4,
+                'allow_backorder' => true,
+                'attributes' => [
+                    ['attribute_name' => 'color', 'attribute_value' => 'red', 'sort_order' => 0],
+                    ['attribute_name' => 'size', 'attribute_value' => 'XL', 'sort_order' => 1],
+                ],
+            ]],
+            'offer' => [
+                'type' => 'fixed',
+                'status' => 'active',
+                'label' => 'Launch discount',
+                'claim_expiration_minutes' => 1440,
+                'fixed_amount' => 15,
+                'percentage_value' => null,
+                'max_discount' => null,
+                'buy_qty' => null,
+                'get_qty' => null,
+                'allow_mix_buy_variants' => false,
+                'allow_mix_reward_variants' => false,
+                'buy_variant_skus' => [],
+                'reward_variant_skus' => [],
+            ],
+        ]), $seller);
+
+        $product->refresh();
+        $variant = $product->variants()->firstOrFail();
+
+        $this->assertSame('Direct Variant Title', $variant->title);
+        $this->assertSame('987654321', $variant->barcode);
+        $this->assertSame(12, $variant->stock_qty);
+        $this->assertSame(0, $product->revisions()->where('status', ProductRevisionStatus::PENDING)->count());
+    }
+
+    public function test_approved_variant_reviewable_update_creates_pending_revision_without_mutating_live_variant(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'variants' => [[
+                'title' => 'Red / XL',
+                'option_summary' => 'Color: Red, Size: XL',
+                'sku' => 'SKU-001-RED-XL',
+                'barcode' => '123456789',
+                'original_price' => 200,
+                'currency' => 'EGP',
+                'sort_order' => 0,
+                'is_default' => true,
+                'is_active' => true,
+                'inventory_mode' => 'tracked',
+                'stock_qty' => 8,
+                'low_stock_threshold' => 2,
+                'allow_backorder' => false,
+                'attributes' => [
+                    ['attribute_name' => 'color', 'attribute_value' => 'red', 'sort_order' => 0],
+                    ['attribute_name' => 'size', 'attribute_value' => 'XL', 'sort_order' => 1],
+                ],
+            ]],
+            'offer' => [
+                'type' => 'fixed',
+                'status' => 'active',
+                'label' => 'Launch discount',
+                'claim_expiration_minutes' => 1440,
+                'fixed_amount' => 15,
+                'percentage_value' => null,
+                'max_discount' => null,
+                'buy_qty' => null,
+                'get_qty' => null,
+                'allow_mix_buy_variants' => false,
+                'allow_mix_reward_variants' => false,
+                'buy_variant_skus' => [],
+                'reward_variant_skus' => [],
+            ],
+        ]), $seller);
+
+        $product->refresh();
+        $variant = $product->variants()->firstOrFail();
+        $pendingRevision = $product->revisions()->where('status', ProductRevisionStatus::PENDING)->first();
+
+        $this->assertNotNull($pendingRevision);
+        $this->assertSame(110.0, (float) $variant->original_price);
+        $this->assertSame(['variants'], $pendingRevision->review_fields);
+        $this->assertSame(200.0, (float) data_get($pendingRevision->payload, 'variants.0.original_price'));
+    }
+
+    public function test_approved_image_metadata_update_applies_immediately_without_creating_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        $imagePath = $product->images()->value('image_url');
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'images' => [[
+                'image_url' => $imagePath,
+                'sort_order' => 5,
+                'is_primary' => true,
+                'file' => null,
+            ]],
+        ]), $seller);
+
+        $product->refresh();
+        $image = $product->images()->firstOrFail();
+
+        $this->assertSame(5, $image->sort_order);
+        $this->assertTrue($image->is_primary);
+        $this->assertSame(0, $product->revisions()->where('status', ProductRevisionStatus::PENDING)->count());
+    }
+
+    public function test_approved_image_file_change_creates_pending_revision_without_mutating_live_image(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        $imagePath = $product->images()->value('image_url');
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'images' => [[
+                'image_url' => $imagePath,
+                'sort_order' => 0,
+                'is_primary' => true,
+                'file' => UploadedFile::fake()->create('replacement.jpg', 100, 'image/jpeg'),
+            ]],
+        ]), $seller);
+
+        $product->refresh();
+        $pendingRevision = $product->revisions()->where('status', ProductRevisionStatus::PENDING)->first();
+
+        $this->assertNotNull($pendingRevision);
+        $this->assertSame($imagePath, $product->images()->value('image_url'));
+        $this->assertSame(['images'], $pendingRevision->review_fields);
+        $this->assertNotSame($imagePath, data_get($pendingRevision->payload, 'images.0.image_url'));
+    }
+
     public function test_approved_mixed_update_applies_direct_fields_and_keeps_reviewable_fields_pending(): void
     {
         $seller = $this->seller();

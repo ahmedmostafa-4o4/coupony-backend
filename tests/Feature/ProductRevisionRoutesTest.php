@@ -237,11 +237,40 @@ class ProductRevisionRoutesTest extends TestCase
                 'reason' => 'Needs changes',
                 'requested_changes' => [
                     [
+                        'section' => 'variants',
+                        'selector' => [
+                            'sku' => 'SKU-REV-RED-XL',
+                        ],
+                        'field' => 'stock_qty',
+                        'message' => 'Not allowed',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['requested_changes.0.field']);
+    }
+
+    public function test_admin_reject_validation_rejects_direct_only_image_field(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
                         'section' => 'images',
                         'selector' => [
                             'image_url' => 'products/1/images/test.jpg',
                         ],
-                        'field' => 'original_price',
+                        'field' => 'sort_order',
                         'message' => 'Not allowed',
                     ],
                 ],
@@ -416,6 +445,313 @@ class ProductRevisionRoutesTest extends TestCase
             'product_id' => $productId,
             'status' => ProductRevisionStatus::PENDING->value,
         ]);
+    }
+
+    public function test_approved_top_level_direct_fields_update_live_without_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'title' => 'Directly Updated Title',
+                'description' => 'Directly updated description',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Directly Updated Title')
+            ->assertJsonPath('data.description', 'Directly updated description')
+            ->assertJsonPath('data.pending_revision', null);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'title' => 'Directly Updated Title',
+            'description' => 'Directly updated description',
+        ]);
+    }
+
+    public function test_approved_variant_direct_only_fields_update_live_without_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'variants' => [
+                    [
+                        'title' => 'Direct Variant Title',
+                        'option_summary' => 'Color: Red, Size: XL',
+                        'sku' => 'SKU-REV-RED-XL',
+                        'barcode' => '987654321',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 3,
+                        'is_default' => true,
+                        'is_active' => false,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 12,
+                        'low_stock_threshold' => 4,
+                        'allow_backorder' => true,
+                        'attributes' => [
+                            [
+                                'attribute_name' => 'color',
+                                'attribute_value' => 'red',
+                                'sort_order' => 0,
+                            ],
+                        ],
+                    ],
+                ],
+                'offer' => [
+                    'type' => 'fixed',
+                    'status' => 'active',
+                    'label' => 'Launch discount',
+                    'claim_expiration_minutes' => 1440,
+                    'fixed_amount' => 15,
+                    'percentage_value' => null,
+                    'max_discount' => null,
+                    'buy_qty' => null,
+                    'get_qty' => null,
+                    'allow_mix_buy_variants' => false,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => [],
+                    'reward_variant_skus' => [],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.variants.0.title', 'Direct Variant Title')
+            ->assertJsonPath('data.variants.0.barcode', '987654321')
+            ->assertJsonPath('data.variants.0.stock_qty', 12)
+            ->assertJsonPath('data.pending_revision', null);
+
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $productId,
+            'title' => 'Direct Variant Title',
+            'barcode' => '987654321',
+            'stock_qty' => 12,
+            'low_stock_threshold' => 4,
+            'allow_backorder' => true,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_approved_variant_reviewable_field_creates_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'variants' => [
+                    [
+                        'title' => 'Red / XL',
+                        'option_summary' => 'Color: Red, Size: XL',
+                        'sku' => 'SKU-REV-RED-XL',
+                        'barcode' => '123456789',
+                        'original_price' => 200,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            [
+                                'attribute_name' => 'color',
+                                'attribute_value' => 'red',
+                                'sort_order' => 0,
+                            ],
+                        ],
+                    ],
+                ],
+                'offer' => [
+                    'type' => 'fixed',
+                    'status' => 'active',
+                    'label' => 'Launch discount',
+                    'claim_expiration_minutes' => 1440,
+                    'fixed_amount' => 15,
+                    'percentage_value' => null,
+                    'max_discount' => null,
+                    'buy_qty' => null,
+                    'get_qty' => null,
+                    'allow_mix_buy_variants' => false,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => [],
+                    'reward_variant_skus' => [],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.variants.0.original_price', '110.00')
+            ->assertJsonPath('data.pending_revision.review_fields', ['variants'])
+            ->assertJsonPath('data.pending_revision.payload.variants.0.original_price', '200.00');
+    }
+
+    public function test_approved_variant_mixed_fields_apply_direct_values_live_and_reviewable_values_to_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'variants' => [
+                    [
+                        'title' => 'Direct Variant Title',
+                        'option_summary' => 'Color: Red, Size: XL',
+                        'sku' => 'SKU-REV-RED-XL',
+                        'barcode' => '123456789',
+                        'original_price' => 200,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 8,
+                        'low_stock_threshold' => 2,
+                        'allow_backorder' => false,
+                        'attributes' => [
+                            [
+                                'attribute_name' => 'color',
+                                'attribute_value' => 'red',
+                                'sort_order' => 0,
+                            ],
+                        ],
+                    ],
+                ],
+                'offer' => [
+                    'type' => 'fixed',
+                    'status' => 'active',
+                    'label' => 'Launch discount',
+                    'claim_expiration_minutes' => 1440,
+                    'fixed_amount' => 15,
+                    'percentage_value' => null,
+                    'max_discount' => null,
+                    'buy_qty' => null,
+                    'get_qty' => null,
+                    'allow_mix_buy_variants' => false,
+                    'allow_mix_reward_variants' => false,
+                    'buy_variant_skus' => [],
+                    'reward_variant_skus' => [],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.variants.0.title', 'Direct Variant Title')
+            ->assertJsonPath('data.variants.0.original_price', '110.00')
+            ->assertJsonPath('data.pending_revision.review_fields', ['variants'])
+            ->assertJsonPath('data.pending_revision.payload.variants.0.title', 'Direct Variant Title')
+            ->assertJsonPath('data.pending_revision.payload.variants.0.original_price', '200.00');
+    }
+
+    public function test_approved_image_metadata_updates_live_without_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $imagePath = Product::query()->findOrFail($productId)->images()->value('image_url');
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'images' => [
+                    [
+                        'image_url' => $imagePath,
+                        'sort_order' => 5,
+                        'is_primary' => true,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.images.0.sort_order', 5)
+            ->assertJsonPath('data.images.0.is_primary', true)
+            ->assertJsonPath('data.pending_revision', null);
+    }
+
+    public function test_approved_image_file_change_creates_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $imagePath = Product::query()->findOrFail($productId)->images()->value('image_url');
+
+        $this->actingAs($seller, 'sanctum')
+            ->put("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'images' => [
+                    [
+                        'image_url' => $imagePath,
+                        'file' => UploadedFile::fake()->create('replacement.jpg', 100, 'image/jpeg'),
+                        'sort_order' => 0,
+                        'is_primary' => true,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.images.0.path', $imagePath)
+            ->assertJsonPath('data.pending_revision.review_fields', ['images']);
+
+        $pendingRevision = ProductRevision::query()
+            ->where('product_id', $productId)
+            ->where('status', ProductRevisionStatus::PENDING)
+            ->firstOrFail();
+
+        $this->assertNotSame($imagePath, data_get($pendingRevision->payload, 'images.0.image_url'));
     }
 
     public function test_seller_update_with_mixed_fields_updates_direct_field_and_creates_review_revision(): void

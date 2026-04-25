@@ -43,7 +43,7 @@ class PrepareProductIdentifiers
 
         return $data
             ->withAttributes($attributes)
-            ->withVariants($variants);
+            ->withVariants($variants, $data->hasVariants());
     }
 
     private function prepareSlug(string $storeId, array $attributes, ?string $title, ?Product $product): array
