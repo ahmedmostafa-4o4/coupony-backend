@@ -120,6 +120,14 @@ class Product extends Model
             ->where('status', \App\Domain\Product\Enums\ProductRevisionStatus::PENDING);
     }
 
+    public function latestRequestedChangesRevision()
+    {
+        return $this->hasOne(ProductRevision::class, 'product_id')
+            ->where('status', \App\Domain\Product\Enums\ProductRevisionStatus::REJECTED)
+            ->whereNotNull('requested_changes')
+            ->latestOfMany('revision_no');
+    }
+
     public function activeVariants()
     {
         return $this->variants()->where('is_active', true);

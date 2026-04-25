@@ -414,6 +414,47 @@ class ProductRevisionRoutesTest extends TestCase
         ]);
     }
 
+    public function test_seller_index_includes_requested_changes_from_latest_rejected_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $revisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'notes' => 'Please fix the pricing',
+                'requested_changes' => [
+                    [
+                        'section' => 'variants',
+                        'selector' => [
+                            'sku' => 'SKU-REV-RED-XL',
+                        ],
+                        'field' => 'original_price',
+                        'path' => 'variants[sku=SKU-REV-RED-XL].original_price',
+                        'label' => 'Variant price',
+                        'message' => 'Fix this price',
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $this->actingAs($seller, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/products")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $productId)
+            ->assertJsonPath('data.0.requested_changes.status', ProductRevisionStatus::REJECTED->value)
+            ->assertJsonPath('data.0.requested_changes.requested_changes.0.section', 'variants')
+            ->assertJsonPath('data.0.requested_changes.requested_changes.0.selector.sku', 'SKU-REV-RED-XL')
+            ->assertJsonPath('data.0.requested_changes.requested_changes.0.field', 'original_price');
+    }
+
     public function test_seller_update_with_direct_only_field_updates_live_product_without_pending_revision(): void
     {
         $seller = $this->seller();
