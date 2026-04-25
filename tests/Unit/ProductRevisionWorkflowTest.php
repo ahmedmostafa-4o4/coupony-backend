@@ -122,7 +122,7 @@ class ProductRevisionWorkflowTest extends TestCase
         /** @var UpdateProduct $update */
         $update = app(UpdateProduct::class);
         $update->execute($product->fresh(), $this->partialProductData([
-            'title' => 'Edited Pending Title',
+            'short_description' => 'Edited pending short description',
         ]), $seller);
 
         $product->refresh();
@@ -130,8 +130,8 @@ class ProductRevisionWorkflowTest extends TestCase
 
         $this->assertNotNull($pendingRevision);
         $this->assertSame('Example Product', $product->title);
-        $this->assertSame(['title'], $pendingRevision->review_fields);
-        $this->assertSame('Edited Pending Title', data_get($pendingRevision->payload, 'product.title'));
+        $this->assertSame(['short_description'], $pendingRevision->review_fields);
+        $this->assertSame('Edited pending short description', data_get($pendingRevision->payload, 'product.short_description'));
         $this->assertIsArray(data_get($pendingRevision->payload, 'product'));
         $this->assertIsArray(data_get($pendingRevision->payload, 'images'));
         $this->assertIsArray(data_get($pendingRevision->payload, 'variants'));
@@ -181,7 +181,7 @@ class ProductRevisionWorkflowTest extends TestCase
         /** @var UpdateProduct $update */
         $update = app(UpdateProduct::class);
         $update->execute($product->fresh(), $this->partialProductData([
-            'title' => 'Needs approval',
+            'sku' => 'SKU-002',
             'is_featured' => true,
         ]), $seller);
 
@@ -191,8 +191,9 @@ class ProductRevisionWorkflowTest extends TestCase
         $this->assertNotNull($pendingRevision);
         $this->assertTrue($product->is_featured);
         $this->assertSame('Example Product', $product->title);
-        $this->assertSame(['title'], $pendingRevision->review_fields);
-        $this->assertSame('Needs approval', data_get($pendingRevision->payload, 'product.title'));
+        $this->assertSame('SKU-001', $product->sku);
+        $this->assertSame(['sku'], $pendingRevision->review_fields);
+        $this->assertSame('SKU-002', data_get($pendingRevision->payload, 'product.sku'));
         $this->assertTrue(data_get($pendingRevision->payload, 'product.is_featured'));
     }
 
@@ -213,7 +214,7 @@ class ProductRevisionWorkflowTest extends TestCase
         /** @var UpdateProduct $update */
         $update = app(UpdateProduct::class);
         $update->execute($product->fresh(), $this->partialProductData([
-            'title' => 'Edited Pending Title',
+            'short_description' => 'Edited pending short description',
         ]), $seller);
 
         $pendingRevision = $product->fresh()->revisions()->where('status', ProductRevisionStatus::PENDING)->firstOrFail();
@@ -243,8 +244,8 @@ class ProductRevisionWorkflowTest extends TestCase
         $this->assertCount(1, $pendingRevisions);
         $this->assertNotNull($updatedPendingRevision);
         $this->assertSame($pendingRevision->id, $updatedPendingRevision->id);
-        $this->assertSame(['title', 'offer'], $updatedPendingRevision->review_fields);
-        $this->assertSame('Edited Pending Title', data_get($updatedPendingRevision->payload, 'product.title'));
+        $this->assertSame(['short_description', 'offer'], $updatedPendingRevision->review_fields);
+        $this->assertSame('Edited pending short description', data_get($updatedPendingRevision->payload, 'product.short_description'));
         $this->assertSame('percentage', data_get($updatedPendingRevision->payload, 'offer.type'));
         $this->assertSame(2, $updatedPendingRevision->revision_no);
         $this->assertSame(1, $updatedPendingRevision->base_revision_no);

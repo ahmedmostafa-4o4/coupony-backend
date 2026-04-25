@@ -90,7 +90,7 @@ class ProductRevisionRoutesTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_reject_pending_revision_with_requested_changes_without_changing_live_product(): void
+    public function test_admin_can_reject_pending_revision_with_variant_requested_change_without_changing_live_product(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -108,18 +108,26 @@ class ProductRevisionRoutesTest extends TestCase
                 'notes' => 'Please revise and resubmit',
                 'requested_changes' => [
                     [
-                        'path' => 'title',
-                        'label' => 'Product title',
-                        'message' => 'Use a clearer title',
+                        'section' => 'variants',
+                        'selector' => [
+                            'sku' => 'SKU-REV-RED-XL',
+                        ],
+                        'field' => 'original_price',
+                        'path' => 'variants[sku=SKU-REV-RED-XL].original_price',
+                        'label' => 'Variant price',
+                        'message' => 'Fix this price',
                     ],
                 ],
             ])
             ->assertOk()
             ->assertJsonPath('data.status', ProductRevisionStatus::REJECTED->value)
             ->assertJsonPath('data.rejection_reason', 'Offer details need changes')
-            ->assertJsonPath('data.requested_changes.0.path', 'title')
-            ->assertJsonPath('data.requested_changes.0.label', 'Product title')
-            ->assertJsonPath('data.requested_changes.0.message', 'Use a clearer title')
+            ->assertJsonPath('data.requested_changes.0.section', 'variants')
+            ->assertJsonPath('data.requested_changes.0.selector.sku', 'SKU-REV-RED-XL')
+            ->assertJsonPath('data.requested_changes.0.field', 'original_price')
+            ->assertJsonPath('data.requested_changes.0.path', 'variants[sku=SKU-REV-RED-XL].original_price')
+            ->assertJsonPath('data.requested_changes.0.label', 'Variant price')
+            ->assertJsonPath('data.requested_changes.0.message', 'Fix this price')
             ->assertJsonPath('data.review_fields', []);
 
         $this->assertDatabaseHas('products', [
@@ -129,16 +137,21 @@ class ProductRevisionRoutesTest extends TestCase
         ]);
 
         $revision = ProductRevision::query()->findOrFail($revisionId);
-        $this->assertSame([
+        $this->assertEquals([
             [
-                'path' => 'title',
-                'label' => 'Product title',
-                'message' => 'Use a clearer title',
+                'section' => 'variants',
+                'selector' => [
+                    'sku' => 'SKU-REV-RED-XL',
+                ],
+                'field' => 'original_price',
+                'path' => 'variants[sku=SKU-REV-RED-XL].original_price',
+                'label' => 'Variant price',
+                'message' => 'Fix this price',
             ],
         ], $revision->requested_changes);
     }
 
-    public function test_admin_reject_validation_rejects_invalid_requested_change_path(): void
+    public function test_admin_can_reject_revision_with_variant_attribute_requested_change(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -154,13 +167,168 @@ class ProductRevisionRoutesTest extends TestCase
                 'reason' => 'Needs changes',
                 'requested_changes' => [
                     [
-                        'path' => 'base_price',
+                        'section' => 'variant_attributes',
+                        'variant_selector' => [
+                            'sku' => 'SKU-REV-RED-XL',
+                        ],
+                        'attribute_selector' => [
+                            'name' => 'color',
+                        ],
+                        'field' => 'attribute_value',
+                        'path' => 'variants[sku=SKU-REV-RED-XL].attributes[name=color].attribute_value',
+                        'label' => 'Color',
+                        'message' => 'Fix color value',
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.requested_changes.0.section', 'variant_attributes')
+            ->assertJsonPath('data.requested_changes.0.variant_selector.sku', 'SKU-REV-RED-XL')
+            ->assertJsonPath('data.requested_changes.0.attribute_selector.name', 'color')
+            ->assertJsonPath('data.requested_changes.0.field', 'attribute_value');
+    }
+
+    public function test_admin_can_reject_revision_with_image_requested_change(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
+                        'section' => 'images',
+                        'selector' => [
+                            'image_url' => 'products/1/images/test.jpg',
+                        ],
+                        'field' => 'file',
+                        'path' => 'images[image_url=products/1/images/test.jpg].file',
+                        'label' => 'Image',
+                        'message' => 'Upload clearer image',
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.requested_changes.0.section', 'images')
+            ->assertJsonPath('data.requested_changes.0.selector.image_url', 'products/1/images/test.jpg')
+            ->assertJsonPath('data.requested_changes.0.field', 'file');
+    }
+
+    public function test_admin_reject_validation_rejects_invalid_field_for_section(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
+                        'section' => 'images',
+                        'selector' => [
+                            'image_url' => 'products/1/images/test.jpg',
+                        ],
+                        'field' => 'original_price',
                         'message' => 'Not allowed',
                     ],
                 ],
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['requested_changes.0.path']);
+            ->assertJsonValidationErrors(['requested_changes.0.field']);
+    }
+
+    public function test_admin_reject_validation_rejects_variant_requested_change_without_selector(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
+                        'section' => 'variants',
+                        'field' => 'original_price',
+                        'message' => 'Selector missing',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['requested_changes.0.selector']);
+    }
+
+    public function test_admin_reject_validation_rejects_variant_attribute_requested_change_without_required_selectors(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
+                        'section' => 'variant_attributes',
+                        'field' => 'attribute_value',
+                        'message' => 'Selectors missing',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'requested_changes.0.variant_selector',
+                'requested_changes.0.attribute_selector',
+            ]);
+    }
+
+    public function test_admin_reject_validation_rejects_title_as_requested_change_section(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
+                        'section' => 'title',
+                        'field' => 'value',
+                        'message' => 'Not allowed',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['requested_changes.0.section']);
     }
 
     public function test_seller_update_after_approval_creates_pending_revision_and_keeps_live_data(): void
@@ -180,22 +348,22 @@ class ProductRevisionRoutesTest extends TestCase
 
         $updateResponse = $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
-                'title' => 'Pending Edited Title',
+                'short_description' => 'Pending edited short description',
             ]);
 
         $updateResponse->assertOk()
             ->assertJsonPath('data.title', 'Revision Product')
             ->assertJsonPath('data.approval_status', ProductApprovalStatus::APPROVED->value)
             ->assertJsonPath('data.pending_revision.status', ProductRevisionStatus::PENDING->value)
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title')
-            ->assertJsonPath('data.pending_revision.review_fields', ['title']);
+            ->assertJsonPath('data.pending_revision.payload.product.short_description', 'Pending edited short description')
+            ->assertJsonPath('data.pending_revision.review_fields', ['short_description']);
 
         $this->actingAs($seller, 'sanctum')
             ->getJson("/api/v1/stores/{$store->id}/products/{$productId}")
             ->assertOk()
             ->assertJsonPath('data.title', 'Revision Product')
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title')
-            ->assertJsonPath('data.pending_revision.review_fields', ['title']);
+            ->assertJsonPath('data.pending_revision.payload.product.short_description', 'Pending edited short description')
+            ->assertJsonPath('data.pending_revision.review_fields', ['short_description']);
 
         $pendingRevision = ProductRevision::query()
             ->where('product_id', $productId)
@@ -203,8 +371,8 @@ class ProductRevisionRoutesTest extends TestCase
             ->first();
 
         $this->assertNotNull($pendingRevision);
-        $this->assertSame('Pending Edited Title', data_get($pendingRevision->payload, 'product.title'));
-        $this->assertSame(['title'], $pendingRevision->review_fields);
+        $this->assertSame('Pending edited short description', data_get($pendingRevision->payload, 'product.short_description'));
+        $this->assertSame(['short_description'], $pendingRevision->review_fields);
         $this->assertIsArray(data_get($pendingRevision->payload, 'product'));
         $this->assertIsArray(data_get($pendingRevision->payload, 'images'));
         $this->assertIsArray(data_get($pendingRevision->payload, 'variants'));
@@ -212,6 +380,7 @@ class ProductRevisionRoutesTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $productId,
             'title' => 'Revision Product',
+            'short_description' => 'Short description',
             'published_revision_no' => 1,
         ]);
     }
@@ -266,14 +435,14 @@ class ProductRevisionRoutesTest extends TestCase
 
         $this->actingAs($seller, 'sanctum')
             ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
-                'title' => 'Needs approval',
+                'sku' => 'SKU-REV-002',
                 'is_featured' => true,
             ])
             ->assertOk()
             ->assertJsonPath('data.title', 'Revision Product')
             ->assertJsonPath('data.is_featured', true)
-            ->assertJsonPath('data.pending_revision.review_fields', ['title'])
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'Needs approval');
+            ->assertJsonPath('data.pending_revision.review_fields', ['sku'])
+            ->assertJsonPath('data.pending_revision.payload.product.sku', 'SKU-REV-002');
 
         $product = Product::query()->findOrFail($productId);
         $pendingRevision = ProductRevision::query()
@@ -284,10 +453,11 @@ class ProductRevisionRoutesTest extends TestCase
         $this->assertNotNull($pendingRevision);
         $this->assertTrue($product->is_featured);
         $this->assertSame('Revision Product', $product->title);
-        $this->assertSame(['title'], $pendingRevision->review_fields);
+        $this->assertSame('SKU-REV-001', $product->sku);
+        $this->assertSame(['sku'], $pendingRevision->review_fields);
     }
 
-    public function test_blank_slug_on_approved_seller_update_regenerates_only_pending_revision_slug(): void
+    public function test_blank_slug_on_approved_seller_update_regenerates_live_slug_directly(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -312,14 +482,12 @@ class ProductRevisionRoutesTest extends TestCase
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.slug', 'manual-slug')
-            ->assertJsonPath('data.pending_revision.payload.product.slug', 'gazma-ryady')
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'جزمة رياضي');
+            ->assertJsonPath('data.slug', 'gazma-ryady')
+            ->assertJsonPath('data.pending_revision', null);
 
         $this->assertDatabaseHas('products', [
             'id' => $productId,
-            'slug' => 'manual-slug',
-            'title' => 'Revision Product',
+            'slug' => 'gazma-ryady',
         ]);
     }
 
