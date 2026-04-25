@@ -46,7 +46,7 @@ class ProductResource extends JsonResource
                     'name' => $this->store?->name,
                 ];
             }),
-            'requested_changes' => $this->whenLoaded('revisions', function () {
+            'requested_changes' => $this->load('revisions', function () {
                 $latestRevision = $this->revisions->sortByDesc('created_at')->firstWhere('status', 'requested_changes');
 
                 return $latestRevision ? ProductRevisionResource::make($latestRevision)->resolve() : null;
