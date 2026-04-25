@@ -10,8 +10,10 @@ use App\Domain\Product\Actions\RejectProductRevision;
 use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Repositories\ProductRepository;
+use App\Domain\Product\Support\ProductReviewFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProductRevisionManagementController extends Controller
 {
@@ -19,8 +21,7 @@ class ProductRevisionManagementController extends Controller
         private readonly ProductRepository $products,
         private readonly ApproveProductRevision $approveRevision,
         private readonly RejectProductRevision $rejectRevision,
-    ) {
-    }
+    ) {}
 
     public function pending(Request $request): JsonResponse
     {
@@ -80,6 +81,14 @@ class ProductRevisionManagementController extends Controller
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'requested_changes' => ['nullable', 'array'],
+            'requested_changes.*.path' => [
+                'required_with:requested_changes',
+                'string',
+                Rule::in(ProductReviewFields::reviewable()),
+            ],
+            'requested_changes.*.label' => ['nullable', 'string', 'max:150'],
+            'requested_changes.*.message' => ['nullable', 'string', 'max:1000'],
         ]);
 
         if ($revision->status !== ProductRevisionStatus::PENDING) {
@@ -93,7 +102,8 @@ class ProductRevisionManagementController extends Controller
             $revision,
             $request->user(),
             $validated['reason'],
-            $validated['notes'] ?? null
+            $validated['notes'] ?? null,
+            $validated['requested_changes'] ?? []
         );
 
         return $this->localizedJson([

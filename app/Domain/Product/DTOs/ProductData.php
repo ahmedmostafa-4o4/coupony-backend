@@ -20,8 +20,7 @@ class ProductData
         private readonly bool $hasImages,
         private readonly bool $hasVariants,
         private readonly bool $hasOffer,
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(FormRequest $request): self
     {
@@ -79,7 +78,7 @@ class ProductData
                     'allow_backorder' => (bool) ($variant['allow_backorder'] ?? false),
                     'attributes' => collect($variant['attributes'] ?? [])
                         ->values()
-                        ->map(fn(array $attribute) => [
+                        ->map(fn (array $attribute) => [
                             'attribute_name' => $attribute['attribute_name'],
                             'attribute_value' => $attribute['attribute_value'],
                             'sort_order' => (int) ($attribute['sort_order'] ?? 0),
@@ -170,6 +169,34 @@ class ProductData
     public function hasOffer(): bool
     {
         return $this->hasOffer;
+    }
+
+    public function touchedFields(): array
+    {
+        return array_values(array_filter([
+            ...array_keys($this->attributes),
+            $this->hasCategoryIds ? 'category_ids' : null,
+            $this->hasImages ? 'images' : null,
+            $this->hasVariants ? 'variants' : null,
+            $this->hasOffer ? 'offer' : null,
+        ]));
+    }
+
+    public function onlyFields(array $fields): self
+    {
+        $attributes = array_intersect_key($this->attributes, array_flip($fields));
+
+        return new self(
+            attributes: $attributes,
+            categoryIds: in_array('category_ids', $fields, true) ? $this->categoryIds : [],
+            images: in_array('images', $fields, true) ? $this->images : [],
+            variants: in_array('variants', $fields, true) ? $this->variants : [],
+            offer: in_array('offer', $fields, true) ? $this->offer : [],
+            hasCategoryIds: $this->hasCategoryIds && in_array('category_ids', $fields, true),
+            hasImages: $this->hasImages && in_array('images', $fields, true),
+            hasVariants: $this->hasVariants && in_array('variants', $fields, true),
+            hasOffer: $this->hasOffer && in_array('offer', $fields, true),
+        );
     }
 
     public function withAttributes(array $attributes): self

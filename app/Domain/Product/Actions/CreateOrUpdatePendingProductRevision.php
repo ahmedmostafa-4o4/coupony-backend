@@ -3,6 +3,7 @@
 namespace App\Domain\Product\Actions;
 
 use App\Domain\Product\DTOs\ProductData;
+use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductRevisionAction;
 use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Models\Product;
@@ -17,17 +18,19 @@ class CreateOrUpdatePendingProductRevision
     public function __construct(
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
-    ) {
-    }
+    ) {}
 
-    public function execute(Product $product, ProductData $data, User $submittedBy): ProductRevision
-    {
-
+    public function execute(
+        Product $product,
+        ProductData $data,
+        User $submittedBy,
+        array $reviewFields = []
+    ): ProductRevision {
         try {
-            return DB::transaction(function () use ($product, $data, $submittedBy) {
+            return DB::transaction(function () use ($product, $data, $submittedBy, $reviewFields) {
                 $product = $product->fresh();
                 $pendingRevision = $this->products->pendingRevision($product);
-                $payload = $product->approval_status === \App\Domain\Product\Enums\ProductApprovalStatus::APPROVED
+                $payload = $product->approval_status === ProductApprovalStatus::APPROVED
                     ? $this->mergePayload($product, $data, $pendingRevision?->payload ?? $this->products->snapshotPayload($product))
                     : $this->products->snapshotPayload($product);
 
@@ -42,6 +45,11 @@ class CreateOrUpdatePendingProductRevision
                         'rejection_reason' => null,
                         'admin_notes' => null,
                         'payload' => $payload,
+                        'review_fields' => array_values(array_unique([
+                            ...($pendingRevision->review_fields ?? []),
+                            ...$reviewFields,
+                        ])),
+                        'requested_changes' => null,
                     ]);
 
                     return $pendingRevision->fresh();
@@ -57,10 +65,12 @@ class CreateOrUpdatePendingProductRevision
                     'submitted_by' => $submittedBy->id,
                     'submitted_at' => now(),
                     'payload' => $payload,
+                    'review_fields' => $reviewFields,
+                    'requested_changes' => null,
                 ]);
             });
         } catch (\Exception $e) {
-            Log::error("Failed to create or update pending product revision for product ID {$product->id}: " . $e->getMessage(), [
+            Log::error("Failed to create or update pending product revision for product ID {$product->id}: ".$e->getMessage(), [
                 'product_id' => $product->id,
                 'user_id' => $submittedBy->id,
                 'exception' => $e,

@@ -27,6 +27,8 @@ class ProductRevision extends Model
         'rejection_reason',
         'admin_notes',
         'payload',
+        'review_fields',
+        'requested_changes',
     ];
 
     protected function casts(): array
@@ -39,6 +41,8 @@ class ProductRevision extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'payload' => 'array',
+            'review_fields' => 'array',
+            'requested_changes' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

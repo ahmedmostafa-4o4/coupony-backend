@@ -23,6 +23,8 @@ class ProductRevisionResource extends JsonResource
             'rejection_reason' => $this->rejection_reason,
             'admin_notes' => $this->admin_notes,
             'payload' => $this->payload,
+            'review_fields' => $this->review_fields ?? [],
+            'requested_changes' => $this->requested_changes ?? [],
             'product' => $this->whenLoaded('product', function () {
                 return [
                     'id' => $this->product?->id,

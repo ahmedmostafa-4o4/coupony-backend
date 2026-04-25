@@ -10,7 +10,6 @@ use App\Domain\Product\DTOs\ProductData;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Enums\ProductStatus;
-use App\Domain\Product\Models\Product;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -106,7 +105,7 @@ class ProductRevisionWorkflowTest extends TestCase
         $this->assertSame('Example Product', $product->title);
     }
 
-    public function test_update_after_approval_creates_or_updates_single_pending_revision_without_mutating_live(): void
+    public function test_approved_reviewable_update_creates_pending_revision_with_review_fields_and_full_snapshot(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -122,8 +121,104 @@ class ProductRevisionWorkflowTest extends TestCase
 
         /** @var UpdateProduct $update */
         $update = app(UpdateProduct::class);
-        $update->execute($product->fresh(), $this->productData([
+        $update->execute($product->fresh(), $this->partialProductData([
             'title' => 'Edited Pending Title',
+        ]), $seller);
+
+        $product->refresh();
+        $pendingRevision = $product->revisions()->where('status', ProductRevisionStatus::PENDING)->first();
+
+        $this->assertNotNull($pendingRevision);
+        $this->assertSame('Example Product', $product->title);
+        $this->assertSame(['title'], $pendingRevision->review_fields);
+        $this->assertSame('Edited Pending Title', data_get($pendingRevision->payload, 'product.title'));
+        $this->assertIsArray(data_get($pendingRevision->payload, 'product'));
+        $this->assertIsArray(data_get($pendingRevision->payload, 'images'));
+        $this->assertIsArray(data_get($pendingRevision->payload, 'variants'));
+        $this->assertArrayHasKey('offer', $pendingRevision->payload);
+    }
+
+    public function test_approved_direct_only_update_applies_immediately_without_creating_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'is_featured' => true,
+        ]), $seller);
+
+        $product->refresh();
+
+        $this->assertTrue($product->is_featured);
+        $this->assertSame(0, $product->revisions()->where('status', ProductRevisionStatus::PENDING)->count());
+    }
+
+    public function test_approved_mixed_update_applies_direct_fields_and_keeps_reviewable_fields_pending(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'title' => 'Needs approval',
+            'is_featured' => true,
+        ]), $seller);
+
+        $product->refresh();
+        $pendingRevision = $product->revisions()->where('status', ProductRevisionStatus::PENDING)->first();
+
+        $this->assertNotNull($pendingRevision);
+        $this->assertTrue($product->is_featured);
+        $this->assertSame('Example Product', $product->title);
+        $this->assertSame(['title'], $pendingRevision->review_fields);
+        $this->assertSame('Needs approval', data_get($pendingRevision->payload, 'product.title'));
+        $this->assertTrue(data_get($pendingRevision->payload, 'product.is_featured'));
+    }
+
+    public function test_pending_revision_review_fields_are_merged_on_subsequent_updates(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        /** @var CreateProduct $create */
+        $create = app(CreateProduct::class);
+        $product = $create->execute($store, $this->productData(), $seller);
+
+        /** @var ApproveProductRevision $approve */
+        $approve = app(ApproveProductRevision::class);
+        $approve->execute($product->revisions()->firstOrFail(), $admin);
+
+        /** @var UpdateProduct $update */
+        $update = app(UpdateProduct::class);
+        $update->execute($product->fresh(), $this->partialProductData([
+            'title' => 'Edited Pending Title',
+        ]), $seller);
+
+        $pendingRevision = $product->fresh()->revisions()->where('status', ProductRevisionStatus::PENDING)->firstOrFail();
+
+        $update->execute($product->fresh(), $this->partialProductData([
             'offer' => [
                 'type' => 'percentage',
                 'status' => 'active',
@@ -141,26 +236,18 @@ class ProductRevisionWorkflowTest extends TestCase
             ],
         ]), $seller);
 
-        $update->execute($product->fresh(), $this->productData([
-            'title' => 'Edited Pending Title v2',
-            'hasOffer' => false,
-            'images' => [],
-            'hasImages' => false,
-            'variants' => [],
-            'hasVariants' => false,
-        ]), $seller);
-
         $product->refresh();
         $pendingRevisions = $product->revisions()->where('status', ProductRevisionStatus::PENDING)->get();
-        $pendingRevision = $pendingRevisions->first();
+        $updatedPendingRevision = $pendingRevisions->first();
 
-        $this->assertSame('Example Product', $product->title);
-        $this->assertSame(ProductApprovalStatus::APPROVED->value, $product->approval_status->value);
         $this->assertCount(1, $pendingRevisions);
-        $this->assertSame('Edited Pending Title v2', data_get($pendingRevision->payload, 'product.title'));
-        $this->assertSame('percentage', data_get($pendingRevision->payload, 'offer.type'));
-        $this->assertSame(2, $pendingRevision->revision_no);
-        $this->assertSame(1, $pendingRevision->base_revision_no);
+        $this->assertNotNull($updatedPendingRevision);
+        $this->assertSame($pendingRevision->id, $updatedPendingRevision->id);
+        $this->assertSame(['title', 'offer'], $updatedPendingRevision->review_fields);
+        $this->assertSame('Edited Pending Title', data_get($updatedPendingRevision->payload, 'product.title'));
+        $this->assertSame('percentage', data_get($updatedPendingRevision->payload, 'offer.type'));
+        $this->assertSame(2, $updatedPendingRevision->revision_no);
+        $this->assertSame(1, $updatedPendingRevision->base_revision_no);
     }
 
     private function seller(): User
@@ -188,6 +275,7 @@ class ProductRevisionWorkflowTest extends TestCase
 
     private function productData(array $overrides = []): ProductData
     {
+        $partial = (bool) ($overrides['partial'] ?? false);
         $attributes = array_replace([
             'title' => 'Example Product',
             'slug' => 'example-product',
@@ -205,6 +293,18 @@ class ProductRevisionWorkflowTest extends TestCase
             'sku',
             'is_featured',
         ])));
+
+        if ($partial) {
+            $attributes = array_intersect_key($attributes, array_intersect_key($overrides, array_flip([
+                'title',
+                'slug',
+                'short_description',
+                'description',
+                'currency',
+                'sku',
+                'is_featured',
+            ])));
+        }
 
         $images = $overrides['images'] ?? [[
             'file' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
@@ -255,9 +355,20 @@ class ProductRevisionWorkflowTest extends TestCase
             variants: $variants,
             offer: $offer,
             hasCategoryIds: array_key_exists('category_ids', $overrides),
-            hasImages: array_key_exists('images', $overrides) || !array_key_exists('hasImages', $overrides),
-            hasVariants: array_key_exists('variants', $overrides) || !array_key_exists('hasVariants', $overrides),
-            hasOffer: array_key_exists('offer', $overrides) || !array_key_exists('hasOffer', $overrides),
+            hasImages: array_key_exists('images', $overrides) || ! array_key_exists('hasImages', $overrides),
+            hasVariants: array_key_exists('variants', $overrides) || ! array_key_exists('hasVariants', $overrides),
+            hasOffer: array_key_exists('offer', $overrides) || ! array_key_exists('hasOffer', $overrides),
         );
+    }
+
+    private function partialProductData(array $overrides = []): ProductData
+    {
+        return $this->productData([
+            ...$overrides,
+            'partial' => true,
+            'hasImages' => array_key_exists('images', $overrides),
+            'hasVariants' => array_key_exists('variants', $overrides),
+            'hasOffer' => array_key_exists('offer', $overrides),
+        ]);
     }
 }

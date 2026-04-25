@@ -43,13 +43,17 @@ class ProductRevisionRoutesTest extends TestCase
             ->getJson("/api/v1/stores/{$store->id}/products/{$productId}/revisions")
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.status', ProductRevisionStatus::PENDING->value);
+            ->assertJsonPath('data.0.status', ProductRevisionStatus::PENDING->value)
+            ->assertJsonPath('data.0.review_fields', [])
+            ->assertJsonPath('data.0.requested_changes', []);
 
         $this->actingAs($seller, 'sanctum')
             ->getJson("/api/v1/stores/{$store->id}/products/{$productId}/revisions/{$revisionId}")
             ->assertOk()
             ->assertJsonPath('data.id', $revisionId)
-            ->assertJsonPath('data.payload.product.title', 'Revision Product');
+            ->assertJsonPath('data.payload.product.title', 'Revision Product')
+            ->assertJsonPath('data.review_fields', [])
+            ->assertJsonPath('data.requested_changes', []);
     }
 
     public function test_admin_can_list_pending_revisions_and_approve_one(): void
@@ -86,7 +90,7 @@ class ProductRevisionRoutesTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_reject_pending_revision_without_changing_live_product(): void
+    public function test_admin_can_reject_pending_revision_with_requested_changes_without_changing_live_product(): void
     {
         $seller = $this->seller();
         $admin = $this->admin();
@@ -102,16 +106,61 @@ class ProductRevisionRoutesTest extends TestCase
             ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
                 'reason' => 'Offer details need changes',
                 'notes' => 'Please revise and resubmit',
+                'requested_changes' => [
+                    [
+                        'path' => 'title',
+                        'label' => 'Product title',
+                        'message' => 'Use a clearer title',
+                    ],
+                ],
             ])
             ->assertOk()
             ->assertJsonPath('data.status', ProductRevisionStatus::REJECTED->value)
-            ->assertJsonPath('data.rejection_reason', 'Offer details need changes');
+            ->assertJsonPath('data.rejection_reason', 'Offer details need changes')
+            ->assertJsonPath('data.requested_changes.0.path', 'title')
+            ->assertJsonPath('data.requested_changes.0.label', 'Product title')
+            ->assertJsonPath('data.requested_changes.0.message', 'Use a clearer title')
+            ->assertJsonPath('data.review_fields', []);
 
         $this->assertDatabaseHas('products', [
             'id' => $productId,
             'title' => 'Revision Product',
             'status' => 'inactive',
         ]);
+
+        $revision = ProductRevision::query()->findOrFail($revisionId);
+        $this->assertSame([
+            [
+                'path' => 'title',
+                'label' => 'Product title',
+                'message' => 'Use a clearer title',
+            ],
+        ], $revision->requested_changes);
+    }
+
+    public function test_admin_reject_validation_rejects_invalid_requested_change_path(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $revisionId = ProductRevision::query()->where('product_id', $createResponse->json('data.id'))->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$revisionId}/reject", [
+                'reason' => 'Needs changes',
+                'requested_changes' => [
+                    [
+                        'path' => 'base_price',
+                        'message' => 'Not allowed',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['requested_changes.0.path']);
     }
 
     public function test_seller_update_after_approval_creates_pending_revision_and_keeps_live_data(): void
@@ -130,21 +179,23 @@ class ProductRevisionRoutesTest extends TestCase
             ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
 
         $updateResponse = $this->actingAs($seller, 'sanctum')
-            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", $this->payload([
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
                 'title' => 'Pending Edited Title',
-            ]));
+            ]);
 
         $updateResponse->assertOk()
             ->assertJsonPath('data.title', 'Revision Product')
             ->assertJsonPath('data.approval_status', ProductApprovalStatus::APPROVED->value)
             ->assertJsonPath('data.pending_revision.status', ProductRevisionStatus::PENDING->value)
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title');
+            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title')
+            ->assertJsonPath('data.pending_revision.review_fields', ['title']);
 
         $this->actingAs($seller, 'sanctum')
             ->getJson("/api/v1/stores/{$store->id}/products/{$productId}")
             ->assertOk()
             ->assertJsonPath('data.title', 'Revision Product')
-            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title');
+            ->assertJsonPath('data.pending_revision.payload.product.title', 'Pending Edited Title')
+            ->assertJsonPath('data.pending_revision.review_fields', ['title']);
 
         $pendingRevision = ProductRevision::query()
             ->where('product_id', $productId)
@@ -153,11 +204,87 @@ class ProductRevisionRoutesTest extends TestCase
 
         $this->assertNotNull($pendingRevision);
         $this->assertSame('Pending Edited Title', data_get($pendingRevision->payload, 'product.title'));
+        $this->assertSame(['title'], $pendingRevision->review_fields);
+        $this->assertIsArray(data_get($pendingRevision->payload, 'product'));
+        $this->assertIsArray(data_get($pendingRevision->payload, 'images'));
+        $this->assertIsArray(data_get($pendingRevision->payload, 'variants'));
+        $this->assertArrayHasKey('offer', $pendingRevision->payload);
         $this->assertDatabaseHas('products', [
             'id' => $productId,
             'title' => 'Revision Product',
             'published_revision_no' => 1,
         ]);
+    }
+
+    public function test_seller_update_with_direct_only_field_updates_live_product_without_pending_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'is_featured' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.is_featured', true)
+            ->assertJsonPath('data.pending_revision', null);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'is_featured' => true,
+        ]);
+        $this->assertDatabaseMissing('product_revisions', [
+            'product_id' => $productId,
+            'status' => ProductRevisionStatus::PENDING->value,
+        ]);
+    }
+
+    public function test_seller_update_with_mixed_fields_updates_direct_field_and_creates_review_revision(): void
+    {
+        $seller = $this->seller();
+        $admin = $this->admin();
+        $store = $this->storeFor($seller);
+
+        $createResponse = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/products", $this->payload());
+
+        $productId = $createResponse->json('data.id');
+        $initialRevisionId = ProductRevision::query()->where('product_id', $productId)->value('id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/products/revisions/{$initialRevisionId}/approve");
+
+        $this->actingAs($seller, 'sanctum')
+            ->putJson("/api/v1/stores/{$store->id}/products/{$productId}", [
+                'title' => 'Needs approval',
+                'is_featured' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Revision Product')
+            ->assertJsonPath('data.is_featured', true)
+            ->assertJsonPath('data.pending_revision.review_fields', ['title'])
+            ->assertJsonPath('data.pending_revision.payload.product.title', 'Needs approval');
+
+        $product = Product::query()->findOrFail($productId);
+        $pendingRevision = ProductRevision::query()
+            ->where('product_id', $productId)
+            ->where('status', ProductRevisionStatus::PENDING)
+            ->first();
+
+        $this->assertNotNull($pendingRevision);
+        $this->assertTrue($product->is_featured);
+        $this->assertSame('Revision Product', $product->title);
+        $this->assertSame(['title'], $pendingRevision->review_fields);
     }
 
     public function test_blank_slug_on_approved_seller_update_regenerates_only_pending_revision_slug(): void

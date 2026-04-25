@@ -2,11 +2,11 @@
 
 namespace App\Domain\Product\Repositories;
 
-use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\InventoryMode;
+use App\Domain\Product\Enums\ProductApprovalStatus;
+use App\Domain\Product\Enums\ProductOfferStatus;
 use App\Domain\Product\Enums\ProductOfferTargetRole;
 use App\Domain\Product\Enums\ProductOfferType;
-use App\Domain\Product\Enums\ProductOfferStatus;
 use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
@@ -18,6 +18,7 @@ use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Store\Models\Store;
+use DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -121,7 +122,7 @@ class ProductRepository
             if (($variantData['attributes'] ?? []) !== []) {
                 $variant->attributes()->createMany(
                     collect($variantData['attributes'])
-                        ->map(fn(array $attribute) => [
+                        ->map(fn (array $attribute) => [
                             'attribute_name' => $attribute['attribute_name'],
                             'attribute_value' => $attribute['attribute_value'],
                             'sort_order' => $attribute['sort_order'],
@@ -162,20 +163,20 @@ class ProductRepository
 
         $variantsBySku = $product->variants()
             ->get(['id', 'sku'])
-            ->filter(fn(ProductVariant $variant) => filled($variant->sku))
-            ->keyBy(fn(ProductVariant $variant) => mb_strtolower((string) $variant->sku));
+            ->filter(fn (ProductVariant $variant) => filled($variant->sku))
+            ->keyBy(fn (ProductVariant $variant) => mb_strtolower((string) $variant->sku));
 
         $records = collect([
             ProductOfferTargetRole::BUY->value => $attributes['buy_variant_skus'] ?? [],
             ProductOfferTargetRole::REWARD->value => $attributes['reward_variant_skus'] ?? [],
         ])->flatMap(function (array $skus, string $role) use ($variantsBySku, $offer) {
             return collect($skus)
-                ->map(fn($sku) => mb_strtolower((string) $sku))
+                ->map(fn ($sku) => mb_strtolower((string) $sku))
                 ->filter()
                 ->map(function (string $normalizedSku) use ($variantsBySku, $offer, $role) {
                     $variant = $variantsBySku->get($normalizedSku);
 
-                    if (!$variant) {
+                    if (! $variant) {
                         return null;
                     }
 
@@ -273,7 +274,7 @@ class ProductRepository
         }
 
         $product->images()->createMany(
-            collect($images)->map(fn(array $image) => [
+            collect($images)->map(fn (array $image) => [
                 'image_url' => $image['image_url'],
                 'sort_order' => (int) ($image['sort_order'] ?? 0),
                 'is_primary' => (bool) ($image['is_primary'] ?? false),
@@ -308,7 +309,7 @@ class ProductRepository
                 'category_ids' => $product->categories->pluck('id')->values()->all(),
             ],
             'images' => $product->images
-                ->map(fn(ProductImage $image) => [
+                ->map(fn (ProductImage $image) => [
                     'image_url' => $image->image_url,
                     'sort_order' => $image->sort_order,
                     'is_primary' => $image->is_primary,
@@ -316,7 +317,7 @@ class ProductRepository
                 ->values()
                 ->all(),
             'variants' => $product->variants
-                ->map(fn(ProductVariant $variant) => [
+                ->map(fn (ProductVariant $variant) => [
                     'title' => $variant->title,
                     'option_summary' => $variant->option_summary,
                     'sku' => $variant->sku,
@@ -333,7 +334,7 @@ class ProductRepository
                     'low_stock_threshold' => $variant->low_stock_threshold,
                     'allow_backorder' => $variant->allow_backorder,
                     'attributes' => $variant->attributes
-                        ->map(fn($attribute) => [
+                        ->map(fn ($attribute) => [
                             'attribute_name' => $attribute->attribute_name,
                             'attribute_value' => $attribute->attribute_value,
                             'sort_order' => $attribute->sort_order,
@@ -358,14 +359,14 @@ class ProductRepository
                 'allow_mix_buy_variants' => $offer->allow_mix_buy_variants,
                 'allow_mix_reward_variants' => $offer->allow_mix_reward_variants,
                 'buy_variant_skus' => $offer->targets
-                    ->filter(fn(ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::BUY->value)
-                    ->map(fn(ProductOfferVariantTarget $target) => $target->variant?->sku)
+                    ->filter(fn (ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::BUY->value)
+                    ->map(fn (ProductOfferVariantTarget $target) => $target->variant?->sku)
                     ->filter()
                     ->values()
                     ->all(),
                 'reward_variant_skus' => $offer->targets
-                    ->filter(fn(ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::REWARD->value)
-                    ->map(fn(ProductOfferVariantTarget $target) => $target->variant?->sku)
+                    ->filter(fn (ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::REWARD->value)
+                    ->map(fn (ProductOfferVariantTarget $target) => $target->variant?->sku)
                     ->filter()
                     ->values()
                     ->all(),
@@ -403,50 +404,54 @@ class ProductRepository
 
     public function createVariant(Product $product, array $attributes): ProductVariant
     {
-        $shouldBeDefault = (bool) ($attributes['is_default'] ?? false) || !$product->variants()->exists();
+        return DB::transaction(function () use ($product, $attributes) {
+            $shouldBeDefault = (bool) ($attributes['is_default'] ?? false) || ! $product->variants()->exists();
 
-        if ($shouldBeDefault) {
-            $this->clearDefaultVariant($product);
-        }
+            if ($shouldBeDefault) {
+                $this->clearDefaultVariant($product);
+            }
 
-        $variant = $product->variants()->create([
-            'title' => $attributes['title'],
-            'option_summary' => $attributes['option_summary'] ?? null,
-            'sku' => $attributes['sku'] ?? null,
-            'barcode' => $attributes['barcode'] ?? null,
-            'original_price' => $attributes['original_price'],
-            'price' => $attributes['price'] ?? null,
-            'compare_at_price' => $attributes['compare_at_price'] ?? null,
-            'currency' => $attributes['currency'],
-            'sort_order' => $attributes['sort_order'] ?? (($product->variants()->max('sort_order') ?? -1) + 1),
-            'is_default' => $shouldBeDefault,
-            'is_active' => (bool) ($attributes['is_active'] ?? true),
-            'inventory_mode' => $attributes['inventory_mode'] ?? InventoryMode::UNLIMITED,
-            'stock_qty' => $attributes['stock_qty'] ?? null,
-            'low_stock_threshold' => $attributes['low_stock_threshold'] ?? null,
-            'allow_backorder' => (bool) ($attributes['allow_backorder'] ?? false),
-        ]);
+            $variant = $product->variants()->create([
+                'title' => $attributes['title'],
+                'option_summary' => $attributes['option_summary'] ?? null,
+                'sku' => $attributes['sku'] ?? null,
+                'barcode' => $attributes['barcode'] ?? null,
+                'original_price' => $attributes['original_price'],
+                'price' => $attributes['price'] ?? null,
+                'compare_at_price' => $attributes['compare_at_price'] ?? null,
+                'currency' => $attributes['currency'],
+                'sort_order' => $attributes['sort_order'] ?? (($product->variants()->max('sort_order') ?? -1) + 1),
+                'is_default' => $shouldBeDefault,
+                'is_active' => (bool) ($attributes['is_active'] ?? true),
+                'inventory_mode' => $attributes['inventory_mode'] ?? InventoryMode::UNLIMITED,
+                'stock_qty' => $attributes['stock_qty'] ?? null,
+                'low_stock_threshold' => $attributes['low_stock_threshold'] ?? null,
+                'allow_backorder' => (bool) ($attributes['allow_backorder'] ?? false),
+            ]);
 
-        if (($attributes['attributes'] ?? []) !== []) {
-            $this->replaceVariantAttributes($variant, $attributes['attributes']);
-        }
+            if (($attributes['attributes'] ?? []) !== []) {
+                $this->replaceVariantAttributes($variant, $attributes['attributes']);
+            }
 
-        return $this->loadVariant($variant);
+            return $this->loadVariant($variant);
+        });
     }
 
     public function updateVariant(Product $product, ProductVariant $variant, array $attributes): ProductVariant
     {
-        if (($attributes['is_default'] ?? false) === true) {
-            $this->clearDefaultVariant($product, $variant->id);
-        }
+        return DB::transaction(function () use ($product, $variant, $attributes) {
+            if (($attributes['is_default'] ?? false) === true) {
+                $this->clearDefaultVariant($product, $variant->id);
+            }
 
-        $variant->update($attributes);
+            $variant->update($attributes);
 
-        if (!$product->variants()->where('is_default', true)->exists()) {
-            $variant->update(['is_default' => true]);
-        }
+            if (! $product->variants()->where('is_default', true)->exists()) {
+                $variant->update(['is_default' => true]);
+            }
 
-        return $this->loadVariant($variant->fresh());
+            return $this->loadVariant($variant->fresh());
+        });
     }
 
     public function syncDerivedProductPricing(Product $product, array $pricingSummary): Product
@@ -461,36 +466,41 @@ class ProductRepository
 
     public function deleteVariant(Product $product, ProductVariant $variant): bool
     {
-        $wasDefault = $variant->is_default;
-        $deleted = (bool) $variant->delete();
+        return DB::transaction(function () use ($product, $variant) {
+            $wasDefault = $variant->is_default;
+            $deleted = (bool) $variant->delete();
 
-        if ($deleted && $wasDefault) {
-            $fallback = $product->variants()->orderBy('sort_order')->orderBy('id')->first();
+            if ($deleted && $wasDefault) {
+                $fallback = $product->variants()->orderBy('sort_order')->orderBy('id')->first();
 
-            if ($fallback) {
-                $fallback->update(['is_default' => true]);
+                if ($fallback) {
+                    $fallback->update(['is_default' => true]);
+                }
             }
-        }
 
-        return $deleted;
+            return $deleted;
+        });
     }
 
     public function replaceVariantAttributes(ProductVariant $variant, array $attributes): ProductVariant
     {
-        $variant->attributes()->delete();
+        return DB::transaction(function () use ($variant, $attributes) {
 
-        if ($attributes !== []) {
-            $variant->attributes()->createMany(
-                collect($attributes)->map(fn(array $attribute) => [
-                    'attribute_name' => $attribute['attribute_name'],
-                    'attribute_value' => $attribute['attribute_value'],
-                    'sort_order' => $attribute['sort_order'] ?? 0,
-                    'created_at' => now(),
-                ])->all()
-            );
-        }
+            $variant->attributes()->delete();
 
-        return $this->loadVariant($variant->fresh());
+            if ($attributes !== []) {
+                $variant->attributes()->createMany(
+                    collect($attributes)->map(fn (array $attribute) => [
+                        'attribute_name' => $attribute['attribute_name'],
+                        'attribute_value' => $attribute['attribute_value'],
+                        'sort_order' => $attribute['sort_order'] ?? 0,
+                        'created_at' => now(),
+                    ])->all()
+                );
+            }
+
+            return $this->loadVariant($variant->fresh());
+        });
     }
 
     public function loadVariant(ProductVariant $variant): ProductVariant
@@ -500,78 +510,86 @@ class ProductRepository
 
     public function addImages(Product $product, array $images): Collection
     {
-        $createdImages = collect();
-        $existingImageCount = $product->images()->count();
-        $currentMaxSortOrder = $product->images()->max('sort_order') ?? -1;
+        return DB::transaction(function () use ($product, $images) {
+            $createdImages = collect();
+            $existingImageCount = $product->images()->count();
+            $currentMaxSortOrder = $product->images()->max('sort_order') ?? -1;
 
-        foreach ($images as $index => $image) {
-            $path = $image['file']->store("products/{$product->id}/images", 'public');
-            $shouldBePrimary = (bool) ($image['is_primary'] ?? false);
+            foreach ($images as $index => $image) {
+                $path = $image['file']->store("products/{$product->id}/images", 'public');
+                $shouldBePrimary = (bool) ($image['is_primary'] ?? false);
 
-            if ($shouldBePrimary) {
-                $product->images()->update(['is_primary' => false]);
+                if ($shouldBePrimary) {
+                    $product->images()->update(['is_primary' => false]);
+                }
+
+                if (! $shouldBePrimary && $existingImageCount === 0 && $index === 0) {
+                    $shouldBePrimary = true;
+                }
+
+                $createdImages->push(
+                    $product->images()->create([
+                        'image_url' => $path,
+                        'sort_order' => $image['sort_order'] ?? ($currentMaxSortOrder + $index + 1),
+                        'is_primary' => $shouldBePrimary,
+                        'created_at' => now(),
+                    ])
+                );
             }
 
-            if (!$shouldBePrimary && $existingImageCount === 0 && $index === 0) {
-                $shouldBePrimary = true;
-            }
-
-            $createdImages->push(
-                $product->images()->create([
-                    'image_url' => $path,
-                    'sort_order' => $image['sort_order'] ?? ($currentMaxSortOrder + $index + 1),
-                    'is_primary' => $shouldBePrimary,
-                    'created_at' => now(),
-                ])
-            );
-        }
-
-        return $createdImages;
+            return $createdImages;
+        });
     }
 
     public function deleteImage(Product $product, ProductImage $image): bool
     {
-        $wasPrimary = $image->is_primary;
-        $deleted = (bool) $image->delete();
+        return DB::transaction(function () use ($product, $image) {
+            $wasPrimary = $image->is_primary;
+            $deleted = (bool) $image->delete();
 
-        if ($deleted && $wasPrimary) {
-            $fallback = $product->images()->orderBy('sort_order')->orderBy('id')->first();
+            if ($deleted && $wasPrimary) {
+                $fallback = $product->images()->orderBy('sort_order')->orderBy('id')->first();
 
-            if ($fallback) {
-                $fallback->update(['is_primary' => true]);
+                if ($fallback) {
+                    $fallback->update(['is_primary' => true]);
+                }
             }
-        }
 
-        return $deleted;
+            return $deleted;
+        });
     }
 
     public function reorderImages(Product $product, array $images): Collection
     {
-        $imageIds = collect($images)->pluck('id')->all();
-        $existingIds = $product->images()->pluck('id')->all();
+        return DB::transaction(function () use ($product, $images) {
+            $imageIds = collect($images)->pluck('id')->all();
+            $existingIds = $product->images()->pluck('id')->all();
 
-        sort($imageIds);
-        sort($existingIds);
+            sort($imageIds);
+            sort($existingIds);
 
-        if ($imageIds !== $existingIds) {
-            throw new ModelNotFoundException('Image reorder payload must include every product image exactly once.');
-        }
+            if ($imageIds !== $existingIds) {
+                throw new ModelNotFoundException('Image reorder payload must include every product image exactly once.');
+            }
 
-        foreach ($images as $image) {
-            $product->images()->whereKey($image['id'])->update([
-                'sort_order' => $image['sort_order'],
-            ]);
-        }
+            foreach ($images as $image) {
+                $product->images()->whereKey($image['id'])->update([
+                    'sort_order' => $image['sort_order'],
+                ]);
+            }
 
-        return $product->images()->get();
+            return $product->images()->get();
+        });
     }
 
     public function setPrimaryImage(Product $product, ProductImage $image): ProductImage
     {
-        $product->images()->update(['is_primary' => false]);
-        $image->update(['is_primary' => true]);
+        return DB::transaction(function () use ($product, $image) {
+            $product->images()->update(['is_primary' => false]);
+            $image->update(['is_primary' => true]);
 
-        return $image->fresh();
+            return $image->fresh();
+        });
     }
 
     public function sellerPaginate(Store $store, array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -581,15 +599,15 @@ class ProductRepository
             ->with($this->sellerRelations())
             ->when(
                 filled($filters['status'] ?? null),
-                fn(Builder $query) => $query->where('status', $filters['status'])
+                fn (Builder $query) => $query->where('status', $filters['status'])
             )
             ->when(
                 filled($filters['search'] ?? null),
-                fn(Builder $query) => $this->applySearch($query, $filters['search'])
+                fn (Builder $query) => $this->applySearch($query, $filters['search'])
             )
             ->when(
                 array_key_exists('is_featured', $filters) && $filters['is_featured'] !== null,
-                fn(Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['is_featured']))
+                fn (Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['is_featured']))
             )
             ->latest()
             ->paginate($perPage);
@@ -601,19 +619,19 @@ class ProductRepository
             ->with($this->adminRelations())
             ->when(
                 filled($filters['status'] ?? null),
-                fn(Builder $query) => $query->where('status', $filters['status'])
+                fn (Builder $query) => $query->where('status', $filters['status'])
             )
             ->when(
                 filled($filters['approval_status'] ?? null),
-                fn(Builder $query) => $query->where('approval_status', $filters['approval_status'])
+                fn (Builder $query) => $query->where('approval_status', $filters['approval_status'])
             )
             ->when(
                 filled($filters['store_id'] ?? null),
-                fn(Builder $query) => $query->where('store_id', $filters['store_id'])
+                fn (Builder $query) => $query->where('store_id', $filters['store_id'])
             )
             ->when(
                 filled($filters['search'] ?? null),
-                fn(Builder $query) => $this->applySearch($query, $filters['search'])
+                fn (Builder $query) => $this->applySearch($query, $filters['search'])
             )
             ->latest()
             ->paginate($perPage);
@@ -626,15 +644,15 @@ class ProductRepository
             ->with($this->publicRelations())
             ->when(
                 filled($filters['category'] ?? null),
-                fn(Builder $query) => $query->whereHas('categories', fn(Builder $categoryQuery) => $categoryQuery->whereKey($filters['category']))
+                fn (Builder $query) => $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey($filters['category']))
             )
             ->when(
                 filled($filters['search'] ?? null),
-                fn(Builder $query) => $this->applySearch($query, $filters['search'])
+                fn (Builder $query) => $this->applySearch($query, $filters['search'])
             )
             ->when(
                 array_key_exists('featured', $filters) && $filters['featured'] !== null,
-                fn(Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['featured']))
+                fn (Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['featured']))
             )
             ->latest()
             ->paginate($perPage);
@@ -655,7 +673,7 @@ class ProductRepository
         return Category::query()
             ->active()
             ->withCount([
-                'products' => fn($query) => $query
+                'products' => fn ($query) => $query
                     ->where('status', ProductStatus::ACTIVE->value)
                     ->where('approval_status', ProductApprovalStatus::APPROVED->value),
             ])
@@ -704,9 +722,9 @@ class ProductRepository
     {
         return [
             'store',
-            'categories' => fn($query) => $query->active(),
+            'categories' => fn ($query) => $query->active(),
             'images',
-            'variants' => fn($query) => $query->where('is_active', true)->with('attributes'),
+            'variants' => fn ($query) => $query->where('is_active', true)->with('attributes'),
             'offer.targets',
         ];
     }

@@ -3,13 +3,14 @@
 namespace App\Domain\Product\Actions;
 
 use App\Domain\Product\DTOs\ProductData;
+use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Repositories\ProductRepository;
 use App\Domain\Product\Support\PrepareProductIdentifiers;
+use App\Domain\Product\Support\ProductReviewFields;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
-use Log;
 
 class UpdateProduct
 {
@@ -18,59 +19,25 @@ class UpdateProduct
         private readonly CreateOrUpdatePendingProductRevision $revisions,
         private readonly ResolveVariantOfferPricing $pricing,
         private readonly PrepareProductIdentifiers $identifiers,
-    ) {
-    }
+    ) {}
 
     public function execute(Product $product, ProductData $data, User $submittedBy): Product
     {
         $storedPaths = [];
         $deletedPaths = [];
 
-
         try {
             return DB::transaction(function () use ($product, $data, $submittedBy, &$storedPaths, &$deletedPaths) {
                 $data = $this->identifiers->forUpdate($product, $data);
 
-                if ($product->approval_status === \App\Domain\Product\Enums\ProductApprovalStatus::APPROVED) {
-                    $this->revisions->execute($product, $data, $submittedBy);
-
-                    return $this->products->loadSellerProduct($product->fresh());
+                if ($product->approval_status === ProductApprovalStatus::APPROVED) {
+                    return $this->updateApprovedProduct($product, $data, $submittedBy, $storedPaths, $deletedPaths);
                 }
 
-                [$resolvedVariants, $pricingSummary] = $this->resolvePricingState($product, $data);
-
-                if ($data->attributes() !== []) {
-                    $product = $this->products->update($product, [
-                        ...$data->attributes(),
-                        ...$pricingSummary,
-                    ]);
-                } elseif ($data->hasVariants() || $data->hasOffer()) {
-                    $product = $this->products->syncDerivedProductPricing($product, $pricingSummary);
-                }
-
-                if ($data->hasCategoryIds()) {
-                    $this->products->syncCategories($product, $data->categoryIds());
-                }
-
-                if ($data->hasImages()) {
-                    $imageResult = $this->products->replaceImages($product, $data->images());
-                    $storedPaths = $imageResult['stored'];
-                    $deletedPaths = $imageResult['deleted'];
-
-                    DB::afterCommit(function () use ($deletedPaths) {
-                        $this->products->deleteFiles($deletedPaths);
-                    });
-                }
-
-                if ($data->hasVariants() || $data->hasOffer()) {
-                    $this->products->replaceVariants($product, $resolvedVariants);
-                }
-
-                if ($data->hasOffer()) {
-                    $this->products->syncOffer($product, $data->offer());
-                }
+                $product = $this->applyLiveUpdate($product, $data, $storedPaths, $deletedPaths);
 
                 $this->revisions->execute($product, $data, $submittedBy);
+
                 return $this->products->loadSellerProduct($product);
             });
         } catch (\Throwable $throwable) {
@@ -80,9 +47,86 @@ class UpdateProduct
         }
     }
 
+    private function updateApprovedProduct(
+        Product $product,
+        ProductData $data,
+        User $submittedBy,
+        array &$storedPaths,
+        array &$deletedPaths,
+    ): Product {
+        $touchedFields = $data->touchedFields();
+
+        $reviewFields = collect($touchedFields)
+            ->filter(fn (string $field) => ProductReviewFields::requiresReview($field))
+            ->values()
+            ->all();
+
+        $directFields = collect($touchedFields)
+            ->reject(fn (string $field) => ProductReviewFields::requiresReview($field))
+            ->values()
+            ->all();
+
+        if ($directFields !== []) {
+            $product = $this->applyLiveUpdate($product, $data->onlyFields($directFields), $storedPaths, $deletedPaths);
+        }
+
+        if ($reviewFields !== []) {
+            $this->revisions->execute(
+                $product->fresh(),
+                $data->onlyFields($reviewFields),
+                $submittedBy,
+                $reviewFields
+            );
+        }
+
+        return $this->products->loadSellerProduct($product->fresh());
+    }
+
+    private function applyLiveUpdate(
+        Product $product,
+        ProductData $data,
+        array &$storedPaths,
+        array &$deletedPaths,
+    ): Product {
+        [$resolvedVariants, $pricingSummary] = $this->resolvePricingState($product, $data);
+
+        if ($data->attributes() !== []) {
+            $product = $this->products->update($product, [
+                ...$data->attributes(),
+                ...$pricingSummary,
+            ]);
+        } elseif ($data->hasVariants() || $data->hasOffer()) {
+            $product = $this->products->syncDerivedProductPricing($product, $pricingSummary);
+        }
+
+        if ($data->hasCategoryIds()) {
+            $this->products->syncCategories($product, $data->categoryIds());
+        }
+
+        if ($data->hasImages()) {
+            $imageResult = $this->products->replaceImages($product, $data->images());
+            $storedPaths = [...$storedPaths, ...$imageResult['stored']];
+            $deletedPaths = [...$deletedPaths, ...$imageResult['deleted']];
+
+            DB::afterCommit(function () use ($imageResult) {
+                $this->products->deleteFiles($imageResult['deleted']);
+            });
+        }
+
+        if ($data->hasVariants() || $data->hasOffer()) {
+            $this->products->replaceVariants($product, $resolvedVariants);
+        }
+
+        if ($data->hasOffer()) {
+            $this->products->syncOffer($product, $data->offer());
+        }
+
+        return $product->fresh();
+    }
+
     private function resolvePricingState(Product $product, ProductData $data): array
     {
-        if (!$data->hasVariants() && !$data->hasOffer()) {
+        if (! $data->hasVariants() && ! $data->hasOffer()) {
             return [[], []];
         }
 
@@ -91,7 +135,7 @@ class UpdateProduct
         $variants = $data->hasVariants()
             ? $data->variants()
             : $product->variants
-                ->map(fn(ProductVariant $variant) => [
+                ->map(fn (ProductVariant $variant) => [
                     'title' => $variant->title,
                     'option_summary' => $variant->option_summary,
                     'sku' => $variant->sku,
@@ -106,7 +150,7 @@ class UpdateProduct
                     'low_stock_threshold' => $variant->low_stock_threshold,
                     'allow_backorder' => $variant->allow_backorder,
                     'attributes' => $variant->attributes
-                        ->map(fn($attribute) => [
+                        ->map(fn ($attribute) => [
                             'attribute_name' => $attribute->attribute_name,
                             'attribute_value' => $attribute->attribute_value,
                             'sort_order' => $attribute->sort_order,

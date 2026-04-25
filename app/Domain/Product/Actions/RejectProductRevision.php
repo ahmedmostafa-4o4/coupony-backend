@@ -12,13 +12,16 @@ use Illuminate\Support\Facades\DB;
 
 class RejectProductRevision
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
-    public function execute(ProductRevision $revision, User $admin, string $reason, ?string $notes = null): ProductRevision
-    {
-        return DB::transaction(function () use ($revision, $admin, $reason, $notes) {
+    public function execute(
+        ProductRevision $revision,
+        User $admin,
+        string $reason,
+        ?string $notes = null,
+        array $requestedChanges = []
+    ): ProductRevision {
+        return DB::transaction(function () use ($revision, $admin, $reason, $notes, $requestedChanges) {
             $revision = $revision->fresh();
 
             if ($revision->status !== ProductRevisionStatus::PENDING) {
@@ -44,6 +47,7 @@ class RejectProductRevision
                 'reviewed_at' => now(),
                 'rejection_reason' => $reason,
                 'admin_notes' => $notes,
+                'requested_changes' => $requestedChanges,
             ]);
 
             return $revision->fresh();
