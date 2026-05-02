@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->string('name_ar');
             $table->string('name_en');
             $table->string('slug')->nullable();
+            $table->string('image_category')->nullable();
             $table->Integer('sort_order')->nullable();
             $table->boolean('is_active')->default(true);
 

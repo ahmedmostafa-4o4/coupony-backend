@@ -16,6 +16,7 @@ class StoreCategory extends Model
         'name_en',
         'slug',
         'icon_url',
+        'image_category',
         'sort_order',
         'is_active',
     ];

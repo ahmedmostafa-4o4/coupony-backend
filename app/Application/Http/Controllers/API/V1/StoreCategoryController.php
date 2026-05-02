@@ -55,11 +55,18 @@ class StoreCategoryController extends Controller implements HasMiddleware
         try {
             $data = $request->validated();
             unset($data['icon']);
+            unset($data['image_category']);
             $category = StoreCategory::create($data);
 
             if ($request->hasFile('icon')) {
                 $category->update([
                     'icon_url' => $request->file('icon')->store("store-categories/{$category->id}/icon", 'public'),
+                ]);
+            }
+
+            if ($request->hasFile('image_category')) {
+                $category->update([
+                    'image_category' => $request->file('image_category')->store("store-categories/{$category->id}/image", 'public'),
                 ]);
             }
             
@@ -83,6 +90,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
         try {
             $data = $request->validated();
             unset($data['icon']);
+            unset($data['image_category']);
             $category->update($data);
 
             if ($request->hasFile('icon')) {
@@ -90,6 +98,13 @@ class StoreCategoryController extends Controller implements HasMiddleware
                 $newIconPath = $request->file('icon')->store("store-categories/{$category->id}/icon", 'public');
                 $category->update(['icon_url' => $newIconPath]);
                 $this->deleteStoredIconIfExists($oldIconPath);
+            }
+
+            if ($request->hasFile('image_category')) {
+                $oldImageCategoryPath = $category->image_category;
+                $newImageCategoryPath = $request->file('image_category')->store("store-categories/{$category->id}/image", 'public');
+                $category->update(['image_category' => $newImageCategoryPath]);
+                $this->deleteStoredIconIfExists($oldImageCategoryPath);
             }
             
             return response()->json([
@@ -118,6 +133,8 @@ class StoreCategoryController extends Controller implements HasMiddleware
                 ], 400);
             }
 
+            $this->deleteStoredIconIfExists($category->icon_url);
+            $this->deleteStoredIconIfExists($category->image_category);
             $category->delete();
             
             return response()->json([

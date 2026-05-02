@@ -23,6 +23,8 @@ class StoreCategoryResource extends JsonResource
             'slug' => $this->slug,
             'icon_path' => $this->icon_url,
             'icon_url' => $this->icon_url ? Storage::disk('public')->url($this->icon_url) : null,
+            'image_category_path' => $this->image_category,
+            'image_category_url' => $this->image_category ? Storage::disk('public')->url($this->image_category) : null,
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
         ];
