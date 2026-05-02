@@ -19,6 +19,7 @@ use App\Application\Http\Controllers\API\V1\OnboardingController;
 use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\CategoryController;
 use App\Application\Http\Controllers\API\V1\ProductImageController;
+use App\Application\Http\Controllers\API\V1\ProductLikeController;
 use App\Application\Http\Controllers\API\V1\ProductController;
 use App\Application\Http\Controllers\API\V1\ProductRevisionController;
 use App\Application\Http\Controllers\API\V1\ProductVariantController;
@@ -94,6 +95,8 @@ Route::prefix('v1')->group(function () {
     */
     Route::middleware(['auth:sanctum', UseAuthenticatedUserLocale::class])->group(function () {
         Route::post('/products/{product}/claims', [OfferClaimController::class, 'store'])->name('products.claims.store');
+        Route::post('/products/{product}/likes', [ProductLikeController::class, 'store'])->name('products.likes.store');
+        Route::delete('/products/{product}/likes', [ProductLikeController::class, 'destroy'])->name('products.likes.destroy');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
@@ -141,6 +144,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/me/addresses', [MeAddressController::class, 'store'])->name('me.addresses.store');
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
         Route::delete('/me/addresses/{addressId}', [MeAddressController::class, 'destroy'])->name('me.addresses.destroy');
+        Route::get('/me/liked-products', [ProductLikeController::class, 'index'])->name('me.products.likes.index');
     });
 
     // Public Store Categories

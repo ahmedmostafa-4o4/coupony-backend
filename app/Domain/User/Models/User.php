@@ -6,6 +6,8 @@ namespace App\Domain\User\Models;
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Product\Models\OfferClaim;
+use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductLike;
 use App\Domain\User\Models\UserPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -210,6 +212,17 @@ class User extends Authenticatable
     public function offerClaims()
     {
         return $this->hasMany(OfferClaim::class, 'user_id');
+    }
+
+    public function productLikes()
+    {
+        return $this->hasMany(ProductLike::class, 'user_id');
+    }
+
+    public function likedProducts()
+    {
+        return $this->belongsToMany(Product::class, 'product_likes', 'user_id', 'product_id')
+            ->withTimestamps();
     }
 
     public function redeemedOfferClaims()

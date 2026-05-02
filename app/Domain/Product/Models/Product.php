@@ -5,6 +5,7 @@ namespace App\Domain\Product\Models;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\OfferClaim;
+use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Store\Models\Store;
@@ -112,6 +113,11 @@ class Product extends Model
     public function offerClaims()
     {
         return $this->hasMany(OfferClaim::class, 'product_id');
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(ProductLike::class, 'product_id');
     }
 
     public function pendingRevision()

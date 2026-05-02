@@ -101,6 +101,12 @@ return [
         'status_updated' => 'Product status updated successfully.',
         'status_update_failed' => 'Failed to update product status. Please try again later.',
         'not_found' => 'Product not found.',
+        'liked' => 'Product liked successfully.',
+        'like_failed' => 'Failed to like product. Please try again later.',
+        'unliked' => 'Product unliked successfully.',
+        'unlike_failed' => 'Failed to unlike product. Please try again later.',
+        'liked_products_retrieved' => 'Liked products retrieved successfully.',
+        'liked_products_retrieve_failed' => 'Failed to retrieve liked products. Please try again later.',
     ],
     'variants' => [
         'created' => 'Variant created successfully.',

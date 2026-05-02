@@ -13,11 +13,13 @@ use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductImage;
+use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Store\Models\Store;
+use App\Domain\User\Models\User;
 use DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -649,7 +651,8 @@ class ProductRepository
 
     public function sellerPaginate(Store $store, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return Product::query()
+        return $this->withLikeMetadata(
+            Product::query()
             ->where('store_id', $store->id)
             ->with($this->sellerRelations())
             ->when(
@@ -664,37 +667,40 @@ class ProductRepository
                 array_key_exists('is_featured', $filters) && $filters['is_featured'] !== null,
                 fn(Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['is_featured']))
             )
-            ->latest()
-            ->paginate($perPage);
+            ->latest(),
+            $filters['liked_by_user'] ?? null
+        )->paginate($perPage);
     }
 
     public function adminPaginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return Product::query()
-            ->with($this->adminRelations())
-            ->when(
-                filled($filters['status'] ?? null),
-                fn(Builder $query) => $query->where('status', $filters['status'])
-            )
-            ->when(
-                filled($filters['approval_status'] ?? null),
-                fn(Builder $query) => $query->where('approval_status', $filters['approval_status'])
-            )
-            ->when(
-                filled($filters['store_id'] ?? null),
-                fn(Builder $query) => $query->where('store_id', $filters['store_id'])
-            )
-            ->when(
-                filled($filters['search'] ?? null),
-                fn(Builder $query) => $this->applySearch($query, $filters['search'])
-            )
-            ->latest()
-            ->paginate($perPage);
+        return $this->withLikeMetadata(
+            Product::query()
+                ->with($this->adminRelations())
+                ->when(
+                    filled($filters['status'] ?? null),
+                    fn(Builder $query) => $query->where('status', $filters['status'])
+                )
+                ->when(
+                    filled($filters['approval_status'] ?? null),
+                    fn(Builder $query) => $query->where('approval_status', $filters['approval_status'])
+                )
+                ->when(
+                    filled($filters['store_id'] ?? null),
+                    fn(Builder $query) => $query->where('store_id', $filters['store_id'])
+                )
+                ->when(
+                    filled($filters['search'] ?? null),
+                    fn(Builder $query) => $this->applySearch($query, $filters['search'])
+                )
+                ->latest()
+        )->paginate($perPage);
     }
 
     public function publicPaginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return Product::query()
+        return $this->withLikeMetadata(
+            Product::query()
             ->active()
             ->with($this->publicRelations())
             ->when(
@@ -709,18 +715,21 @@ class ProductRepository
                 array_key_exists('featured', $filters) && $filters['featured'] !== null,
                 fn(Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['featured']))
             )
-            ->latest()
-            ->paginate($perPage);
+            ->latest(),
+            $filters['liked_by_user'] ?? null
+        )->paginate($perPage);
     }
 
-    public function publicCategoryProductsPaginate(Category $category, int $perPage = 15): LengthAwarePaginator
+    public function publicCategoryProductsPaginate(Category $category, int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
-        return $category->products()
+        return $this->withLikeMetadata(
+            $category->products()
             ->where('status', ProductStatus::ACTIVE->value)
             ->where('approval_status', ProductApprovalStatus::APPROVED->value)
             ->with($this->publicRelations())
-            ->latest()
-            ->paginate($perPage);
+            ->latest(),
+            $user
+        )->paginate($perPage);
     }
 
     public function publicCategories(): Collection
@@ -738,19 +747,47 @@ class ProductRepository
             ->get();
     }
 
-    public function loadSellerProduct(Product $product): Product
+    public function loadSellerProduct(Product $product, ?User $user = null): Product
     {
-        return $product->load($this->sellerRelations());
+        return $this->loadProductWithLikeMetadata($product, $this->sellerRelations(), $user);
     }
 
     public function loadAdminProduct(Product $product): Product
     {
-        return $product->load($this->adminRelations());
+        return $this->loadProductWithLikeMetadata($product, $this->adminRelations());
     }
 
-    public function loadPublicProduct(Product $product): Product
+    public function loadPublicProduct(Product $product, ?User $user = null): Product
     {
-        return $product->load($this->publicRelations());
+        return $this->loadProductWithLikeMetadata($product, $this->publicRelations(), $user);
+    }
+
+    public function likedProductsPaginate(User $user, int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->withLikeMetadata(
+            Product::query()
+                ->active()
+                ->whereHas('likes', fn(Builder $query) => $query->where('user_id', $user->id))
+                ->with($this->publicRelations())
+                ->latest(),
+            $user
+        )->paginate($perPage);
+    }
+
+    public function like(Product $product, User $user): ProductLike
+    {
+        return ProductLike::query()->firstOrCreate([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function unlike(Product $product, User $user): void
+    {
+        ProductLike::query()
+            ->where('product_id', $product->id)
+            ->where('user_id', $user->id)
+            ->delete();
     }
 
     public function deleteFiles(array $paths): void
@@ -796,6 +833,40 @@ class ProductRepository
             'offer.targets',
             'pendingRevision',
         ];
+    }
+
+    private function withLikeMetadata(Builder $query, ?User $user = null): Builder
+    {
+        $query->select('products.*');
+        $query->withCount('likes');
+
+        if ($user) {
+            $query->withExists([
+                'likes as is_liked' => fn(Builder $likeQuery) => $likeQuery->where('user_id', $user->id),
+            ]);
+
+            return $query;
+        }
+
+        return $query->selectRaw('false as is_liked');
+    }
+
+    private function loadProductWithLikeMetadata(Product $product, array $relations, ?User $user = null): Product
+    {
+        $loaded = $product->load($relations)->loadCount('likes');
+
+        if ($user) {
+            $loaded->setAttribute(
+                'is_liked',
+                $loaded->likes()->where('user_id', $user->id)->exists()
+            );
+
+            return $loaded;
+        }
+
+        $loaded->setAttribute('is_liked', false);
+
+        return $loaded;
     }
 
     private function applySearch(Builder $query, string $search): Builder

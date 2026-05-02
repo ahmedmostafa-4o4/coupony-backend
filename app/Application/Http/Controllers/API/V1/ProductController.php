@@ -73,7 +73,7 @@ class ProductController extends Controller
         try {
             $products = $this->products->sellerPaginate(
                 $store,
-                $validated,
+                [...$validated, 'liked_by_user' => $request->user()],
                 $validated['per_page'] ?? 15
             );
 
@@ -94,7 +94,7 @@ class ProductController extends Controller
 
         try {
             return $this->successResponse(
-                new ProductResource($this->products->loadSellerProduct($product)),
+                new ProductResource($this->products->loadSellerProduct($product, $request->user())),
                 __('api.product.details_retrieved')
             );
         } catch (\Throwable $throwable) {
@@ -151,7 +151,7 @@ class ProductController extends Controller
             );
 
             return $this->successResponse(
-                new ProductResource($this->products->loadSellerProduct($updatedProduct)),
+                new ProductResource($this->products->loadSellerProduct($updatedProduct, $request->user())),
                 __('api.product.status_updated')
             );
         } catch (\Throwable $throwable) {
@@ -172,7 +172,7 @@ class ProductController extends Controller
 
         try {
             $products = $this->products->publicPaginate(
-                $validated,
+                [...$validated, 'liked_by_user' => $this->resolveAuthenticatedUser($request)],
                 $validated['per_page'] ?? 15
             );
 
@@ -182,6 +182,7 @@ class ProductController extends Controller
                 $products
             );
         } catch (\Throwable $throwable) {
+            Log::error($throwable);
             return $this->errorResponse(__('api.product.public_retrieve_failed'), 500);
         }
     }
@@ -199,7 +200,7 @@ class ProductController extends Controller
 
         try {
             return $this->successResponse(
-                new ProductResource($this->products->loadPublicProduct($product)),
+                new ProductResource($this->products->loadPublicProduct($product, $this->resolveAuthenticatedUser($request))),
                 __('api.product.public_details_retrieved')
             );
         } catch (\Throwable $throwable) {
@@ -236,7 +237,8 @@ class ProductController extends Controller
         try {
             $products = $this->products->publicCategoryProductsPaginate(
                 $category,
-                $validated['per_page'] ?? 15
+                $validated['per_page'] ?? 15,
+                $this->resolveAuthenticatedUser($request)
             );
 
             return $this->paginatedResponse(

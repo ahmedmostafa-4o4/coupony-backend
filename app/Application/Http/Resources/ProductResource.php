@@ -27,6 +27,8 @@ class ProductResource extends JsonResource
             'is_featured' => $this->is_featured,
             'sale_count' => $this->sale_count,
             'redemption_count' => $this->redemption_count,
+            'likes_count' => (int) ($this->likes_count ?? 0),
+            'is_liked' => (bool) ($this->is_liked ?? false),
             'primary_image_url' => $this->whenLoaded('images', function () {
                 $primaryImage = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
 

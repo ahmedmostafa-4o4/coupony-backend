@@ -6,6 +6,7 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
@@ -25,6 +26,7 @@ class ProductTest extends TestCase
 
         Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'seller', 'guard_name' => 'sanctum']);
+        Role::create(['name' => 'customer', 'guard_name' => 'sanctum']);
         Role::create(['name' => 'store_employee', 'guard_name' => 'sanctum']);
 
         Storage::fake('public');
@@ -191,7 +193,9 @@ class ProductTest extends TestCase
 
         $response->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.title', 'Visible Product');
+            ->assertJsonPath('data.0.title', 'Visible Product')
+            ->assertJsonPath('data.0.likes_count', 0)
+            ->assertJsonPath('data.0.is_liked', false);
     }
 
     public function test_public_show_rejects_non_active_products(): void
@@ -241,6 +245,8 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.approval_status', 'approved')
             ->assertJsonPath('data.is_featured', false)
+            ->assertJsonPath('data.likes_count', 0)
+            ->assertJsonPath('data.is_liked', false)
             ->assertJsonPath('data.variants.0.original_price', (string) ProductVariant::where('product_id', $product->id)->first()->original_price)
             ->assertJsonPath('data.variants.0.inventory_mode', 'tracked')
             ->assertJsonPath('data.variants.0.stock_qty', 7)
@@ -252,6 +258,174 @@ class ProductTest extends TestCase
             ->assertJsonMissingPath('data.published_revision_no')
             ->assertJsonMissingPath('data.approved_at')
             ->assertJsonMissingPath('data.updated_at');
+    }
+
+    public function test_authenticated_user_can_like_a_product(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/likes");
+
+        $response->assertOk()
+            ->assertJsonPath('data.product_id', $product->id)
+            ->assertJsonPath('data.likes_count', 1)
+            ->assertJsonPath('data.is_liked', true);
+
+        $this->assertDatabaseHas('product_likes', [
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_duplicate_like_requests_do_not_create_duplicate_rows(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/likes")
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/likes")
+            ->assertOk()
+            ->assertJsonPath('data.likes_count', 1)
+            ->assertJsonPath('data.is_liked', true);
+
+        $this->assertSame(1, ProductLike::query()->count());
+    }
+
+    public function test_authenticated_user_can_unlike_a_product(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        ProductLike::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/products/{$product->id}/likes");
+
+        $response->assertOk()
+            ->assertJsonPath('data.product_id', $product->id)
+            ->assertJsonPath('data.likes_count', 0)
+            ->assertJsonPath('data.is_liked', false);
+
+        $this->assertDatabaseMissing('product_likes', [
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_duplicate_unlike_requests_are_idempotent(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        ProductLike::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/products/{$product->id}/likes")
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/products/{$product->id}/likes")
+            ->assertOk()
+            ->assertJsonPath('data.likes_count', 0)
+            ->assertJsonPath('data.is_liked', false);
+
+        $this->assertSame(0, ProductLike::query()->count());
+    }
+
+    public function test_public_product_responses_include_like_metadata_for_authenticated_and_anonymous_users(): void
+    {
+        $likingUser = $this->customer();
+        $otherUser = $this->customer();
+        $product = Product::factory()->active()->approved()->create(['title' => 'Liked Product']);
+
+        ProductLike::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $likingUser->id,
+        ]);
+
+        $anonymousResponse = $this->getJson("/api/v1/products/{$product->id}");
+        $anonymousResponse->assertOk()
+            ->assertJsonPath('data.likes_count', 1)
+            ->assertJsonPath('data.is_liked', false);
+
+        $authenticatedListResponse = $this->actingAs($likingUser, 'sanctum')
+            ->getJson('/api/v1/products');
+        $authenticatedListResponse->assertOk()
+            ->assertJsonPath('data.0.likes_count', 1)
+            ->assertJsonPath('data.0.is_liked', true);
+
+        $otherUserResponse = $this->actingAs($otherUser, 'sanctum')
+            ->getJson("/api/v1/products/{$product->id}");
+        $otherUserResponse->assertOk()
+            ->assertJsonPath('data.likes_count', 1)
+            ->assertJsonPath('data.is_liked', false);
+    }
+
+    public function test_user_can_list_only_their_liked_products(): void
+    {
+        $user = $this->customer();
+        $otherUser = $this->customer();
+        $likedProduct = Product::factory()->active()->approved()->create(['title' => 'Mine']);
+        $alsoLikedProduct = Product::factory()->active()->approved()->create(['title' => 'Mine Too']);
+        $otherUsersProduct = Product::factory()->active()->approved()->create(['title' => 'Someone Else']);
+        $hiddenProduct = Product::factory()->active()->create(['title' => 'Pending Product']);
+
+        ProductLike::query()->create([
+            'product_id' => $likedProduct->id,
+            'user_id' => $user->id,
+        ]);
+        ProductLike::query()->create([
+            'product_id' => $alsoLikedProduct->id,
+            'user_id' => $user->id,
+        ]);
+        ProductLike::query()->create([
+            'product_id' => $otherUsersProduct->id,
+            'user_id' => $otherUser->id,
+        ]);
+        ProductLike::query()->create([
+            'product_id' => $hiddenProduct->id,
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/liked-products');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('data.0.is_liked', true)
+            ->assertJsonPath('data.1.is_liked', true);
+    }
+
+    public function test_non_public_products_cannot_be_liked(): void
+    {
+        $user = $this->customer();
+        $inactiveProduct = Product::factory()->create(['status' => ProductStatus::INACTIVE]);
+        $pendingProduct = Product::factory()->active()->create([
+            'approval_status' => ProductApprovalStatus::PENDING,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$inactiveProduct->id}/likes")
+            ->assertNotFound();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$pendingProduct->id}/likes")
+            ->assertNotFound();
+
+        $this->assertSame(0, ProductLike::query()->count());
     }
 
     public function test_category_sync_works(): void
@@ -1253,6 +1427,14 @@ class ProductTest extends TestCase
         $seller->assignRole('seller');
 
         return $seller;
+    }
+
+    private function customer(): User
+    {
+        $customer = User::factory()->create();
+        $customer->assignRole('customer');
+
+        return $customer;
     }
 
     private function storeFor(User $user): Store

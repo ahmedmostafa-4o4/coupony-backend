@@ -5,6 +5,7 @@ namespace App\Application\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Sanctum\PersonalAccessToken;
 
 abstract class Controller
@@ -46,6 +47,25 @@ abstract class Controller
         return response()
             ->json($payload, $status)
             ->header('Content-Language', App::currentLocale());
+    }
+
+    protected function resolveAuthenticatedUser(Request $request): ?Authenticatable
+    {
+        if ($request->user()) {
+            return $request->user();
+        }
+
+        $token = $request->bearerToken();
+
+        if (!$token) {
+            $authorizationHeader = $request->header('Authorization', $request->server('HTTP_AUTHORIZATION'));
+
+            if (is_string($authorizationHeader) && preg_match('/Bearer\s+(.+)/i', $authorizationHeader, $matches)) {
+                $token = trim($matches[1]);
+            }
+        }
+
+        return $token ? PersonalAccessToken::findToken($token)?->tokenable : null;
     }
 
     private function hasSupportedHeaderLocale(?string $header, array $allowed): bool
