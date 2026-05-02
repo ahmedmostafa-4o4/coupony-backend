@@ -733,7 +733,8 @@ class ProductRepository
                     ->where('approval_status', ProductApprovalStatus::APPROVED->value),
             ])
             ->orderBy('sort_order')
-            ->orderBy('name')
+            ->orderBy('name_en')
+            ->orderBy('name_ar')
             ->get();
     }
 

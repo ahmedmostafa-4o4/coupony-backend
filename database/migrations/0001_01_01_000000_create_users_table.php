@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -16,7 +17,7 @@ return new class extends Migration {
 
             // Auth
             $table->string('email')->unique();
-            $table->string('password_hash');
+            $table->string('password_hash')->nullable();
             $table->string('phone_number', 20)->nullable()->unique();
 
             // Verification

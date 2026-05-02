@@ -41,7 +41,8 @@ class CategoryController extends Controller implements HasMiddleware
                 )
                 ->with('parent')
                 ->orderBy('sort_order')
-                ->orderBy('name')
+                ->orderBy('name_en')
+                ->orderBy('name_ar')
                 ->get();
 
             return $this->localizedJson([
@@ -66,8 +67,10 @@ class CategoryController extends Controller implements HasMiddleware
         try {
             $data = $request->validated();
             $category = Category::create([
-                'name' => $data['name'],
-                'slug' => $data['slug'] ?? Str::slug($data['name']),
+                'name' => $data['name_en'],
+                'name_ar' => $data['name_ar'],
+                'name_en' => $data['name_en'],
+                'slug' => $data['slug'] ?? Str::slug($data['name_en']),
                 'description' => $data['description'] ?? null,
                 'parent_id' => $data['parent_id'] ?? null,
                 'sort_order' => $data['sort_order'] ?? 0,
@@ -102,8 +105,18 @@ class CategoryController extends Controller implements HasMiddleware
         try {
             $data = $request->validated();
 
-            if (array_key_exists('name', $data) && !array_key_exists('slug', $data) && blank($category->slug)) {
-                $data['slug'] = Str::slug($data['name']);
+            if (array_key_exists('name_en', $data)) {
+                $data['name'] = $data['name_en'];
+            } elseif (array_key_exists('name_ar', $data) && blank($category->name_en)) {
+                $data['name'] = $data['name_ar'];
+            }
+
+            if (!array_key_exists('slug', $data) && blank($category->slug)) {
+                $slugSource = $data['name_en'] ?? $data['name_ar'] ?? null;
+
+                if (filled($slugSource)) {
+                    $data['slug'] = Str::slug($slugSource);
+                }
             }
 
             unset($data['icon']);

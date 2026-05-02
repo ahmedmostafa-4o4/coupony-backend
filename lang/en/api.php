@@ -18,6 +18,7 @@ return [
         'registration_verification_failed' => 'Registration successful but failed to send verification code. Please request a new code.',
         'registration_failed' => 'Registration failed. Please try again later.',
         'invalid_credentials' => 'The provided credentials are incorrect.',
+        'seller_account_delete_blocked' => 'You have a seller account. You cannot delete your account from the customer deletion flow. Please close your seller account first or contact support.',
         'account_suspended' => 'Your account has been suspended. Please contact support.',
         'verification_code_sent' => 'A verification code has been sent to your registered email. Please verify to proceed.',
         'token_refreshed' => 'Token refreshed successfully.',

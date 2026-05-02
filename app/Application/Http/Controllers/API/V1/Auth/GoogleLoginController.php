@@ -21,8 +21,7 @@ class GoogleLoginController extends Controller
         private AuthenticationService $authService,
         private GoogleTokenVerifier $googleTokenVerifier,
         private RegisterUser $registerUser,
-    ) {
-    }
+    ) {}
 
     public function __invoke(GoogleLoginRequest $request)
     {
@@ -110,11 +109,11 @@ class GoogleLoginController extends Controller
                 ->where('provider_id', $providerId)
                 ->first();
 
-            if (!$user) {
+            if (! $user) {
                 $user = User::where('email', $email)->first();
             }
 
-            if (!$user) {
+            if (! $user) {
                 $names = $this->extractNames($googleUser);
 
                 $user = $this->registerUser->execute(
@@ -123,7 +122,7 @@ class GoogleLoginController extends Controller
                         lastName: $names['last_name'],
                         email: $email,
                         phone_number: null,
-                        password: Str::password(32),
+                        password: null,
                         role: $request->input('role'),
                         provider: 'google',
                         providerId: $providerId,
@@ -158,7 +157,7 @@ class GoogleLoginController extends Controller
 
             $user->markEmailAsVerified();
 
-            if (!$user->profile && ($googleUser['given_name'] ?? null || $googleUser['family_name'] ?? null || $googleUser['name'] ?? null)) {
+            if (! $user->profile && ($googleUser['given_name'] ?? null || $googleUser['family_name'] ?? null || $googleUser['name'] ?? null)) {
                 $names = $this->extractNames($googleUser);
 
                 $user->profile()->create([

@@ -14,13 +14,12 @@ class UserData
         public readonly string $lastName,
         public readonly string $email,
         public readonly ?string $phone_number,
-        public readonly string $password,
+        public readonly ?string $password,
         public readonly string $role,
         public readonly ?string $provider = null,
         public readonly ?string $providerId = null,
-        public readonly string $language = "ar"
-    ) {
-    }
+        public readonly string $language = 'ar'
+    ) {}
 
     public static function fromRequest(registerUserRequest $request): self
     {

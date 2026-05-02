@@ -23,7 +23,7 @@ class PrepareProductIdentifiers
 
     public function forUpdate(Product $product, ProductData $data): ProductData
     {
-        $product->loadMissing('categories:id,name,slug');
+        $product->loadMissing('categories:id,name,name_ar,name_en,slug');
 
         return $this->prepare($product->store, $data, $product);
     }
@@ -105,11 +105,14 @@ class PrepareProductIdentifiers
         $categories = $data->hasCategoryIds()
             ? Category::query()
                 ->whereIn('id', $data->categoryIds())
-                ->get(['name', 'slug'])
+                ->get(['name', 'name_ar', 'name_en', 'slug'])
             : ($product?->categories ?? collect());
 
         return $categories
-            ->flatMap(fn($category) => [$category->name, $category->slug])
+            ->flatMap(fn($category) => [
+                $category->name_en ?: $category->name,
+                $category->slug,
+            ])
             ->filter(fn($value) => is_string($value) && trim($value) !== '')
             ->values()
             ->all();

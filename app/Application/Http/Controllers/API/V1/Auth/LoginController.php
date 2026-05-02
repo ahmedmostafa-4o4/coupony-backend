@@ -7,8 +7,9 @@ use App\Application\Http\Requests\ChangePasswordRequest;
 use App\Application\Http\Requests\loginUserRequest;
 use App\Application\Http\Resources\UserResource;
 use App\Domain\Store\Models\Store;
-use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Models\User;
+use App\Domain\User\Services\AuthenticationService;
+use App\Domain\User\Services\GoogleTokenVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,14 +18,17 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
     public function __construct(
-        private AuthenticationService $authService
+        private AuthenticationService $authService,
+        private GoogleTokenVerifier $googleTokenVerifier,
     ) {
         //
     }
+
     public function login(loginUserRequest $request)
     {
         $context = [
@@ -111,7 +115,7 @@ class LoginController extends Controller
         $user = new UserResource($user->load(['profile', 'roles', 'sessions', 'points']));
 
         return $this->localizedJson([
-            'data' => $user
+            'data' => $user,
         ], 200);
     }
 
@@ -122,7 +126,7 @@ class LoginController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        if (!Hash::check($validated['current_password'], $user->password_hash)) {
+        if (! Hash::check($validated['current_password'], $user->password_hash)) {
             return $this->localizedJson([
                 'message' => __('api.auth.invalid_credentials'),
                 'errors' => [
@@ -162,6 +166,7 @@ class LoginController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
+            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone_number' => ['sometimes', 'nullable', 'string', 'max:30', Rule::unique('users', 'phone_number')->ignore($user->id)],
             'language' => ['sometimes', 'nullable', 'string', 'max:10'],
             'timezone' => ['sometimes', 'nullable', 'string', 'max:100'],
@@ -177,6 +182,7 @@ class LoginController extends Controller
         try {
             DB::transaction(function () use ($validated, $user, $request) {
                 $userFields = collect($validated)->only([
+                    'email',
                     'phone_number',
                     'language',
                     'timezone',
@@ -199,7 +205,7 @@ class LoginController extends Controller
                     return array_key_exists($key, $validated);
                 })->all();
 
-                if (!empty($validated['remove_avatar'])) {
+                if (! empty($validated['remove_avatar'])) {
                     $this->deleteStoredAvatarIfExists($user->profile?->avatar_url);
                     $profileFields['avatar_url'] = $this->defaultAvatarUrl();
                 } elseif ($request->hasFile('avatar')) {
@@ -237,18 +243,18 @@ class LoginController extends Controller
 
         $user = $request->user();
 
-        if ($user->hasAnyRole(['admin'])) {
+        if ($user->hasAnyRole(['admin', 'seller', 'seller_pending'])) {
             return $this->localizedJson([
-                'message' => __('api.common.unauthorized'),
+                'message' => __('api.auth.seller_account_delete_blocked'),
             ], 403);
         }
 
-        if (blank($user->provider)) {
+        if (filled($user->password_hash)) {
             $validated = $request->validate([
                 'current_password' => ['required', 'string', 'min:8'],
             ]);
 
-            if (!Hash::check($validated['current_password'], $user->password_hash)) {
+            if (! Hash::check($validated['current_password'], $user->password_hash)) {
                 return $this->localizedJson([
                     'message' => __('api.auth.invalid_credentials'),
                     'errors' => [
@@ -256,6 +262,23 @@ class LoginController extends Controller
                     ],
                 ], 401);
             }
+        } elseif ($user->provider === 'google') {
+            $validated = $request->validate([
+                'id_token' => ['required', 'string'],
+            ]);
+
+            if (! $this->googleTokenMatchesUser($validated['id_token'], $user)) {
+                return $this->localizedJson([
+                    'message' => __('api.auth.invalid_credentials'),
+                    'errors' => [
+                        'id_token' => [__('api.auth.invalid_credentials')],
+                    ],
+                ], 401);
+            }
+        } else {
+            return $this->localizedJson([
+                'message' => __('api.auth.invalid_credentials'),
+            ], 401);
         }
 
         try {
@@ -315,7 +338,7 @@ class LoginController extends Controller
             $filePaths = array_merge(
                 $filePaths,
                 $store->verifications->pluck('document_path')->filter()->values()->all(),
-                $store->products->flatMap(fn($product) => $product->images->pluck('image_url'))->filter()->values()->all()
+                $store->products->flatMap(fn ($product) => $product->images->pluck('image_url'))->filter()->values()->all()
             );
         }
 
@@ -368,15 +391,27 @@ class LoginController extends Controller
         return [];
     }
 
+    private function googleTokenMatchesUser(string $idToken, User $user): bool
+    {
+        try {
+            $googleUser = $this->googleTokenVerifier->verifyIdToken($idToken);
+        } catch (ValidationException) {
+            return false;
+        }
+
+        return hash_equals((string) $user->provider_id, (string) ($googleUser['sub'] ?? ''))
+            && hash_equals(strtolower((string) $user->email), strtolower((string) ($googleUser['email'] ?? '')));
+    }
+
     private function resolvePublicStoragePath(?string $pathOrUrl): ?string
     {
-        if (!$pathOrUrl) {
+        if (! $pathOrUrl) {
             return null;
         }
 
         $storagePrefix = rtrim(Storage::disk('public')->url(''), '/');
 
-        if (str_starts_with($pathOrUrl, $storagePrefix . '/')) {
+        if (str_starts_with($pathOrUrl, $storagePrefix.'/')) {
             return ltrim(substr($pathOrUrl, strlen($storagePrefix)), '/');
         }
 
@@ -392,7 +427,6 @@ class LoginController extends Controller
         }
     }
 
-
     private function replaceAvatar(Request $request, string $userId, ?string $currentAvatarUrl): string
     {
         $this->deleteStoredAvatarIfExists($currentAvatarUrl);
@@ -404,13 +438,13 @@ class LoginController extends Controller
 
     private function deleteStoredAvatarIfExists(?string $avatarUrl): void
     {
-        if (!$avatarUrl) {
+        if (! $avatarUrl) {
             return;
         }
 
         $storagePrefix = rtrim(Storage::disk('public')->url(''), '/');
 
-        if (!str_starts_with($avatarUrl, $storagePrefix . '/')) {
+        if (! str_starts_with($avatarUrl, $storagePrefix.'/')) {
             return;
         }
 
@@ -423,6 +457,6 @@ class LoginController extends Controller
 
     private function defaultAvatarUrl(): string
     {
-        return config('app.url') . '/users/avatars/default.svg';
+        return config('app.url').'/users/avatars/default.svg';
     }
 }

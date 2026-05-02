@@ -20,8 +20,7 @@ class RegisterUser
     public function __construct(
         private UserRepository $users,
         private Hasher $hasher,
-    ) {
-    }
+    ) {}
 
     public function execute(UserData $data, array $context): User
     {
@@ -33,7 +32,7 @@ class RegisterUser
             $user = $this->users->create([
                 'email' => $data->email,
                 'phone_number' => $data->phone_number,
-                'password_hash' => $this->hasher->make($data->password),
+                'password_hash' => $data->password === null ? null : $this->hasher->make($data->password),
                 'provider' => $data->provider,
                 'provider_id' => $data->providerId,
                 'language' => $data->language,
@@ -80,7 +79,7 @@ class RegisterUser
             throw new \RuntimeException("Role [{$roleName}] is not configured.");
         }
 
-        if (!$user->hasRole($roleName)) {
+        if (! $user->hasRole($roleName)) {
             $user->assignRole($roleName);
         }
 

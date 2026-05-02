@@ -307,6 +307,8 @@ return new class extends Migration
             Schema::create('categories', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
+                $table->string('name_ar');
+                $table->string('name_en');
                 $table->string('slug')->nullable();
                 $table->text('description')->nullable();
                 $table->unsignedBigInteger('parent_id')->nullable();
@@ -327,6 +329,8 @@ return new class extends Migration
         }
 
         $hasName = Schema::hasColumn('categories', 'name');
+        $hasNameAr = Schema::hasColumn('categories', 'name_ar');
+        $hasNameEn = Schema::hasColumn('categories', 'name_en');
         $hasSlug = Schema::hasColumn('categories', 'slug');
         $hasDescription = Schema::hasColumn('categories', 'description');
         $hasParentId = Schema::hasColumn('categories', 'parent_id');
@@ -335,6 +339,8 @@ return new class extends Migration
 
         Schema::table('categories', function (Blueprint $table) use (
             $hasName,
+            $hasNameAr,
+            $hasNameEn,
             $hasSlug,
             $hasDescription,
             $hasParentId,
@@ -343,6 +349,14 @@ return new class extends Migration
         ) {
             if (!$hasName) {
                 $table->string('name')->default('');
+            }
+
+            if (!$hasNameAr) {
+                $table->string('name_ar')->nullable()->after('name');
+            }
+
+            if (!$hasNameEn) {
+                $table->string('name_en')->nullable()->after('name_ar');
             }
 
             if (!$hasSlug) {

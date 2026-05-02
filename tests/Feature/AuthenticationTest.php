@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -47,15 +47,15 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-            'message',
-            'data' => [
-                'user',
-                'access_token',
-                'refresh_token',
-                'token_type',
-                'expires_in',
-            ],
-        ]);
+                'message',
+                'data' => [
+                    'user',
+                    'access_token',
+                    'refresh_token',
+                    'token_type',
+                    'expires_in',
+                ],
+            ]);
     }
 
     public function test_user_with_only_customer_role_cannot_login_as_seller()
@@ -350,11 +350,11 @@ class AuthenticationTest extends TestCase
             ]);
 
         $removeResponse->assertStatus(200)
-            ->assertJsonPath('data.profile.avatar', config('app.url') . '/users/avatars/default.svg');
+            ->assertJsonPath('data.profile.avatar', config('app.url').'/users/avatars/default.svg');
 
         $this->assertDatabaseHas('profiles', [
             'user_id' => $user->id,
-            'avatar_url' => config('app.url') . '/users/avatars/default.svg',
+            'avatar_url' => config('app.url').'/users/avatars/default.svg',
         ]);
 
         Storage::disk('public')->assertMissing($uploadedAvatarPath);
@@ -375,14 +375,14 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-            'message',
-            'data' => [
-                'access_token',
-                'refresh_token',
-                'token_type',
-                'expires_in',
-            ],
-        ]);
+                'message',
+                'data' => [
+                    'access_token',
+                    'refresh_token',
+                    'token_type',
+                    'expires_in',
+                ],
+            ]);
     }
 
     public function test_suspended_user_cannot_login()
@@ -455,6 +455,7 @@ class AuthenticationTest extends TestCase
             'email' => 'google-user@example.com',
             'provider' => 'google',
             'provider_id' => 'google-user-123',
+            'password_hash' => null,
         ]);
     }
 
@@ -647,6 +648,79 @@ class AuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_password_user_linked_to_google_still_requires_current_password_to_delete()
+    {
+        Http::fake();
+
+        $user = User::factory()->create([
+            'password_hash' => bcrypt('password123'),
+            'provider' => 'google',
+            'provider_id' => 'google-linked-123',
+        ]);
+        $user->assignRole('customer');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'id_token' => 'header.payload.signature',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['current_password']);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_google_only_customer_can_delete_own_account_with_valid_id_token()
+    {
+        $user = User::factory()->create([
+            'email' => 'google-only@example.com',
+            'password_hash' => null,
+            'provider' => 'google',
+            'provider_id' => 'google-only-123',
+        ]);
+        $user->assignRole('customer');
+
+        $this->fakeGoogleToken('google-only-123', 'google-only@example.com');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'id_token' => 'header.payload.signature',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonFragment(['message' => __('api.admin.users.deleted')]);
+
+        $this->assertDatabaseMissing('users', [
+            'id' => $user->id,
+        ]);
+    }
+
+    public function test_google_only_customer_cannot_delete_with_mismatched_google_id_token()
+    {
+        $user = User::factory()->create([
+            'email' => 'google-only@example.com',
+            'password_hash' => null,
+            'provider' => 'google',
+            'provider_id' => 'google-only-123',
+        ]);
+        $user->assignRole('customer');
+
+        $this->fakeGoogleToken('different-google-user', 'google-only@example.com');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'id_token' => 'header.payload.signature',
+            ]);
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => __('api.auth.invalid_credentials')])
+            ->assertJsonValidationErrors(['id_token']);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+        ]);
+    }
+
     public function test_customer_delete_own_account_requires_current_password_for_password_accounts()
     {
         $user = User::factory()->create([
@@ -673,6 +747,47 @@ class AuthenticationTest extends TestCase
             ]);
 
         $response->assertStatus(403)
-            ->assertJsonFragment(['message' => __('api.common.unauthorized')]);
+            ->assertJsonFragment(['message' => __('api.auth.seller_account_delete_blocked')]);
+    }
+
+    public function test_customer_with_seller_role_cannot_delete_account_via_customer_delete_endpoint()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        $user->assignRole('seller');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'current_password' => 'password123',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJsonFragment(['message' => __('api.auth.seller_account_delete_blocked')]);
+    }
+
+    public function test_seller_pending_cannot_delete_account_via_customer_delete_endpoint()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('seller_pending');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/auth/me', [
+                'current_password' => 'password123',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJsonFragment(['message' => __('api.auth.seller_account_delete_blocked')]);
+    }
+
+    private function fakeGoogleToken(string $sub, string $email): void
+    {
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'sub' => $sub,
+                'email' => $email,
+                'email_verified' => true,
+                'aud' => 'google-client-id',
+            ], 200),
+        ]);
     }
 }

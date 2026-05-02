@@ -12,11 +12,14 @@ class CategoryFactory extends Factory
 
     public function definition(): array
     {
-        $name = fake()->unique()->words(2, true);
+        $nameEn = ucfirst(fake()->unique()->words(2, true));
+        $nameAr = 'تصنيف ' . fake()->unique()->numberBetween(1000, 9999);
 
         return [
-            'name' => ucfirst($name),
-            'slug' => Str::slug($name),
+            'name' => $nameEn,
+            'name_ar' => $nameAr,
+            'name_en' => $nameEn,
+            'slug' => Str::slug($nameEn),
             'description' => fake()->sentence(),
             'parent_id' => null,
             'sort_order' => fake()->numberBetween(0, 100),

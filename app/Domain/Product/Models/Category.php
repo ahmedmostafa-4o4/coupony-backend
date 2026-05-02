@@ -4,6 +4,7 @@ namespace App\Domain\Product\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Category extends Model
 {
@@ -13,12 +14,18 @@ class Category extends Model
 
     protected $fillable = [
         'name',
+        'name_ar',
+        'name_en',
         'slug',
         'description',
         'icon_url',
         'parent_id',
         'sort_order',
         'is_active',
+    ];
+
+    protected $appends = [
+        'name',
     ];
 
     protected function casts(): array
@@ -50,6 +57,29 @@ class Category extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function getNameAttribute($value): string
+    {
+        $locale = app()->getLocale();
+        $nameAr = $this->attributes['name_ar'] ?? null;
+        $nameEn = $this->attributes['name_en'] ?? null;
+        $fallback = is_string($value) ? $value : '';
+
+        return $locale === 'ar'
+            ? ($nameAr ?: $nameEn ?: $fallback)
+            : ($nameEn ?: $nameAr ?: $fallback);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $category) {
+            $category->name = $category->name_en ?: $category->name_ar ?: $category->getRawOriginal('name') ?: '';
+
+            if (blank($category->slug)) {
+                $category->slug = Str::slug($category->name_en ?: $category->name_ar ?: $category->name);
+            }
+        });
     }
 
     protected static function newFactory()

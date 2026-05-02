@@ -18,6 +18,8 @@ class CategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'name_ar' => $this->name_ar,
+            'name_en' => $this->name_en,
             'slug' => $this->slug,
             'description' => $this->description,
             'icon_path' => $this->icon_url,
@@ -27,6 +29,8 @@ class CategoryResource extends JsonResource
                 return $this->parent ? [
                     'id' => $this->parent->id,
                     'name' => $this->parent->name,
+                    'name_ar' => $this->parent->name_ar,
+                    'name_en' => $this->parent->name_en,
                     'slug' => $this->parent->slug,
                 ] : null;
             }),
