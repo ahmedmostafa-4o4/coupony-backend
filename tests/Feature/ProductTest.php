@@ -99,7 +99,7 @@ class ProductTest extends TestCase
         Product::factory()->create(['store_id' => $otherStore->id]);
 
         $response = $this->actingAs($seller, 'sanctum')
-            ->getJson("/api/v1/stores/{$store->id}/products");
+            ->getJson("/api/v1/me/stores/{$store->id}/products");
 
         $response->assertOk()
             ->assertJsonCount(2, 'data')
@@ -196,6 +196,35 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.0.title', 'Visible Product')
             ->assertJsonPath('data.0.likes_count', 0)
             ->assertJsonPath('data.0.is_liked', false);
+    }
+
+    public function test_public_store_list_only_returns_active_products_for_that_store(): void
+    {
+        $store = Store::factory()->active()->create();
+        $otherStore = Store::factory()->active()->create();
+
+        Product::factory()->active()->approved()->create([
+            'store_id' => $store->id,
+            'title' => 'Visible Store Product',
+            'is_featured' => true,
+        ]);
+        Product::factory()->active()->create([
+            'store_id' => $store->id,
+            'title' => 'Pending Store Product',
+        ]);
+        Product::factory()->active()->approved()->create([
+            'store_id' => $otherStore->id,
+            'title' => 'Other Store Product',
+            'is_featured' => true,
+        ]);
+
+        $response = $this->getJson("/api/v1/stores/{$store->id}/products?featured=1&search=Visible");
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Visible Store Product')
+            ->assertJsonPath('data.0.store.id', $store->id)
+            ->assertJsonPath('meta.total', 1);
     }
 
     public function test_public_show_rejects_non_active_products(): void

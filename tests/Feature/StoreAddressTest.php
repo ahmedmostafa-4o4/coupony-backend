@@ -223,7 +223,7 @@ class StoreAddressTest extends TestCase
         $store->addresses()->attach($address->id, ['label' => 'response branch']);
 
         $this->actingAs($seller, 'sanctum')
-            ->getJson('/api/v1/stores')
+            ->getJson('/api/v1/me/stores')
             ->assertOk()
             ->assertJsonPath('data.data.0.id', $store->id)
             ->assertJsonPath('data.data.0.addresses.0.id', $address->id)

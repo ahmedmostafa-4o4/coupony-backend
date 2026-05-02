@@ -720,6 +720,30 @@ class ProductRepository
         )->paginate($perPage);
     }
 
+    public function publicStorePaginate(Store $store, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->withLikeMetadata(
+            Product::query()
+                ->active()
+                ->where('store_id', $store->id)
+                ->with($this->publicRelations())
+                ->when(
+                    filled($filters['category'] ?? null),
+                    fn(Builder $query) => $query->whereHas('categories', fn(Builder $categoryQuery) => $categoryQuery->whereKey($filters['category']))
+                )
+                ->when(
+                    filled($filters['search'] ?? null),
+                    fn(Builder $query) => $this->applySearch($query, $filters['search'])
+                )
+                ->when(
+                    array_key_exists('featured', $filters) && $filters['featured'] !== null,
+                    fn(Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['featured']))
+                )
+                ->latest(),
+            $filters['liked_by_user'] ?? null
+        )->paginate($perPage);
+    }
+
     public function publicCategoryProductsPaginate(Category $category, int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
         return $this->withLikeMetadata(

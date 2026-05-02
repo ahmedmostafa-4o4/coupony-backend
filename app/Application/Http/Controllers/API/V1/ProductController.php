@@ -9,6 +9,7 @@ use App\Application\Http\Requests\UpdateProductStatusRequest;
 use App\Application\Http\Resources\CategoryResource;
 use App\Application\Http\Resources\ProductCollection;
 use App\Application\Http\Resources\ProductResource;
+use App\Application\Http\Resources\PublicProductCollection;
 use App\Domain\Product\Actions\CreateProduct;
 use App\Domain\Product\Actions\DeleteProduct;
 use App\Domain\Product\Actions\UpdateProduct;
@@ -183,6 +184,38 @@ class ProductController extends Controller
             );
         } catch (\Throwable $throwable) {
             Log::error($throwable);
+            return $this->errorResponse(__('api.product.public_retrieve_failed'), 500);
+        }
+    }
+
+    public function publicStoreIndex(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        if ($store->status !== \App\Domain\Store\Enums\StoreStatus::ACTIVE) {
+            return $this->errorResponse(__('api.store.retrieve_failed'), 404);
+        }
+
+        $validated = $request->validate([
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'featured' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        try {
+            $products = $this->products->publicStorePaginate(
+                $store,
+                [...$validated, 'liked_by_user' => $this->resolveAuthenticatedUser($request)],
+                $validated['per_page'] ?? 15
+            );
+
+            return $this->paginatedResponse(
+                (new PublicProductCollection($products->getCollection()))->resolve($request),
+                __('api.product.public_retrieved'),
+                $products
+            );
+        } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.product.public_retrieve_failed'), 500);
         }
     }

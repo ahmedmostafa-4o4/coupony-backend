@@ -446,7 +446,7 @@ class ProductRevisionRoutesTest extends TestCase
             ->assertOk();
 
         $this->actingAs($seller, 'sanctum')
-            ->getJson("/api/v1/stores/{$store->id}/products")
+            ->getJson("/api/v1/me/stores/{$store->id}/products")
             ->assertOk()
             ->assertJsonPath('data.0.id', $productId)
             ->assertJsonPath('data.0.requested_changes.0.section', 'variants')

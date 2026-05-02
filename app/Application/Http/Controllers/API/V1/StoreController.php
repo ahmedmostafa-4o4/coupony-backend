@@ -7,6 +7,7 @@ use App\Application\Http\Requests\CreateStoreRequest;
 use App\Application\Http\Requests\UpdateStoreProfileRequest;
 use App\Application\Http\Requests\UpdateStoreRequest;
 use App\Application\Http\Requests\UpdateVerificationDocumentRequest;
+use App\Application\Http\Resources\PublicStoreResource;
 use App\Application\Http\Resources\StoreCollection;
 use App\Application\Http\Resources\StoreResource;
 use App\Domain\Store\Actions\CreateStore;
@@ -14,15 +15,18 @@ use App\Domain\Store\Actions\UpdateStoreProfile;
 use App\Domain\Store\Actions\UpdateStore;
 use App\Domain\Store\Actions\UpdateVerificationDocument;
 use App\Domain\Store\DTOs\StoreData;
+use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Enums\VerificationDocumentType;
 use App\Domain\Store\Enums\VerificationStatus;
 use App\Domain\Store\Models\Store;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class StoreController extends Controller
@@ -196,6 +200,84 @@ class StoreController extends Controller
     }
 
     /**
+     * Get public active stores with filters.
+     */
+    public function publicIndex(Request $request): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'category_id' => ['nullable', 'integer', 'exists:store_categories,id'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'is_verified' => ['nullable', 'boolean'],
+            'min_rating' => ['nullable', 'numeric', 'between:0,5'],
+            'sort_by' => ['nullable', Rule::in(['latest', 'rating', 'name'])],
+            'sort_direction' => ['nullable', Rule::in(['asc', 'desc'])],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        try {
+            $query = Store::query()
+                ->where('status', StoreStatus::ACTIVE)
+                ->with($this->publicStoreRelations());
+
+            if (filled($validated['search'] ?? null)) {
+                $query->where(function ($builder) use ($validated) {
+                    $builder
+                        ->where('name', 'like', '%' . $validated['search'] . '%')
+                        ->orWhere('description', 'like', '%' . $validated['search'] . '%');
+                });
+            }
+
+            if (filled($validated['category_id'] ?? null)) {
+                $query->whereHas('categories', fn($builder) => $builder->whereKey($validated['category_id']));
+            }
+
+            if (filled($validated['city'] ?? null)) {
+                $query->whereHas('addresses', function ($builder) use ($validated) {
+                    $builder->where('city', 'like', '%' . $validated['city'] . '%');
+                });
+            }
+
+            if (array_key_exists('is_verified', $validated) && $validated['is_verified'] !== null) {
+                $query->where('is_verified', $validated['is_verified']);
+            }
+
+            if (filled($validated['min_rating'] ?? null)) {
+                $query->where('rating_avg', '>=', $validated['min_rating']);
+            }
+
+            $sortBy = $validated['sort_by'] ?? 'latest';
+            $sortDirection = $validated['sort_direction']
+                ?? ($sortBy === 'name' ? 'asc' : 'desc');
+
+            match ($sortBy) {
+                'rating' => $query->orderBy('rating_avg', $sortDirection)->orderBy('rating_count', 'desc'),
+                'name' => $query->orderBy('name', $sortDirection),
+                default => $query->latest(),
+            };
+
+            $stores = $query->paginate($validated['per_page'] ?? 15);
+
+            return $this->paginatedResponse(
+                PublicStoreResource::collection($stores->getCollection())->resolve($request),
+                __('api.store.public_retrieved'),
+                $stores
+            );
+        } catch (Throwable $e) {
+            Log::error('Failed to retrieve public stores', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse(
+                __('api.store.public_retrieve_failed'),
+                500
+            );
+        }
+    }
+
+    /**
      * Update verification document.
      */
     public function updateVerificationDocument(
@@ -329,6 +411,14 @@ class StoreController extends Controller
     }
 
     /**
+     * Get public-safe store relationships to load.
+     */
+    private function publicStoreRelations(): array
+    {
+        return ['categories', 'addresses', 'hours', 'socials.social'];
+    }
+
+    /**
      * Return a success JSON response.
      */
     private function successResponse($data, string $message, int $status = 200): JsonResponse
@@ -355,5 +445,20 @@ class StoreController extends Controller
         }
 
         return $this->localizedJson($response, $status);
+    }
+
+    private function paginatedResponse($data, string $message, LengthAwarePaginator $paginator): JsonResponse
+    {
+        return $this->localizedJson([
+            'success' => true,
+            'message' => $message,
+            'data' => $data,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 }

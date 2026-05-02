@@ -217,6 +217,43 @@ class StoreTest extends TestCase
         $this->assertDatabaseCount('store_hours', 7); // 7 days of the week
     }
 
+    public function test_public_store_listing_returns_only_active_stores_with_filters(): void
+    {
+        $category = StoreCategory::factory()->create();
+        $otherCategory = StoreCategory::factory()->create();
+
+        $visibleStore = Store::factory()->active()->create([
+            'name' => 'Visible Store',
+            'status' => StoreStatus::ACTIVE,
+            'is_verified' => true,
+            'rating_avg' => 4.8,
+            'tax_id' => 'PRIVATE-TAX-ID',
+            'admin_notes' => 'private admin note',
+        ]);
+        $visibleStore->categories()->attach($category->id);
+
+        $hiddenStore = Store::factory()->pending()->create([
+            'name' => 'Pending Store',
+        ]);
+        $hiddenStore->categories()->attach($category->id);
+
+        $otherCategoryStore = Store::factory()->active()->create([
+            'name' => 'Other Category Store',
+            'status' => StoreStatus::ACTIVE,
+        ]);
+        $otherCategoryStore->categories()->attach($otherCategory->id);
+
+        $response = $this->getJson('/api/v1/stores?category_id=' . $category->id . '&search=Visible&is_verified=1&min_rating=4');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.id', $visibleStore->id)
+            ->assertJsonPath('data.0.name', 'Visible Store')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonMissingPath('data.0.tax_id')
+            ->assertJsonMissingPath('data.0.admin_notes')
+            ->assertJsonMissingPath('data.0.owner');
+    }
+
     public function test_owner_can_patch_profile_on_active_store()
     {
         $owner = User::factory()->create();

@@ -51,6 +51,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/locales', [LocaleController::class, 'index'])->name('locales.index');
     Route::get('/products', [ProductController::class, 'publicIndex'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'publicShow'])->name('products.show');
+    Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
+    Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
     Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
     Route::get('/categories/{category}/products', [ProductController::class, 'categoryProducts'])->name('categories.products.index');
 
@@ -98,7 +100,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/products/{product}/likes', [ProductLikeController::class, 'store'])->name('products.likes.store');
         Route::delete('/products/{product}/likes', [ProductLikeController::class, 'destroy'])->name('products.likes.destroy');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
-        Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
+        Route::get('/stores', [StoreController::class, 'index'])->name('me.stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
@@ -112,7 +114,6 @@ Route::prefix('v1')->group(function () {
             });
             Route::prefix('/stores/{store}/products')->name('stores.products.')->group(function () {
                 Route::post('/', [ProductController::class, 'store'])->name('store');
-                Route::get('/', [ProductController::class, 'sellerIndex'])->name('index');
                 Route::get('/{product}', [ProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [ProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
@@ -130,6 +131,9 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{product}/images/reorder', [ProductImageController::class, 'reorder'])->name('images.reorder');
                 Route::patch('/{product}/images/{image}/primary', [ProductImageController::class, 'setPrimary'])->name('images.primary');
                 Route::delete('/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('images.destroy');
+            });
+            Route::prefix('/stores/{store}/products')->name('me.stores.products.')->group(function () {
+                Route::get('/', [ProductController::class, 'sellerIndex'])->name('index');
             });
             Route::prefix('/stores/{store}/offer-claims')
                 ->middleware('role:store_employee')

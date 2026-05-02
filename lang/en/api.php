@@ -82,6 +82,8 @@ return [
         'update_failed' => 'Failed to update store. Please try again later.',
         'retrieved' => 'Stores retrieved successfully.',
         'retrieve_failed' => 'Failed to retrieve stores. Please try again later.',
+        'public_retrieved' => 'Stores retrieved successfully.',
+        'public_retrieve_failed' => 'Failed to retrieve stores. Please try again later.',
         'verification_updated' => 'Verification document updated successfully. It will be reviewed by our team.',
         'verification_update_failed' => 'Failed to update verification document. Please try again later.',
     ],
