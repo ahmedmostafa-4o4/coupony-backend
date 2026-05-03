@@ -14,6 +14,7 @@ use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductImage;
 use App\Domain\Product\Models\ProductLike;
+use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductRevision;
@@ -863,6 +864,11 @@ class ProductRepository
     {
         $query->select('products.*');
         $query->withCount('likes');
+        $query->withCount([
+            'comments as comments_count' => fn(Builder $commentQuery) => $commentQuery
+                ->whereNull('parent_id')
+                ->where('status', ProductComment::STATUS_VISIBLE),
+        ]);
 
         if ($user) {
             $query->withExists([
@@ -877,7 +883,13 @@ class ProductRepository
 
     private function loadProductWithLikeMetadata(Product $product, array $relations, ?User $user = null): Product
     {
-        $loaded = $product->load($relations)->loadCount('likes');
+        $loaded = $product->load($relations)
+            ->loadCount('likes')
+            ->loadCount([
+                'comments as comments_count' => fn(Builder $commentQuery) => $commentQuery
+                    ->whereNull('parent_id')
+                    ->where('status', ProductComment::STATUS_VISIBLE),
+            ]);
 
         if ($user) {
             $loaded->setAttribute(

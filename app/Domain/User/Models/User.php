@@ -7,6 +7,8 @@ use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductComment;
+use App\Domain\Product\Models\ProductCommentLike;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\User\Models\UserPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -217,6 +219,16 @@ class User extends Authenticatable
     public function productLikes()
     {
         return $this->hasMany(ProductLike::class, 'user_id');
+    }
+
+    public function productComments()
+    {
+        return $this->hasMany(ProductComment::class, 'user_id');
+    }
+
+    public function productCommentLikes()
+    {
+        return $this->hasMany(ProductCommentLike::class, 'user_id');
     }
 
     public function likedProducts()

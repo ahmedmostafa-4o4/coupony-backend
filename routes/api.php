@@ -20,6 +20,8 @@ use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\CategoryController;
 use App\Application\Http\Controllers\API\V1\ProductImageController;
 use App\Application\Http\Controllers\API\V1\ProductLikeController;
+use App\Application\Http\Controllers\API\V1\ProductCommentController;
+use App\Application\Http\Controllers\API\V1\ProductCommentLikeController;
 use App\Application\Http\Controllers\API\V1\ProductController;
 use App\Application\Http\Controllers\API\V1\ProductRevisionController;
 use App\Application\Http\Controllers\API\V1\ProductVariantController;
@@ -51,6 +53,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/locales', [LocaleController::class, 'index'])->name('locales.index');
     Route::get('/products', [ProductController::class, 'publicIndex'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'publicShow'])->name('products.show');
+    Route::get('/products/{product}/comments', [ProductCommentController::class, 'index'])->name('products.comments.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
     Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
     Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
@@ -99,6 +102,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/products/{product}/claims', [OfferClaimController::class, 'store'])->name('products.claims.store');
         Route::post('/products/{product}/likes', [ProductLikeController::class, 'store'])->name('products.likes.store');
         Route::delete('/products/{product}/likes', [ProductLikeController::class, 'destroy'])->name('products.likes.destroy');
+        Route::post('/products/{product}/comments', [ProductCommentController::class, 'store'])->name('products.comments.store');
+        Route::post('/products/{product}/comments/{comment}/replies', [ProductCommentController::class, 'reply'])->name('products.comments.replies.store');
+        Route::patch('/product-comments/{comment}', [ProductCommentController::class, 'update'])->name('product-comments.update');
+        Route::delete('/product-comments/{comment}', [ProductCommentController::class, 'destroy'])->name('product-comments.destroy');
+        Route::post('/product-comments/{comment}/likes', [ProductCommentLikeController::class, 'store'])->name('product-comments.likes.store');
+        Route::delete('/product-comments/{comment}/likes', [ProductCommentLikeController::class, 'destroy'])->name('product-comments.likes.destroy');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('me.stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
@@ -244,6 +253,8 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{product}', [ProductManagementController::class, 'update'])->name('update');
             Route::delete('/{product}', [ProductManagementController::class, 'destroy'])->name('destroy');
         });
+
+        Route::patch('/product-comments/{comment}/hide', [ProductCommentController::class, 'hide'])->name('admin.product-comments.hide');
 
         // Contact Us Management
         Route::prefix('contact-us')->name('contactUs.get.')->group(function () {

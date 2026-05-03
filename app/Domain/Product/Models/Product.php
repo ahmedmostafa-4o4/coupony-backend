@@ -6,6 +6,7 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\ProductLike;
+use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Store\Models\Store;
@@ -46,6 +47,8 @@ class Product extends Model
         'is_featured',
         'sale_count',
         'redemption_count',
+        'rating_avg',
+        'rating_count',
     ];
 
     protected function casts(): array
@@ -61,6 +64,8 @@ class Product extends Model
             'is_featured' => 'boolean',
             'sale_count' => 'integer',
             'redemption_count' => 'integer',
+            'rating_avg' => 'decimal:2',
+            'rating_count' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
@@ -118,6 +123,11 @@ class Product extends Model
     public function likes()
     {
         return $this->hasMany(ProductLike::class, 'product_id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(ProductComment::class, 'product_id');
     }
 
     public function pendingRevision()

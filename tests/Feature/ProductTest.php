@@ -6,6 +6,8 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductComment;
+use App\Domain\Product\Models\ProductCommentLike;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Store\Models\Store;
@@ -99,7 +101,7 @@ class ProductTest extends TestCase
         Product::factory()->create(['store_id' => $otherStore->id]);
 
         $response = $this->actingAs($seller, 'sanctum')
-            ->getJson("/api/v1/me/stores/{$store->id}/products");
+            ->getJson("/api/v1/stores/{$store->id}/products");
 
         $response->assertOk()
             ->assertJsonCount(2, 'data')
@@ -218,7 +220,7 @@ class ProductTest extends TestCase
             'is_featured' => true,
         ]);
 
-        $response = $this->getJson("/api/v1/stores/{$store->id}/products?featured=1&search=Visible");
+        $response = $this->getJson("/api/v1/public-stores/{$store->id}/products?featured=1&search=Visible");
 
         $response->assertOk()
             ->assertJsonCount(1, 'data')
@@ -455,6 +457,197 @@ class ProductTest extends TestCase
             ->assertNotFound();
 
         $this->assertSame(0, ProductLike::query()->count());
+    }
+
+    public function test_authenticated_user_can_create_one_product_review_and_rating_summary_updates(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments", [
+                'rating' => 4,
+                'body' => 'Solid deal and the product matched the description.',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.product_id', $product->id)
+            ->assertJsonPath('data.rating', 4)
+            ->assertJsonPath('data.likes_count', 0)
+            ->assertJsonPath('data.is_liked', false);
+
+        $this->assertDatabaseHas('product_comments', [
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'review_user_id' => $user->id,
+            'rating' => 4,
+            'status' => ProductComment::STATUS_VISIBLE,
+        ]);
+
+        $product->refresh();
+        $this->assertSame('4.00', (string) $product->rating_avg);
+        $this->assertSame(1, $product->rating_count);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments", [
+                'rating' => 5,
+                'body' => 'Trying a duplicate review.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', __('api.product.comment_duplicate'));
+    }
+
+    public function test_product_review_validation_and_public_product_gate(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+        $pendingProduct = Product::factory()->active()->create([
+            'approval_status' => ProductApprovalStatus::PENDING,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments", [
+                'rating' => 6,
+                'body' => '',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['rating', 'body']);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$pendingProduct->id}/comments", [
+                'rating' => 5,
+                'body' => 'Hidden product review.',
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_nested_replies_are_returned_with_public_comments(): void
+    {
+        $reviewer = $this->customer();
+        $replier = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        $reviewId = $this->actingAs($reviewer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments", [
+                'rating' => 5,
+                'body' => 'Excellent.',
+            ])
+            ->json('data.id');
+
+        $replyId = $this->actingAs($replier, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments/{$reviewId}/replies", [
+                'body' => 'Thanks for the details.',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.rating', null)
+            ->json('data.id');
+
+        $this->actingAs($reviewer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments/{$replyId}/replies", [
+                'body' => 'Happy to help.',
+            ])
+            ->assertCreated();
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/comments");
+
+        $response->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $reviewId)
+            ->assertJsonPath('data.0.replies.0.id', $replyId)
+            ->assertJsonPath('data.0.replies.0.replies.0.body', 'Happy to help.');
+    }
+
+    public function test_comment_like_and_unlike_are_idempotent(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+        $comment = ProductComment::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $this->customer()->id,
+            'rating' => 5,
+            'body' => 'Worth it.',
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/product-comments/{$comment->id}/likes")
+            ->assertOk()
+            ->assertJsonPath('data.likes_count', 1)
+            ->assertJsonPath('data.is_liked', true);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/product-comments/{$comment->id}/likes")
+            ->assertOk()
+            ->assertJsonPath('data.likes_count', 1);
+
+        $this->assertSame(1, ProductCommentLike::query()->count());
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/product-comments/{$comment->id}/likes")
+            ->assertOk()
+            ->assertJsonPath('data.likes_count', 0)
+            ->assertJsonPath('data.is_liked', false);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/product-comments/{$comment->id}/likes")
+            ->assertOk()
+            ->assertJsonPath('data.likes_count', 0);
+    }
+
+    public function test_owner_updates_deletes_and_admin_hides_comments_with_rating_recalculation(): void
+    {
+        $owner = $this->customer();
+        $otherUser = $this->customer();
+        $admin = $this->admin();
+        $product = Product::factory()->active()->approved()->create();
+
+        $commentId = $this->actingAs($owner, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments", [
+                'rating' => 2,
+                'body' => 'Needs work.',
+            ])
+            ->json('data.id');
+
+        $this->actingAs($otherUser, 'sanctum')
+            ->patchJson("/api/v1/product-comments/{$commentId}", ['body' => 'Nope'])
+            ->assertNotFound();
+
+        $this->actingAs($owner, 'sanctum')
+            ->patchJson("/api/v1/product-comments/{$commentId}", [
+                'rating' => 5,
+                'body' => 'Actually great after trying again.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.rating', 5);
+
+        $product->refresh();
+        $this->assertSame('5.00', (string) $product->rating_avg);
+
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/admin/product-comments/{$commentId}/hide")
+            ->assertOk()
+            ->assertJsonPath('data.status', ProductComment::STATUS_HIDDEN);
+
+        $this->getJson("/api/v1/products/{$product->id}/comments")
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        $product->refresh();
+        $this->assertSame('0.00', (string) $product->rating_avg);
+        $this->assertSame(0, $product->rating_count);
+
+        $secondCommentId = $this->actingAs($otherUser, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/comments", [
+                'rating' => 4,
+                'body' => 'Another review for admin deletion.',
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/v1/product-comments/{$secondCommentId}")
+            ->assertOk();
+
+        $this->assertSoftDeleted('product_comments', ['id' => $secondCommentId]);
     }
 
     public function test_category_sync_works(): void
@@ -726,22 +919,24 @@ class ProductTest extends TestCase
         $response = $this->actingAs($seller, 'sanctum')
             ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
                 'images' => [],
-                'variants' => [[
-                    'title' => 'Low Price Variant',
-                    'option_summary' => 'Low price',
-                    'sku' => 'LOW-PRICE',
-                    'barcode' => '111111111',
-                    'original_price' => 10,
-                    'currency' => 'EGP',
-                    'sort_order' => 0,
-                    'is_default' => true,
-                    'is_active' => true,
-                    'inventory_mode' => 'tracked',
-                    'stock_qty' => 2,
-                    'low_stock_threshold' => 1,
-                    'allow_backorder' => false,
-                    'attributes' => [],
-                ]],
+                'variants' => [
+                    [
+                        'title' => 'Low Price Variant',
+                        'option_summary' => 'Low price',
+                        'sku' => 'LOW-PRICE',
+                        'barcode' => '111111111',
+                        'original_price' => 10,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 2,
+                        'low_stock_threshold' => 1,
+                        'allow_backorder' => false,
+                        'attributes' => [],
+                    ]
+                ],
                 'offer' => [
                     'type' => 'fixed',
                     'status' => 'active',
@@ -893,24 +1088,26 @@ class ProductTest extends TestCase
         $response = $this->actingAs($seller, 'sanctum')
             ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
                 'images' => [],
-                'variants' => [[
-                    'title' => 'Spoofed Variant',
-                    'option_summary' => 'Spoofed',
-                    'sku' => 'SPOOF-1',
-                    'barcode' => '222222222',
-                    'original_price' => 100,
-                    'price' => 1,
-                    'compare_at_price' => 999,
-                    'currency' => 'EGP',
-                    'sort_order' => 0,
-                    'is_default' => true,
-                    'is_active' => true,
-                    'inventory_mode' => 'tracked',
-                    'stock_qty' => 5,
-                    'low_stock_threshold' => 1,
-                    'allow_backorder' => false,
-                    'attributes' => [],
-                ]],
+                'variants' => [
+                    [
+                        'title' => 'Spoofed Variant',
+                        'option_summary' => 'Spoofed',
+                        'sku' => 'SPOOF-1',
+                        'barcode' => '222222222',
+                        'original_price' => 100,
+                        'price' => 1,
+                        'compare_at_price' => 999,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => 5,
+                        'low_stock_threshold' => 1,
+                        'allow_backorder' => false,
+                        'attributes' => [],
+                    ]
+                ],
             ]));
 
         $response->assertStatus(422)
@@ -1012,22 +1209,24 @@ class ProductTest extends TestCase
             ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
                 'category_ids' => [$category->id],
                 'images' => [],
-                'variants' => [[
-                    'title' => 'Tracked Variant',
-                    'option_summary' => 'Tracked stock',
-                    'sku' => 'TRACKED-NO-STOCK',
-                    'barcode' => '111222333',
-                    'original_price' => 110,
-                    'currency' => 'EGP',
-                    'sort_order' => 0,
-                    'is_default' => true,
-                    'is_active' => true,
-                    'inventory_mode' => 'tracked',
-                    'stock_qty' => null,
-                    'low_stock_threshold' => null,
-                    'allow_backorder' => false,
-                    'attributes' => [],
-                ]],
+                'variants' => [
+                    [
+                        'title' => 'Tracked Variant',
+                        'option_summary' => 'Tracked stock',
+                        'sku' => 'TRACKED-NO-STOCK',
+                        'barcode' => '111222333',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'tracked',
+                        'stock_qty' => null,
+                        'low_stock_threshold' => null,
+                        'allow_backorder' => false,
+                        'attributes' => [],
+                    ]
+                ],
             ]));
 
         $response->assertStatus(422)
@@ -1044,22 +1243,24 @@ class ProductTest extends TestCase
             ->postJson("/api/v1/stores/{$store->id}/products", $this->payload([
                 'category_ids' => [$category->id],
                 'images' => [],
-                'variants' => [[
-                    'title' => 'Unlimited Variant',
-                    'option_summary' => 'Unlimited stock',
-                    'sku' => 'UNLIMITED-STOCK',
-                    'barcode' => '999888777',
-                    'original_price' => 110,
-                    'currency' => 'EGP',
-                    'sort_order' => 0,
-                    'is_default' => true,
-                    'is_active' => true,
-                    'inventory_mode' => 'unlimited',
-                    'stock_qty' => null,
-                    'low_stock_threshold' => null,
-                    'allow_backorder' => false,
-                    'attributes' => [],
-                ]],
+                'variants' => [
+                    [
+                        'title' => 'Unlimited Variant',
+                        'option_summary' => 'Unlimited stock',
+                        'sku' => 'UNLIMITED-STOCK',
+                        'barcode' => '999888777',
+                        'original_price' => 110,
+                        'currency' => 'EGP',
+                        'sort_order' => 0,
+                        'is_default' => true,
+                        'is_active' => true,
+                        'inventory_mode' => 'unlimited',
+                        'stock_qty' => null,
+                        'low_stock_threshold' => null,
+                        'allow_backorder' => false,
+                        'attributes' => [],
+                    ]
+                ],
             ]));
 
         $response->assertCreated()
@@ -1464,6 +1665,14 @@ class ProductTest extends TestCase
         $customer->assignRole('customer');
 
         return $customer;
+    }
+
+    private function admin(): User
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        return $admin;
     }
 
     private function storeFor(User $user): Store

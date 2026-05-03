@@ -27,6 +27,9 @@ class ProductResource extends JsonResource
             'is_featured' => $this->is_featured,
             'sale_count' => $this->sale_count,
             'redemption_count' => $this->redemption_count,
+            'rating_avg' => (float) ($this->rating_avg ?? 0),
+            'rating_count' => (int) ($this->rating_count ?? 0),
+            'comments_count' => (int) ($this->comments_count ?? 0),
             'likes_count' => (int) ($this->likes_count ?? 0),
             'is_liked' => (bool) ($this->is_liked ?? false),
             'primary_image_url' => $this->whenLoaded('images', function () {

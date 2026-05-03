@@ -57,6 +57,8 @@ class ProductFactory extends Factory
             'is_featured' => false,
             'sale_count' => 0,
             'redemption_count' => 0,
+            'rating_avg' => 0,
+            'rating_count' => 0,
         ];
     }
 
