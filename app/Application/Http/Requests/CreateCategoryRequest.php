@@ -19,7 +19,7 @@ class CreateCategoryRequest extends FormRequest
             'name_en' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('categories', 'slug')],
             'description' => ['nullable', 'string'],
-            'icon' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'icon' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:10240'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],

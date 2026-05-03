@@ -25,8 +25,8 @@ class createStoreCategoryRequest extends FormRequest
             'name_ar' => ['required', 'string', 'max:255', Rule::unique('store_categories', 'name_ar')],
             'name_en' => ['required', 'string', 'max:255', Rule::unique('store_categories', 'name_en')],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('store_categories', 'slug')],
-            'icon' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
-            'image_category' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
+            'icon' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:10240'],
+            'image_category' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:10240'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ];

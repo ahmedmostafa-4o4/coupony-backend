@@ -25,8 +25,8 @@ class updateStoreCategoryRequest extends FormRequest
             'name_ar' => ['sometimes', 'string', 'max:255', Rule::unique('store_categories', 'name_ar')->ignore($this->category->id)],
             'name_en' => ['sometimes', 'string', 'max:255', Rule::unique('store_categories', 'name_en')->ignore($this->category->id)],
             'slug' => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('store_categories', 'slug')->ignore($this->category->id)],
-            'icon' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
-            'image_category' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
+            'icon' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:10240'],
+            'image_category' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:10240'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ];
