@@ -6,7 +6,6 @@ use App\Application\Http\Controllers\Controller;
 use App\Domain\User\Enums\BestOfferTimeCategory;
 use App\Domain\User\Enums\BudgetCategory;
 use App\Domain\User\Enums\CustomerReachMethodEnum;
-use App\Domain\User\Enums\InterestingOfferCategory;
 use App\Domain\User\Enums\PriceCategory;
 use App\Domain\User\Enums\ShoppingStyleCategory;
 use App\Domain\User\Enums\TargetAudienceCategory;
@@ -42,7 +41,7 @@ class OnboardingController extends Controller
 
         $data = $request->validate([
             'interesting_offers' => ['array'],
-            'interesting_offers.*' => ['string', Rule::in(InterestingOfferCategory::values())],
+            'interesting_offers.*' => ['string', Rule::exists('store_categories', 'slug')],
             'shopping_style' => ['array'],
             'shopping_style.*' => ['string', Rule::in(ShoppingStyleCategory::values())],
             'budget' => ['nullable', 'string', Rule::in(BudgetCategory::values())],

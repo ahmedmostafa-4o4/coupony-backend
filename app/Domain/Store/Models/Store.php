@@ -4,6 +4,7 @@ namespace App\Domain\Store\Models;
 
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreHours;
+use App\Domain\Store\Models\StoreComment;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\OfferClaim;
@@ -145,6 +146,11 @@ class Store extends Model
     public function invitations()
     {
         return $this->hasMany(StoreInvitation::class, 'store_id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(StoreComment::class, 'store_id');
     }
 
     public function hasReachedEmployeeLimit(): bool

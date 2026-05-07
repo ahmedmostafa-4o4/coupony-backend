@@ -74,7 +74,6 @@ class OnboardingTest extends TestCase
 
         DB::table('shop_interests')->insert([
             'user_id' => $user->id,
-            'interested_categories' => json_encode(['electronics', 'beauty']),
             'target_audience' => 'new_customers',
             'created_at' => now(),
             'updated_at' => now(),
@@ -86,8 +85,10 @@ class OnboardingTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'interested_categories' => ['electronics', 'beauty'],
                     'target_audience' => 'new_customers',
+                    'customer_reach_method' => null,
+                    'price_category' => null,
+                    'best_offer_time' => null,
                 ],
                 'is_onboarding_completed' => true,
             ]);
