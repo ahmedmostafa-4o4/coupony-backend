@@ -75,6 +75,7 @@ class AuthenticationService
 
         $session = $user->sessions()->create([
             'token' => hash('sha256', $accessToken->plainTextToken),
+            'refresh_token' => hash('sha256', $refreshToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
@@ -138,6 +139,7 @@ class AuthenticationService
 
         $session = $user->sessions()->create([
             'token' => hash('sha256', $accessToken->plainTextToken),
+            'refresh_token' => hash('sha256', $refreshToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
@@ -176,29 +178,40 @@ class AuthenticationService
 
     private function generateRefreshToken(User $user): string
     {
-        $refreshToken = bin2hex(random_bytes(32));
-
-        $user->update([
-            'remember_token' => hash('sha256', $refreshToken),
-        ]);
-
-        return $refreshToken;
+        return bin2hex(random_bytes(32));
     }
 
-    public function refreshToken(string $refreshToken): array
+    public function refreshToken(string $refreshToken, array $context = []): array
     {
         $hashedToken = hash('sha256', $refreshToken);
 
-        $user = User::where('remember_token', $hashedToken)
-            ->where('status', 'active')
-            ->firstOrFail();
+        $session = \App\Domain\User\Models\Session::where('refresh_token', $hashedToken)->firstOrFail();
+        $user = $session->user;
 
-        // Revoke old access tokens
-        $user->tokens()->delete();
+        if ($user->status !== 'active') {
+            throw ValidationException::withMessages([
+                'email' => [__('api.auth.account_suspended')],
+            ]);
+        }
+
+        // Revoke old access token
+        $user->tokens()->where('token', $session->token)->delete();
+        $session->delete();
 
         // Generate new tokens
-        $accessToken = $this->generateAccessToken($user);
+        $accessToken = $this->generateAccessToken($user, $context);
         $newRefreshToken = $this->generateRefreshToken($user);
+
+        // Create new session
+        $newSession = $user->sessions()->create([
+            'token' => hash('sha256', $accessToken->plainTextToken),
+            'refresh_token' => hash('sha256', $newRefreshToken),
+            'ip_address' => $context['ip_address'] ?? null,
+            'user_agent' => $context['user_agent'] ?? null,
+            'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
+            'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
+            'last_activity' => now()->timestamp,
+        ]);
 
         return [
             'access_token' => $accessToken->plainTextToken,

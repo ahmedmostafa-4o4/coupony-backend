@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Application\Http\Controllers\API\V1\Auth;
+
 use App\Application\Http\Controllers\Controller;
 use App\Domain\User\Services\AuthenticationService;
 use Illuminate\Http\JsonResponse;
@@ -24,8 +25,14 @@ class RefreshTokenController extends Controller
                 'refresh_token' => 'required|string',
             ]);
 
+            $context = [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ];
+
             $result = $this->authService->refreshToken(
-                $request->input('refresh_token')
+                $request->input('refresh_token'),
+                $context
             );
 
             return response()->json([
