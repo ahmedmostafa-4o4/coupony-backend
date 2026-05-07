@@ -188,7 +188,7 @@ class LargeDemoSeeder extends Seeder
     private function seedStores(): Collection
     {
         $stores = collect();
-        $storeCategories = StoreCategory::query()->orderBy('id')->get();
+        $storeCategories = StoreCategory::query()->pluck('id', 'slug');
         $socials = Social::query()->get();
         $activeProfiles = $this->storeProfiles();
 
@@ -197,10 +197,7 @@ class LargeDemoSeeder extends Seeder
             $store = $this->createStore($owner, $profile, StoreStatus::ACTIVE, $index);
             $stores->push($store);
 
-            $store->categories()->attach(
-                $storeCategories->slice($index % max(1, $storeCategories->count()), 3)->pluck('id')->all()
-                    ?: $storeCategories->take(3)->pluck('id')->all()
-            );
+            $store->categories()->attach($this->storeCategoryIdsFor($storeCategories, $profile['category']));
 
             $address = $this->createAddress($profile['city'], $profile['name'], $index);
             $store->addresses()->attach($address->id, [
@@ -224,7 +221,7 @@ class LargeDemoSeeder extends Seeder
             ];
 
             $store = $this->createStore($this->sellers[10 + $i], $profile, StoreStatus::PENDING, 20 + $i);
-            $store->categories()->attach($storeCategories->random(min(2, $storeCategories->count()))->pluck('id')->all());
+            $store->categories()->attach($this->storeCategoryIdsFor($storeCategories, $profile['category']));
             $store->addresses()->attach($this->createAddress($profile['city'], $profile['name'], 20 + $i)->id, ['label' => 'main_branch']);
             $this->seedStoreHours($store);
             $this->seedStoreVerifications($store, 'pending');
@@ -237,12 +234,27 @@ class LargeDemoSeeder extends Seeder
             'category' => 'misc',
         ];
         $rejectedStore = $this->createStore($this->customers->first(), $rejectedProfile, StoreStatus::REJECTED, 50);
-        $rejectedStore->categories()->attach($storeCategories->take(1)->pluck('id')->all());
+        $rejectedStore->categories()->attach($this->storeCategoryIdsFor($storeCategories, $rejectedProfile['category']));
         $rejectedStore->addresses()->attach($this->createAddress('Alexandria', 'Rejected Outlet', 50)->id, ['label' => 'main_branch']);
         $this->seedStoreHours($rejectedStore);
         $this->seedStoreVerifications($rejectedStore, 'rejected');
 
         return $stores;
+    }
+
+    private function storeCategoryIdsFor(Collection $storeCategories, string $category): array
+    {
+        $slug = match ($category) {
+            'electronics' => 'electronics',
+            'fashion' => 'fashion-clothing',
+            'food' => 'food-beverages',
+            'home' => 'home-garden',
+            'beauty' => 'beauty-health',
+            'sports' => 'sports-outdoors',
+            default => 'grocery',
+        };
+
+        return array_values(array_filter([$storeCategories->get($slug)]));
     }
 
     private function createStore(User $owner, array $profile, StoreStatus $status, int $index): Store

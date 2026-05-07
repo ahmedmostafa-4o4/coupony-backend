@@ -4,138 +4,41 @@ namespace Database\Seeders;
 
 use App\Domain\Product\Models\Category;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Schema;
 
 class ProductCategorySeeder extends Seeder
 {
     public function run(): void
     {
         $categories = [
-            [
-                'name_en' => 'Electronics',
-                'name_ar' => 'إلكترونيات',
-                'slug' => 'electronics',
-                'description' => 'Devices, accessories, and smart gadgets for daily use.',
-                'icon_url' => config('app.url') . '/storage/categories/electronics.svg',
-                'sort_order' => 10,
-                'children' => [
-                    ['name_en' => 'Smartphones', 'name_ar' => 'هواتف ذكية', 'slug' => 'smartphones', 'sort_order' => 11],
-                    ['name_en' => 'Laptops', 'name_ar' => 'أجهزة لابتوب', 'slug' => 'laptops', 'sort_order' => 12],
-                    ['name_en' => 'Audio', 'name_ar' => 'صوتيات', 'slug' => 'audio', 'sort_order' => 13],
-                ],
-            ],
-            [
-                'name_en' => 'Fashion',
-                'name_ar' => 'أزياء',
-                'slug' => 'fashion',
-                'description' => 'Clothing, footwear, and accessories for every season.',
-                'icon_url' => config('app.url') . '/storage/categories/fashion.svg',
-                'sort_order' => 20,
-                'children' => [
-                    ['name_en' => 'Men Fashion', 'name_ar' => 'أزياء رجالية', 'slug' => 'men-fashion', 'sort_order' => 21],
-                    ['name_en' => 'Women Fashion', 'name_ar' => 'أزياء نسائية', 'slug' => 'women-fashion', 'sort_order' => 22],
-                    ['name_en' => 'Footwear', 'name_ar' => 'أحذية', 'slug' => 'footwear', 'sort_order' => 23],
-                ],
-            ],
-            [
-                'name_en' => 'Food & Beverages',
-                'name_ar' => 'أطعمة ومشروبات',
-                'slug' => 'food-beverages',
-                'description' => 'Meal deals, grocery bundles, and cafe offers.',
-                'icon_url' => config('app.url') . '/storage/categories/food-beverages.svg',
-                'sort_order' => 30,
-                'children' => [
-                    ['name_en' => 'Restaurant Deals', 'name_ar' => 'عروض المطاعم', 'slug' => 'restaurant-deals', 'sort_order' => 31],
-                    ['name_en' => 'Grocery Bundles', 'name_ar' => 'باقات البقالة', 'slug' => 'grocery-bundles', 'sort_order' => 32],
-                    ['name_en' => 'Coffee & Desserts', 'name_ar' => 'قهوة وحلويات', 'slug' => 'coffee-desserts', 'sort_order' => 33],
-                ],
-            ],
-            [
-                'name_en' => 'Home & Garden',
-                'name_ar' => 'المنزل والحديقة',
-                'slug' => 'home-garden',
-                'description' => 'Home essentials, decor, and practical upgrades.',
-                'icon_url' => config('app.url') . '/storage/categories/home-garden.svg',
-                'sort_order' => 40,
-                'children' => [
-                    ['name_en' => 'Home Decor', 'name_ar' => 'ديكور المنزل', 'slug' => 'home-decor', 'sort_order' => 41],
-                    ['name_en' => 'Kitchen Essentials', 'name_ar' => 'أساسيات المطبخ', 'slug' => 'kitchen-essentials', 'sort_order' => 42],
-                ],
-            ],
-            [
-                'name_en' => 'Beauty & Health',
-                'name_ar' => 'الجمال والصحة',
-                'slug' => 'beauty-health',
-                'description' => 'Self-care products, skincare, and wellness bundles.',
-                'icon_url' => config('app.url') . '/storage/categories/beauty-health.svg',
-                'sort_order' => 50,
-                'children' => [
-                    ['name_en' => 'Skincare', 'name_ar' => 'العناية بالبشرة', 'slug' => 'skincare', 'sort_order' => 51],
-                    ['name_en' => 'Wellness', 'name_ar' => 'العناية الصحية', 'slug' => 'wellness', 'sort_order' => 52],
-                ],
-            ],
-            [
-                'name_en' => 'Sports & Outdoors',
-                'name_ar' => 'الرياضة والأنشطة الخارجية',
-                'slug' => 'sports-outdoors',
-                'description' => 'Fitness, outdoor gear, and active lifestyle products.',
-                'icon_url' => config('app.url') . '/storage/categories/sports-outdoors.svg',
-                'sort_order' => 60,
-                'children' => [
-                    ['name_en' => 'Fitness Gear', 'name_ar' => 'معدات اللياقة', 'slug' => 'fitness-gear', 'sort_order' => 61],
-                    ['name_en' => 'Cycling', 'name_ar' => 'الدراجات', 'slug' => 'cycling', 'sort_order' => 62],
-                ],
-            ],
+            ['id' => 1, 'name' => 'Electronics', 'name_ar' => 'إلكترونيات', 'name_en' => 'Electronics', 'slug' => 'electronics', 'description' => 'Devices, accessories, and smart gadgets for daily use.', 'icon_url' => 'categories/1/icon/MhWk41cuGwBOBLFADCvsPQdMyhowxPJ3vIz5Gcdr.png', 'parent_id' => null, 'sort_order' => 1, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-05 16:29:45'],
+            ['id' => 2, 'name' => 'Smartphones', 'name_ar' => 'هواتف ذكية', 'name_en' => 'Smartphones', 'slug' => 'smartphones', 'description' => 'Smartphones offers and curated product selections.', 'icon_url' => 'categories/2/icon/9GPc0RRFYN3fweSLyYJBNChcobrlgelCsxdEJjtV.png', 'parent_id' => 1, 'sort_order' => 2, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-05 16:40:09'],
+            ['id' => 4, 'name' => 'Audio', 'name_ar' => 'صوتيات', 'name_en' => 'Audio', 'slug' => 'audio', 'description' => 'Audio offers and curated product selections.', 'icon_url' => 'categories/4/icon/lrwJgEtVgz4sZas5H6VJ70WgodwV4dImCRJc6Di1.png', 'parent_id' => 1, 'sort_order' => 4, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-07 13:11:53'],
+            ['id' => 5, 'name' => 'Fashion', 'name_ar' => 'أزياء', 'name_en' => 'Fashion', 'slug' => 'fashion', 'description' => 'Clothing, footwear, and accessories for every season.', 'icon_url' => 'categories/5/icon/nkL2S5Z7UYZj7aywp1Q1F2ExzGut09VgeosP1Hlg.jpg', 'parent_id' => null, 'sort_order' => 5, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 6, 'name' => 'Men Fashion', 'name_ar' => 'أزياء رجالية', 'name_en' => 'Men Fashion', 'slug' => 'men-fashion', 'description' => 'Men Fashion offers and curated product selections.', 'icon_url' => 'categories/6/icon/bjLUMro16rm1PqBafSejsJLHjWQyZ5rPTNdTIlxx.png', 'parent_id' => 5, 'sort_order' => 6, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 7, 'name' => 'Women Fashion', 'name_ar' => 'أزياء نسائية', 'name_en' => 'Women Fashion', 'slug' => 'women-fashion', 'description' => 'Women Fashion offers and curated product selections.', 'icon_url' => 'categories/7/icon/4aRO5m8VOUhRwrjnFGrzkoHYTf1AuuJw32SJ0sdk.png', 'parent_id' => 5, 'sort_order' => 7, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 8, 'name' => 'Footwear', 'name_ar' => 'أحذية', 'name_en' => 'Footwear', 'slug' => 'footwear', 'description' => 'Footwear offers and curated product selections.', 'icon_url' => 'categories/8/icon/iJoBIT1VjfZ3IsktQoYtvOxrmE6o31fyctHWxeVo.png', 'parent_id' => 5, 'sort_order' => 8, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 9, 'name' => 'Food & Beverages', 'name_ar' => 'أطعمة ومشروبات', 'name_en' => 'Food & Beverages', 'slug' => 'food-beverages', 'description' => 'Meal deals, grocery bundles, and cafe offers.', 'icon_url' => 'categories/9/icon/DhPFcXZrkVlJ93E6B2EboEbj3ilpWdjHhHTTMg00.jpg', 'parent_id' => null, 'sort_order' => 9, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 10, 'name' => 'Restaurant Deals', 'name_ar' => 'عروض المطاعم', 'name_en' => 'Restaurant Deals', 'slug' => 'restaurant-deals', 'description' => 'Restaurant Deals offers and curated product selections.', 'icon_url' => 'categories/10/icon/OnxHD1EQVYTMvMSsblSqTFdZwswoVHbw3bQQ5olM.jpg', 'parent_id' => 9, 'sort_order' => 10, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 11, 'name' => 'Grocery Bundles', 'name_ar' => 'باقات البقالة', 'name_en' => 'Grocery Bundles', 'slug' => 'grocery-bundles', 'description' => 'Grocery Bundles offers and curated product selections.', 'icon_url' => 'categories/11/icon/knKvYYpCsOYFJdanguATrJZh516HmuR3aSBxRzAL.jpg', 'parent_id' => 9, 'sort_order' => 11, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 12, 'name' => 'Coffee & Desserts', 'name_ar' => 'قهوة وحلويات', 'name_en' => 'Coffee & Desserts', 'slug' => 'coffee-desserts', 'description' => 'Coffee & Desserts offers and curated product selections.', 'icon_url' => 'categories/12/icon/0nf1lrvXIfQsU1CotDU8Bg5Xscql5GgmhdRlIfuk.png', 'parent_id' => 9, 'sort_order' => 12, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 13, 'name' => 'Home & Garden', 'name_ar' => 'المنزل والحديقة', 'name_en' => 'Home & Garden', 'slug' => 'home-garden', 'description' => 'Home essentials, decor, and practical upgrades.', 'icon_url' => 'categories/13/icon/jQBAIeT5clMLO1b9maaI0AJEwGcEjbxu5YaDjBez.webp', 'parent_id' => null, 'sort_order' => 13, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 14, 'name' => 'Home Decor', 'name_ar' => 'ديكور المنزل', 'name_en' => 'Home Decor', 'slug' => 'home-decor', 'description' => 'Home Decor offers and curated product selections.', 'icon_url' => 'categories/14/icon/19h9PYdcJluHXiuJCoLIpnw1ILKNU0bX70mebnNG.png', 'parent_id' => 13, 'sort_order' => 14, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 15, 'name' => 'Kitchen Essentials', 'name_ar' => 'أساسيات المطبخ', 'name_en' => 'Kitchen Essentials', 'slug' => 'kitchen-essentials', 'description' => 'Kitchen Essentials offers and curated product selections.', 'icon_url' => 'categories/15/icon/lRBi8vlJQteq7t0toPX0qPzgbZpiiyZs8vzkZwQp.webp', 'parent_id' => 13, 'sort_order' => 15, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 16, 'name' => 'Beauty & Health', 'name_ar' => 'الجمال والصحة', 'name_en' => 'Beauty & Health', 'slug' => 'beauty-health', 'description' => 'Self-care products, skincare, and wellness bundles.', 'icon_url' => 'categories/16/icon/evRBaMyZ6Rf8ytSPv0uWfTkJB4DtQuzxV6WtNSZR.jpg', 'parent_id' => null, 'sort_order' => 16, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 17, 'name' => 'Skincare', 'name_ar' => 'العناية بالبشرة', 'name_en' => 'Skincare', 'slug' => 'skincare', 'description' => 'Skincare offers and curated product selections.', 'icon_url' => 'categories/17/icon/sG888r4bzDwLziCSXM1lVIU28DpxpGurYp2nzf6X.png', 'parent_id' => 16, 'sort_order' => 17, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 18, 'name' => 'Wellness', 'name_ar' => 'العناية الصحية', 'name_en' => 'Wellness', 'slug' => 'wellness', 'description' => 'Wellness offers and curated product selections.', 'icon_url' => null, 'parent_id' => 16, 'sort_order' => 52, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 19, 'name' => 'Sports & Outdoors', 'name_ar' => 'الرياضة والأنشطة الخارجية', 'name_en' => 'Sports & Outdoors', 'slug' => 'sports-outdoors', 'description' => 'Fitness, outdoor gear, and active lifestyle products.', 'icon_url' => 'categories/19/icon/Dc1MM9m6FvZJAeNtE2BI5bGfOySq8HRyCpAyRtdG.png', 'parent_id' => null, 'sort_order' => 19, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 20, 'name' => 'Fitness Gear', 'name_ar' => 'معدات اللياقة', 'name_en' => 'Fitness Gear', 'slug' => 'fitness-gear', 'description' => 'Fitness Gear offers and curated product selections.', 'icon_url' => 'categories/20/icon/8S1bWmGEW5zvx90p9crrTNTDyiqVSbv6Artq4MSs.png', 'parent_id' => 19, 'sort_order' => 20, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
+            ['id' => 21, 'name' => 'Cycling', 'name_ar' => 'الدراجات', 'name_en' => 'Cycling', 'slug' => 'cycling', 'description' => 'Cycling offers and curated product selections.', 'icon_url' => null, 'parent_id' => 19, 'sort_order' => 62, 'is_active' => true, 'created_at' => '2026-05-02 18:51:07', 'updated_at' => '2026-05-02 18:51:07'],
         ];
 
-        $count = 0;
-
-        foreach ($categories as $categoryData) {
-            $parentPayload = [
-                'name' => $categoryData['name_en'],
-                'name_ar' => $categoryData['name_ar'],
-                'name_en' => $categoryData['name_en'],
-                'description' => $categoryData['description'],
-                'parent_id' => null,
-                'sort_order' => $categoryData['sort_order'],
-                'is_active' => true,
-            ];
-
-            if (Schema::hasColumn('categories', 'icon_url')) {
-                $parentPayload['icon_url'] = $categoryData['icon_url'];
-            }
-
-            $parent = Category::updateOrCreate(
-                ['slug' => $categoryData['slug']],
-                $parentPayload
+        foreach ($categories as $category) {
+            Category::query()->updateOrCreate(
+                ['id' => $category['id']],
+                $category
             );
-
-            $count++;
-
-            foreach ($categoryData['children'] as $childData) {
-                $childPayload = [
-                    'name' => $childData['name_en'],
-                    'name_ar' => $childData['name_ar'],
-                    'name_en' => $childData['name_en'],
-                    'description' => "{$childData['name_en']} offers and curated product selections.",
-                    'parent_id' => $parent->id,
-                    'sort_order' => $childData['sort_order'],
-                    'is_active' => true,
-                ];
-
-                if (Schema::hasColumn('categories', 'icon_url')) {
-                    $childPayload['icon_url'] = config('app.url') . "/storage/categories/{$childData['slug']}.svg";
-                }
-
-                Category::updateOrCreate(
-                    ['slug' => $childData['slug']],
-                    $childPayload
-                );
-
-                $count++;
-            }
         }
 
-        $this->command->info("{$count} product categories seeded");
+        $this->command->info(count($categories) . ' product categories seeded from export');
     }
 }
