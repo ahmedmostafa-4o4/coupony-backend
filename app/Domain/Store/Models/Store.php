@@ -49,6 +49,7 @@ class Store extends Model
         'total_sales',
         'rating_avg',
         'rating_count',
+        'followers_count',
         'shard_key',
         'approved_at',
         'approved_by',
@@ -66,6 +67,7 @@ class Store extends Model
             'total_sales' => 'decimal:2',
             'rating_avg' => 'decimal:2',
             'rating_count' => 'integer',
+            'followers_count' => 'integer',
             'is_verified' => 'boolean',
             'verified_at' => 'datetime',
             'approved_at' => 'datetime',
@@ -141,6 +143,12 @@ class Store extends Model
     public function followers()
     {
         return $this->hasMany(StoreFollowers::class, 'store_id');
+    }
+
+    public function followerUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'store_followers', 'store_id', 'user_id')
+            ->withPivot('notification_enabled', 'followed_at');
     }
 
     public function invitations()

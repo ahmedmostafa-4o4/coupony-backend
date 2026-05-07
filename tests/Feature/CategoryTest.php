@@ -84,6 +84,8 @@ class CategoryTest extends TestCase
     {
         Category::factory()->create([
             'name' => 'Electronics',
+            'name_en' => 'Electronics',
+            'name_ar' => 'Electronics',
             'slug' => 'electronics',
             'is_active' => true,
         ]);

@@ -12,6 +12,8 @@ class StoreFollowers extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     protected $fillable = [
         'store_id',
         'user_id',
@@ -21,8 +23,7 @@ class StoreFollowers extends Model
 
     protected $casts = [
         'followed_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'notification_enabled' => 'boolean',
     ];
 
 

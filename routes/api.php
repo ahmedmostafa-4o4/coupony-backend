@@ -32,6 +32,7 @@ use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreCommentController;
 use App\Application\Http\Controllers\API\V1\StoreCommentLikeController;
 use App\Application\Http\Controllers\API\V1\StoreController;
+use App\Application\Http\Controllers\API\V1\StoreFollowController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Enums\BudgetCategory;
@@ -56,6 +57,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/products', [ProductController::class, 'publicIndex'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'publicShow'])->name('products.show');
     Route::get('/products/{product}/comments', [ProductCommentController::class, 'index'])->name('products.comments.index');
+    Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
     Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
     Route::get('/public-stores/{store}/comments', [StoreCommentController::class, 'index'])->name('public.stores.comments.index');
@@ -119,8 +121,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/store-comments/{comment}/likes', [StoreCommentLikeController::class, 'store'])->name('store-comments.likes.store');
         Route::delete('/store-comments/{comment}/likes', [StoreCommentLikeController::class, 'destroy'])->name('store-comments.likes.destroy');
         Route::patch('/store-comments/{comment}/hide', [StoreCommentController::class, 'hide'])->name('store-comments.hide');
+        Route::post('/public-stores/{store}/follow', [StoreFollowController::class, 'store'])->name('public.stores.follow.store');
+        Route::delete('/public-stores/{store}/follow', [StoreFollowController::class, 'destroy'])->name('public.stores.follow.destroy');
+        Route::patch('/public-stores/{store}/follow/notifications', [StoreFollowController::class, 'toggleNotifications'])->name('public.stores.follow.notifications');
+        Route::get('/public-stores/{store}/followers', [StoreFollowController::class, 'getFollowers'])->name('public.stores.followers.index');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
-        Route::get('/stores', [StoreController::class, 'index'])->name('me.stores.index');
+        Route::get('/me/stores', [StoreController::class, 'index'])->name('me.stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
@@ -155,6 +161,9 @@ Route::prefix('v1')->group(function () {
             Route::prefix('/stores/{store}/products')->name('me.stores.products.')->group(function () {
                 Route::get('/', [ProductController::class, 'sellerIndex'])->name('index');
             });
+            Route::prefix('/me/stores/{store}/products')->name('me.stores.products.')->group(function () {
+                Route::get('/', [ProductController::class, 'sellerIndex'])->name('legacy-index');
+            });
             Route::prefix('/stores/{store}/offer-claims')
                 ->middleware('role:store_employee')
                 ->name('stores.offer-claims.')
@@ -182,6 +191,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
         Route::delete('/me/addresses/{addressId}', [MeAddressController::class, 'destroy'])->name('me.addresses.destroy');
         Route::get('/me/liked-products', [ProductLikeController::class, 'index'])->name('me.products.likes.index');
+        Route::get('/me/followed-stores', [StoreFollowController::class, 'index'])->name('me.followed-stores.index');
     });
 
     // Public Store Categories

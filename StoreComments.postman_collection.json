@@ -1,0 +1,319 @@
+{
+	"info": {
+		"_postman_id": "c92e78b2-b43b-488f-9a74-9f4a56c07ab2",
+		"name": "Store Comments API",
+		"description": "Collection for the Store Comments and Reviews system in Coupony Backend.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "List Store Comments",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/comments?per_page=15",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"public-stores",
+						"{{store_id}}",
+						"comments"
+					],
+					"query": [
+						{
+							"key": "per_page",
+							"value": "15"
+						}
+					]
+				},
+				"description": "Get a paginated list of comments/reviews for a specific public active store. Optional bearer token can be passed to check 'is_liked' status."
+			},
+			"response": []
+		},
+		{
+			"name": "Create Store Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"rating\": 5,\r\n    \"body\": \"This is an amazing store!\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/comments",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"public-stores",
+						"{{store_id}}",
+						"comments"
+					]
+				},
+				"description": "Create a top-level review for a store. Rating is required (1-5)."
+			},
+			"response": []
+		},
+		{
+			"name": "Reply to Comment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"body\": \"Thank you for your review!\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/comments/{{comment_id}}/replies",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"public-stores",
+						"{{store_id}}",
+						"comments",
+						"{{comment_id}}",
+						"replies"
+					]
+				},
+				"description": "Reply to an existing store comment."
+			},
+			"response": []
+		},
+		{
+			"name": "Update Comment",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"rating\": 4,\r\n    \"body\": \"Updated review content.\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/store-comments/{{comment_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"store-comments",
+						"{{comment_id}}"
+					]
+				},
+				"description": "Update own comment. Rating can only be updated for top-level reviews."
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Comment",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/store-comments/{{comment_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"store-comments",
+						"{{comment_id}}"
+					]
+				},
+				"description": "Delete own comment or delete any comment if admin."
+			},
+			"response": []
+		},
+		{
+			"name": "Like Comment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/store-comments/{{comment_id}}/likes",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"store-comments",
+						"{{comment_id}}",
+						"likes"
+					]
+				},
+				"description": "Like a store comment."
+			},
+			"response": []
+		},
+		{
+			"name": "Unlike Comment",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/store-comments/{{comment_id}}/likes",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"store-comments",
+						"{{comment_id}}",
+						"likes"
+					]
+				},
+				"description": "Unlike a store comment."
+			},
+			"response": []
+		},
+		{
+			"name": "Hide Comment (Admin / Store Owner)",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/store-comments/{{comment_id}}/hide",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"store-comments",
+						"{{comment_id}}",
+						"hide"
+					]
+				},
+				"description": "Hide a store comment. Requires Admin role or ownership of the store."
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "store_id",
+			"value": "YOUR_STORE_UUID",
+			"type": "string"
+		},
+		{
+			"key": "comment_id",
+			"value": "YOUR_COMMENT_UUID",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "YOUR_BEARER_TOKEN",
+			"type": "string"
+		}
+	]
+}

@@ -192,7 +192,13 @@ class User extends Authenticatable
 
     public function storeFollowers()
     {
-        return $this->hasMany(StoreFollowers::class , 'user_id');
+        return $this->hasMany(StoreFollowers::class, 'user_id');
+    }
+
+    public function followedStores()
+    {
+        return $this->belongsToMany(\App\Domain\Store\Models\Store::class, 'store_followers', 'user_id', 'store_id')
+            ->withPivot('notification_enabled', 'followed_at');
     }
 
     public function receivedInvitations() { return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invitee_user_id'); } public function sentInvitations() { return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invited_by_user_id'); } public function addresses()

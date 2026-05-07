@@ -290,4 +290,17 @@ return [
         'comment_liked' => 'Store comment liked successfully.',
         'comment_unliked' => 'Store comment unliked successfully.',
     ],
+    'store_follow' => [
+        'followed' => 'Store followed successfully.',
+        'already_following' => 'You are already following this store.',
+        'follow_failed' => 'Failed to follow store. Please try again later.',
+        'unfollowed' => 'Store unfollowed successfully.',
+        'unfollow_failed' => 'Failed to unfollow store. Please try again later.',
+        'not_following' => 'You are not following this store.',
+        'notification_toggled' => 'Follow notification preference updated successfully.',
+        'notification_toggle_failed' => 'Failed to update notification preference. Please try again later.',
+        'followed_stores_retrieved' => 'Followed stores retrieved successfully.',
+        'followed_stores_retrieve_failed' => 'Failed to retrieve followed stores. Please try again later.',
+        'store_not_found' => 'Store not found.',
+    ],
 ];

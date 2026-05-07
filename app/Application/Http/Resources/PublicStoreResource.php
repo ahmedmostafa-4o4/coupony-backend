@@ -27,6 +27,11 @@ class PublicStoreResource extends JsonResource
             'verified_at' => $this->verified_at?->toIso8601String(),
             'rating_avg' => $this->rating_avg,
             'rating_count' => $this->rating_count,
+            'followers_count' => (int) $this->followers_count,
+            'is_following' => $this->whenLoaded('followerUsers', function () use ($request) {
+                $user = $request->user();
+                return $user ? $this->followerUsers->contains('id', $user->id) : false;
+            }, false),
             'created_at' => $this->created_at?->toIso8601String(),
             'categories' => StoreCategoryResource::collection($this->whenLoaded('categories')),
             'addresses' => PublicStoreAddressResource::collection($this->whenLoaded('addresses')),

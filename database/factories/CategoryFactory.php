@@ -10,6 +10,17 @@ class CategoryFactory extends Factory
 {
     protected $model = Category::class;
 
+    public function configure(): static
+    {
+        return $this->afterMaking(function (Category $category) {
+            if (filled($category->name) && $category->name !== $category->name_en) {
+                $category->name_en = $category->name;
+                $category->name_ar = $category->name;
+                $category->slug = Str::slug($category->name);
+            }
+        });
+    }
+
     public function definition(): array
     {
         $nameEn = ucfirst(fake()->unique()->words(2, true));

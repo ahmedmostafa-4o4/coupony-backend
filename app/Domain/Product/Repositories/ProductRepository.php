@@ -896,11 +896,13 @@ class ProductRepository
                 'is_liked',
                 $loaded->likes()->where('user_id', $user->id)->exists()
             );
+            $loaded->syncOriginalAttribute('is_liked');
 
             return $loaded;
         }
 
         $loaded->setAttribute('is_liked', false);
+        $loaded->syncOriginalAttribute('is_liked');
 
         return $loaded;
     }

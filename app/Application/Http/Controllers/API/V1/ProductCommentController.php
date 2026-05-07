@@ -55,7 +55,7 @@ class ProductCommentController extends Controller
 
         $validated = $request->validate([
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
-            'body' => ['nullable', 'string', 'min:1', 'max:5000'],
+            'body' => ['required', 'string', 'min:1', 'max:5000'],
         ]);
 
         try {

@@ -1,0 +1,225 @@
+{
+  "info": {
+    "_postman_id": "f3f67ea1-6f8a-4d34-99cf-c8f61d292f84",
+    "name": "Store Follow API Collection",
+    "description": "Postman collection for Store Follow system endpoints in Coupony backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Follow Store",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/follow",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public-stores",
+            "{{store_id}}",
+            "follow"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Unfollow Store",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/follow",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public-stores",
+            "{{store_id}}",
+            "follow"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Toggle Follow Notifications",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/follow/notifications",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public-stores",
+            "{{store_id}}",
+            "follow",
+            "notifications"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Store Followers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/public-stores/{{store_id}}/followers?per_page={{per_page}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public-stores",
+            "{{store_id}}",
+            "followers"
+          ],
+          "query": [
+            {
+              "key": "per_page",
+              "value": "{{per_page}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get My Followed Stores",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/me/followed-stores?per_page={{per_page}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "me",
+            "followed-stores"
+          ],
+          "query": [
+            {
+              "key": "per_page",
+              "value": "{{per_page}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "store_id",
+      "value": ""
+    },
+    {
+      "key": "per_page",
+      "value": "15"
+    }
+  ]
+}

@@ -185,8 +185,12 @@ class AuthenticationService
     {
         $hashedToken = hash('sha256', $refreshToken);
 
-        $session = \App\Domain\User\Models\Session::where('refresh_token', $hashedToken)->firstOrFail();
-        $user = $session->user;
+        $session = \App\Domain\User\Models\Session::where('refresh_token', $hashedToken)->first();
+        $user = $session?->user;
+
+        if (!$user) {
+            $user = User::query()->where('remember_token', $hashedToken)->firstOrFail();
+        }
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
@@ -194,9 +198,12 @@ class AuthenticationService
             ]);
         }
 
-        // Revoke old access token
-        $user->tokens()->where('token', $session->token)->delete();
-        $session->delete();
+        if ($session) {
+            $user->tokens()->where('token', $session->token)->delete();
+            $session->delete();
+        } else {
+            $user->update(['remember_token' => null]);
+        }
 
         // Generate new tokens
         $accessToken = $this->generateAccessToken($user, $context);
@@ -212,6 +219,8 @@ class AuthenticationService
             'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
             'last_activity' => now()->timestamp,
         ]);
+
+        $user->update(['remember_token' => hash('sha256', $newRefreshToken)]);
 
         return [
             'access_token' => $accessToken->plainTextToken,
