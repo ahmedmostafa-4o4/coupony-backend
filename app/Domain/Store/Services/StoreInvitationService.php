@@ -210,23 +210,51 @@ class StoreInvitationService
         });
     }
 
-    public function listStoreInvitations(Store $store, ?string $status = null, int $perPage = 15): LengthAwarePaginator
+    public function listStoreInvitations(Store $store, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = $store->invitations()->with('invitee.profile');
 
-        if ($status) {
-            $query->where('status', $status);
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['role'])) {
+            $query->where('role', $filters['role']);
+        }
+
+        if (!empty($filters['search'])) {
+            $query->whereHas('invitee', function ($q) use ($filters) {
+                $q->where('email', 'like', '%' . $filters['search'] . '%')
+                  ->orWhereHas('profile', function ($q2) use ($filters) {
+                      $q2->where('first_name', 'like', '%' . $filters['search'] . '%')
+                         ->orWhere('last_name', 'like', '%' . $filters['search'] . '%');
+                  });
+            });
         }
 
         return $query->latest()->paginate($perPage);
     }
 
-    public function listUserInvitations(User $user, ?string $status = 'pending', int $perPage = 15): LengthAwarePaginator
+    public function listUserInvitations(User $user, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = $user->receivedInvitations()->with('store');
 
-        if ($status) {
-            $query->where('status', $status);
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        } else {
+            // Default to pending if not specified, or allow fetching all if explicitly asked? 
+            // The previous default was pending. We will keep it but allow overriding.
+            if (!isset($filters['status'])) {
+                $query->where('status', 'pending');
+            }
+        }
+
+        if (!empty($filters['role'])) {
+            $query->where('role', $filters['role']);
+        }
+
+        if (!empty($filters['store_id'])) {
+            $query->where('store_id', $filters['store_id']);
         }
 
         return $query->latest()->paginate($perPage);

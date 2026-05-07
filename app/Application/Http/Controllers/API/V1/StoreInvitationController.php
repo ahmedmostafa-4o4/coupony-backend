@@ -45,10 +45,10 @@ class StoreInvitationController extends Controller
         $this->applyAuthenticatedLocale($request);
         $this->authorize('manageInvitations', $store);
 
-        $status = $request->query('status');
+        $filters = $request->only(['status', 'role', 'search']);
         $perPage = (int) $request->query('per_page', 15);
 
-        $invitations = $this->invitationService->listStoreInvitations($store, $status, $perPage);
+        $invitations = $this->invitationService->listStoreInvitations($store, $filters, $perPage);
 
         return $this->localizedJson([
             'success' => true,
@@ -108,9 +108,29 @@ class StoreInvitationController extends Controller
         $this->applyAuthenticatedLocale($request);
         $this->authorize('manageEmployees', $store);
 
-        $employees = StoreEmployee::with('user.profile')
-            ->where('store_id', $store->id)
-            ->paginate((int) $request->query('per_page', 15));
+        $query = StoreEmployee::with('user.profile')
+            ->where('store_id', $store->id);
+
+        if ($request->has('role')) {
+            $query->where('role', $request->query('role'));
+        }
+
+        if ($request->has('address_id')) {
+            $query->where('address_id', $request->query('address_id'));
+        }
+
+        if ($request->has('search')) {
+            $search = $request->query('search');
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('email', 'like', '%' . $search . '%')
+                  ->orWhereHas('profile', function ($q2) use ($search) {
+                      $q2->where('first_name', 'like', '%' . $search . '%')
+                         ->orWhere('last_name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        $employees = $query->paginate((int) $request->query('per_page', 15));
 
         return $this->localizedJson([
             'success' => true,
@@ -172,10 +192,16 @@ class StoreInvitationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        $status = $request->query('status', 'pending');
+        // Keep 'status' as default pending if not present in request. 
+        // We use $request->all() combined with the default if status is missing.
+        $filters = $request->only(['status', 'role', 'store_id']);
+        if (!$request->has('status')) {
+            $filters['status'] = 'pending';
+        }
+
         $perPage = (int) $request->query('per_page', 15);
 
-        $invitations = $this->invitationService->listUserInvitations($request->user(), $status, $perPage);
+        $invitations = $this->invitationService->listUserInvitations($request->user(), $filters, $perPage);
 
         return $this->localizedJson([
             'success' => true,
