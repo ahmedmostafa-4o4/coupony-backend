@@ -142,6 +142,21 @@ class Store extends Model
         return $this->hasMany(StoreFollowers::class, 'store_id');
     }
 
+    public function invitations()
+    {
+        return $this->hasMany(StoreInvitation::class, 'store_id');
+    }
+
+    public function hasReachedEmployeeLimit(): bool
+    {
+        $maxEmployees = config('store.max_employees', 10);
+        
+        $currentEmployees = $this->employees()->count();
+        $pendingInvitations = $this->invitations()->pending()->where('expires_at', '>', now())->count();
+        
+        return ($currentEmployees + $pendingInvitations) >= $maxEmployees;
+    }
+
     public function userRoles()
     {
         return $this->hasMany(UserRoles::class, 'store_id');

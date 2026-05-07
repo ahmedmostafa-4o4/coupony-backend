@@ -15,6 +15,12 @@ class StoreEmployee extends Model
     protected $fillable = [
         'store_id',
         'user_id',
+        'role',
+        'permissions',
+    ];
+
+    protected $casts = [
+        'permissions' => 'array',
     ];
 
     public function store()

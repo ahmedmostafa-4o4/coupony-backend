@@ -195,7 +195,7 @@ class User extends Authenticatable
         return $this->hasMany(StoreFollowers::class , 'user_id');
     }
 
-    public function addresses()
+    public function receivedInvitations() { return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invitee_user_id'); } public function sentInvitations() { return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invited_by_user_id'); } public function addresses()
     {
         return $this->morphToMany(Address::class , 'owner', 'addressables')
             ->withPivot([
@@ -272,3 +272,4 @@ class User extends Authenticatable
         ])->save();
     }
 }
+

@@ -152,7 +152,20 @@ Route::prefix('v1')->group(function () {
                     Route::get('/{claim}', [StoreOfferClaimController::class, 'show'])->name('show');
                     Route::post('/redeem', [StoreOfferClaimController::class, 'redeem'])->name('redeem');
                 });
+            Route::prefix('/stores/{store}/invitations')->name('stores.invitations.')->group(function () {
+                Route::post('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'store'])->name('store');
+                Route::get('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'index'])->name('index');
+                Route::delete('/{invitation}', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'destroy'])->name('destroy');
+                Route::post('/{invitation}/resend', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'resend'])->name('resend');
+            });
+            Route::prefix('/stores/{store}/employees')->name('stores.employees.')->group(function () {
+                Route::get('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'employees'])->name('index');
+                Route::delete('/{user}', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'removeEmployee'])->name('destroy');
+            });
         });
+        Route::post('/invitations/{invitation}/accept', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'accept'])->name('invitations.accept');
+        Route::post('/invitations/{invitation}/decline', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'decline'])->name('invitations.decline');
+        Route::get('/me/invitations', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'myInvitations'])->name('me.invitations');
         Route::get('/me/addresses', [MeAddressController::class, 'index'])->name('me.addresses.index');
         Route::post('/me/addresses', [MeAddressController::class, 'store'])->name('me.addresses.store');
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');

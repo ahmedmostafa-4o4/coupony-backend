@@ -79,4 +79,14 @@ class StorePolicy
         return $user->hasRole('store_employee')
             && $store->hasEmployee($user);
     }
+
+    public function manageInvitations(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id;
+    }
+
+    public function manageEmployees(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id;
+    }
 }
