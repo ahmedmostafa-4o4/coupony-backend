@@ -31,6 +31,8 @@ class ProductResource extends JsonResource
             'rating_count' => (int) ($this->rating_count ?? 0),
             'comments_count' => (int) ($this->comments_count ?? 0),
             'likes_count' => (int) ($this->likes_count ?? 0),
+            'views_count' => (int) ($this->views_count ?? 0),
+            'unique_viewers_count' => (int) ($this->unique_viewers_count ?? 0),
             'is_liked' => (bool) ($this->is_liked ?? false),
             'primary_image_url' => $this->whenLoaded('images', function () {
                 $primaryImage = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
@@ -61,6 +63,10 @@ class ProductResource extends JsonResource
                     ? ProductRevisionResource::make($this->pendingRevision)->resolve()
                     : null;
             }),
+            'recent_viewers' => $this->when(
+                $this->resource->offsetExists('recent_viewers'),
+                fn() => $this->recent_viewers ?? []
+            ),
         ];
     }
 }

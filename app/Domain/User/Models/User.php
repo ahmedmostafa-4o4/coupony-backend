@@ -10,6 +10,7 @@ use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductCommentLike;
 use App\Domain\Product\Models\ProductLike;
+use App\Domain\Product\Models\ProductView;
 use App\Domain\User\Models\UserPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -225,6 +226,11 @@ class User extends Authenticatable
     public function productLikes()
     {
         return $this->hasMany(ProductLike::class, 'user_id');
+    }
+
+    public function productViews()
+    {
+        return $this->hasMany(ProductView::class, 'user_id');
     }
 
     public function productComments()

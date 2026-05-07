@@ -19,6 +19,7 @@ use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Models\ProductVariant;
+use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use DB;
@@ -774,12 +775,16 @@ class ProductRepository
 
     public function loadSellerProduct(Product $product, ?User $user = null): Product
     {
-        return $this->loadProductWithLikeMetadata($product, $this->sellerRelations(), $user);
+        return $this->attachRecentViewers(
+            $this->loadProductWithLikeMetadata($product, $this->sellerRelations(), $user)
+        );
     }
 
     public function loadAdminProduct(Product $product): Product
     {
-        return $this->loadProductWithLikeMetadata($product, $this->adminRelations());
+        return $this->attachRecentViewers(
+            $this->loadProductWithLikeMetadata($product, $this->adminRelations())
+        );
     }
 
     public function loadPublicProduct(Product $product, ?User $user = null): Product
@@ -804,6 +809,20 @@ class ProductRepository
         return ProductLike::query()->firstOrCreate([
             'product_id' => $product->id,
             'user_id' => $user->id,
+        ]);
+    }
+
+    public function recordView(
+        Product $product,
+        ?User $user = null,
+        ?string $ipAddress = null,
+        ?string $userAgent = null
+    ): ProductView {
+        return ProductView::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user?->id,
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
         ]);
     }
 
@@ -864,6 +883,12 @@ class ProductRepository
     {
         $query->select('products.*');
         $query->withCount('likes');
+        $query->withCount('views');
+        $query->withCount([
+            'views as unique_viewers_count' => fn(Builder $viewQuery) => $viewQuery
+                ->select(DB::raw('count(distinct user_id)'))
+                ->whereNotNull('user_id'),
+        ]);
         $query->withCount([
             'comments as comments_count' => fn(Builder $commentQuery) => $commentQuery
                 ->whereNull('parent_id')
@@ -885,6 +910,12 @@ class ProductRepository
     {
         $loaded = $product->load($relations)
             ->loadCount('likes')
+            ->loadCount('views')
+            ->loadCount([
+                'views as unique_viewers_count' => fn(Builder $viewQuery) => $viewQuery
+                    ->select(DB::raw('count(distinct user_id)'))
+                    ->whereNotNull('user_id'),
+            ])
             ->loadCount([
                 'comments as comments_count' => fn(Builder $commentQuery) => $commentQuery
                     ->whereNull('parent_id')
@@ -905,6 +936,39 @@ class ProductRepository
         $loaded->syncOriginalAttribute('is_liked');
 
         return $loaded;
+    }
+
+    private function attachRecentViewers(Product $product, int $limit = 20): Product
+    {
+        $recentViewers = ProductView::query()
+            ->where('product_id', $product->id)
+            ->whereNotNull('user_id')
+            ->with(['user.profile'])
+            ->latest()
+            ->limit($limit * 10)
+            ->get()
+            ->map(function (ProductView $view) {
+                if (! $view->user) {
+                    return null;
+                }
+
+                return [
+                    'id' => $view->user->id,
+                    'full_name' => $view->user->full_name,
+                    'avatar_url' => $view->user->avatar,
+                    'viewed_at' => $view->created_at?->toIso8601String(),
+                ];
+            })
+            ->filter()
+            ->unique('id')
+            ->take($limit)
+            ->values()
+            ->all();
+
+        $product->setAttribute('recent_viewers', $recentViewers);
+        $product->syncOriginalAttribute('recent_viewers');
+
+        return $product;
     }
 
     private function applySearch(Builder $query, string $search): Builder

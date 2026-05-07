@@ -232,8 +232,11 @@ class ProductController extends Controller
         }
 
         try {
+            $viewer = $this->resolveAuthenticatedUser($request);
+            $this->products->recordView($product, $viewer, $request->ip(), $request->userAgent());
+
             return $this->successResponse(
-                new ProductResource($this->products->loadPublicProduct($product, $this->resolveAuthenticatedUser($request))),
+                new ProductResource($this->products->loadPublicProduct($product, $viewer)),
                 __('api.product.public_details_retrieved')
             );
         } catch (\Throwable $throwable) {

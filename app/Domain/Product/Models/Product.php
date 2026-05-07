@@ -9,6 +9,7 @@ use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductRevision;
+use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -128,6 +129,11 @@ class Product extends Model
     public function comments()
     {
         return $this->hasMany(ProductComment::class, 'product_id');
+    }
+
+    public function views()
+    {
+        return $this->hasMany(ProductView::class, 'product_id');
     }
 
     public function pendingRevision()
