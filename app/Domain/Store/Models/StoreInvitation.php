@@ -15,6 +15,7 @@ class StoreInvitation extends Model
 
     protected $fillable = [
         'store_id',
+        'address_id',
         'invited_by_user_id',
         'invitee_user_id',
         'role',
@@ -33,6 +34,11 @@ class StoreInvitation extends Model
         'accepted_at' => 'datetime',
         'declined_at' => 'datetime',
     ];
+
+    public function address(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\User\Models\Address::class);
+    }
 
     public function store(): BelongsTo
     {

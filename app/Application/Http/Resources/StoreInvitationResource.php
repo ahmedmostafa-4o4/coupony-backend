@@ -12,6 +12,7 @@ class StoreInvitationResource extends JsonResource
         return [
             'id' => $this->id,
             'store_id' => $this->store_id,
+            'address_id' => $this->address_id,
             'role' => $this->role,
             'permissions' => $this->permissions,
             'status' => $this->status,
@@ -21,6 +22,7 @@ class StoreInvitationResource extends JsonResource
             'declined_at' => $this->declined_at,
             'created_at' => $this->created_at,
             'store' => new StoreResource($this->whenLoaded('store')),
+            'address' => new AddressResource($this->whenLoaded('address')),
             'invited_by' => new UserResource($this->whenLoaded('invitedBy')),
             'invitee' => new UserResource($this->whenLoaded('invitee')),
         ];

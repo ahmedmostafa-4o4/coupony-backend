@@ -63,12 +63,22 @@ class StoreInvitationService
             ]);
         }
 
+        if (!empty($data['address_id'])) {
+            $addressExists = $store->addresses()->where('addresses.id', $data['address_id'])->exists();
+            if (!$addressExists) {
+                throw ValidationException::withMessages([
+                    'address_id' => [__('api.common.validation_failed')],
+                ]);
+            }
+        }
+
         return DB::transaction(function () use ($store, $sender, $invitee, $data) {
             $expiryHours = config('store.invitation_expiry_hours', 48);
             
             $invitation = $store->invitations()->create([
                 'invited_by_user_id' => $sender->id,
                 'invitee_user_id' => $invitee->id,
+                'address_id' => $data['address_id'] ?? null,
                 'role' => $data['role'],
                 'permissions' => $data['permissions'] ?? null,
                 'status' => InvitationStatus::PENDING,
@@ -124,6 +134,7 @@ class StoreInvitationService
                 [
                     'role' => $invitation->role,
                     'permissions' => $invitation->permissions,
+                    'address_id' => $invitation->address_id,
                 ]
             );
 

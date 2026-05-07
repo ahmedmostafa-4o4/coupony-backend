@@ -14,6 +14,7 @@ class StoreEmployee extends Model
 
     protected $fillable = [
         'store_id',
+        'address_id',
         'user_id',
         'role',
         'permissions',
@@ -22,6 +23,11 @@ class StoreEmployee extends Model
     protected $casts = [
         'permissions' => 'array',
     ];
+
+    public function address()
+    {
+        return $this->belongsTo(\App\Domain\User\Models\Address::class);
+    }
 
     public function store()
     {
