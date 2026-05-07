@@ -84,7 +84,7 @@ class StoreInvitationService
                 'email',
                 [
                     'invitation_id' => $invitation->id,
-                    'store_id' => $store->id,StoreInvitationController
+                    'store_id' => $store->id,
                 ]
             );
 
