@@ -57,7 +57,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/products', [ProductController::class, 'publicIndex'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'publicShow'])->name('products.show');
     Route::get('/products/{product}/comments', [ProductCommentController::class, 'index'])->name('products.comments.index');
-    Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
+    // Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
     Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
     Route::get('/public-stores/{store}/comments', [StoreCommentController::class, 'index'])->name('public.stores.comments.index');
@@ -126,7 +126,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/public-stores/{store}/follow/notifications', [StoreFollowController::class, 'toggleNotifications'])->name('public.stores.follow.notifications');
         Route::get('/public-stores/{store}/followers', [StoreFollowController::class, 'getFollowers'])->name('public.stores.followers.index');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
-        Route::get('/me/stores', [StoreController::class, 'index'])->name('me.stores.index');
+        Route::get('/stores', [StoreController::class, 'index'])->name('me.stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
