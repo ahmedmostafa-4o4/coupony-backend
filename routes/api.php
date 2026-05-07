@@ -111,12 +111,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/product-comments/{comment}', [ProductCommentController::class, 'destroy'])->name('product-comments.destroy');
         Route::post('/product-comments/{comment}/likes', [ProductCommentLikeController::class, 'store'])->name('product-comments.likes.store');
         Route::delete('/product-comments/{comment}/likes', [ProductCommentLikeController::class, 'destroy'])->name('product-comments.likes.destroy');
+        Route::patch('/product-comments/{comment}/hide', [ProductCommentController::class, 'hide'])->name('product-comments.hide');
         Route::post('/public-stores/{store}/comments', [StoreCommentController::class, 'store'])->name('public.stores.comments.store');
         Route::post('/public-stores/{store}/comments/{comment}/replies', [StoreCommentController::class, 'reply'])->name('public.stores.comments.replies.store');
         Route::patch('/store-comments/{comment}', [StoreCommentController::class, 'update'])->name('store-comments.update');
         Route::delete('/store-comments/{comment}', [StoreCommentController::class, 'destroy'])->name('store-comments.destroy');
         Route::post('/store-comments/{comment}/likes', [StoreCommentLikeController::class, 'store'])->name('store-comments.likes.store');
         Route::delete('/store-comments/{comment}/likes', [StoreCommentLikeController::class, 'destroy'])->name('store-comments.likes.destroy');
+        Route::patch('/store-comments/{comment}/hide', [StoreCommentController::class, 'hide'])->name('store-comments.hide');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('me.stores.index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');

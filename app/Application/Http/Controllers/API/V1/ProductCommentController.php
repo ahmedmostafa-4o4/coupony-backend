@@ -155,10 +155,21 @@ class ProductCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
+        $user = $request->user();
+        $isAdmin = clone $user;
+        $isAdmin = $isAdmin->hasRole('admin');
+
+        $comment->loadMissing('product.store');
+        $isOwner = $comment->product?->store?->owner_user_id === $user->id;
+
+        if (!$isAdmin && !$isOwner) {
+            return $this->errorResponse(__('api.common.unauthorized'), 403);
+        }
+
         $comment->update([
             'status' => ProductComment::STATUS_HIDDEN,
             'hidden_at' => now(),
-            'hidden_by' => $request->user()->id,
+            'hidden_by' => $user->id,
         ]);
 
         return $this->successResponse(

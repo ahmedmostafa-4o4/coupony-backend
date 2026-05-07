@@ -154,10 +154,21 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
+        $user = $request->user();
+        $isAdmin = clone $user;
+        $isAdmin = $isAdmin->hasRole('admin');
+
+        $comment->loadMissing('store');
+        $isOwner = $comment->store?->owner_user_id === $user->id;
+
+        if (!$isAdmin && !$isOwner) {
+            return $this->errorResponse(__('api.common.unauthorized'), 403);
+        }
+
         $comment->update([
             'status' => StoreComment::STATUS_HIDDEN,
             'hidden_at' => now(),
-            'hidden_by' => $request->user()->id,
+            'hidden_by' => $user->id,
         ]);
 
         return $this->successResponse(

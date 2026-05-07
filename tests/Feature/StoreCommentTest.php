@@ -261,6 +261,33 @@ class StoreCommentTest extends TestCase
         ]);
     }
 
+    public function test_owner_can_hide_store_comment(): void
+    {
+        $owner = User::factory()->create();
+        $store = Store::factory()->active()->create(['owner_user_id' => $owner->id]);
+        $user = User::factory()->create();
+        $token = $owner->createToken('test-token')->plainTextToken;
+
+        $review = StoreComment::create([
+            'store_id' => $store->id,
+            'user_id' => $user->id,
+            'rating' => 1,
+            'body' => 'Spam content',
+        ]);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/v1/store-comments/{$review->id}/hide");
+
+        $response->assertOk()
+            ->assertJsonPath('data.status', 'hidden');
+
+        $this->assertDatabaseHas('store_comments', [
+            'id' => $review->id,
+            'status' => 'hidden',
+            'hidden_by' => $owner->id,
+        ]);
+    }
+
     // ──────────────────────────────────────────────
     //  Like / Unlike
     // ──────────────────────────────────────────────
