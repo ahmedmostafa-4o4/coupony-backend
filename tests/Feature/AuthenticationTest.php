@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\Session;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -170,14 +171,68 @@ class AuthenticationTest extends TestCase
             'status' => 'active',
             'email_verified_at' => now(),
         ]);
+        $user->assignRole('customer');
 
-        $token = $user->createToken('test-token')->plainTextToken;
+        $login = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'device_name' => 'Primary Device',
+            'role' => 'customer',
+        ]);
+
+        $token = $login->json('data.access_token');
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
             ->assertJson(['message' => __('api.auth.logout_successful')]);
+
+        $this->assertDatabaseCount('sessions', 0);
+    }
+
+    public function test_logout_only_revokes_current_device()
+    {
+        $user = User::factory()->create([
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+
+        $firstLogin = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'device_name' => 'Primary Device',
+            'role' => 'customer',
+        ])->assertOk();
+
+        $secondLogin = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'device_name' => 'Secondary Device',
+            'role' => 'customer',
+        ])->assertOk();
+
+        $firstToken = $firstLogin->json('data.access_token');
+        $secondToken = $secondLogin->json('data.access_token');
+
+        $this->withHeader('Authorization', "Bearer {$firstToken}")
+            ->postJson('/api/v1/auth/logout')
+            ->assertOk();
+
+        app('auth')->forgetGuards();
+
+        $this->withHeader('Authorization', "Bearer {$firstToken}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(401);
+
+        app('auth')->forgetGuards();
+
+        $this->withHeader('Authorization', "Bearer {$secondToken}")
+            ->getJson('/api/v1/auth/me')
+            ->assertOk();
+
+        $this->assertDatabaseCount('sessions', 1);
     }
 
     public function test_user_can_get_profile()
@@ -364,10 +419,18 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create([
             'status' => 'active',
+            'email_verified_at' => now(),
         ]);
+        $user->assignRole('customer');
 
-        $refreshToken = bin2hex(random_bytes(32));
-        $user->update(['remember_token' => hash('sha256', $refreshToken)]);
+        $loginResponse = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'device_name' => 'Refresh Device',
+            'role' => 'customer',
+        ]);
+        $loginResponse->assertOk();
+        $refreshToken = $loginResponse->json('data.refresh_token');
 
         $response = $this->postJson('/api/v1/auth/refresh', [
             'refresh_token' => $refreshToken,
@@ -383,6 +446,56 @@ class AuthenticationTest extends TestCase
                     'expires_in',
                 ],
             ]);
+
+        $this->assertDatabaseMissing('sessions', [
+            'refresh_token' => hash('sha256', $refreshToken),
+        ]);
+        $this->assertDatabaseHas('sessions', [
+            'user_id' => $user->id,
+            'refresh_token' => hash('sha256', $response->json('data.refresh_token')),
+        ]);
+    }
+
+    public function test_expired_refresh_token_returns_unauthorized()
+    {
+        $user = User::factory()->create([
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+
+        $loginResponse = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'device_name' => 'Expired Refresh Device',
+            'role' => 'customer',
+        ]);
+        $refreshToken = $loginResponse->json('data.refresh_token');
+
+        Session::query()->where('user_id', $user->id)->update([
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $this->postJson('/api/v1/auth/refresh', [
+            'refresh_token' => $refreshToken,
+        ])->assertStatus(401)
+            ->assertJson(['message' => __('api.auth.invalid_refresh_token')]);
+    }
+
+    public function test_legacy_remember_token_refresh_returns_unauthorized()
+    {
+        $user = User::factory()->create([
+            'status' => 'active',
+            'remember_token' => hash('sha256', bin2hex(random_bytes(32))),
+        ]);
+
+        $plainRefreshToken = bin2hex(random_bytes(32));
+        $user->update(['remember_token' => hash('sha256', $plainRefreshToken)]);
+
+        $this->postJson('/api/v1/auth/refresh', [
+            'refresh_token' => $plainRefreshToken,
+        ])->assertStatus(401)
+            ->assertJson(['message' => __('api.auth.invalid_refresh_token')]);
     }
 
     public function test_suspended_user_cannot_login()

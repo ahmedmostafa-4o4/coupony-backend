@@ -4,9 +4,11 @@ namespace Tests\Unit;
 
 use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
+use App\Domain\User\Models\Session;
 use App\Domain\User\Models\User;
 use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Services\OtpService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -59,6 +61,14 @@ class AuthenticationServiceTest extends TestCase
         $this->assertArrayHasKey('refresh_token', $result);
         $this->assertArrayHasKey('user', $result);
         $this->assertEquals('Bearer', $result['token_type']);
+        $this->assertDatabaseHas('sessions', [
+            'user_id' => $user->id,
+            'token' => $user->tokens()->first()->token,
+            'refresh_token' => hash('sha256', $result['refresh_token']),
+        ]);
+        $this->assertTrue(
+            Session::query()->where('user_id', $user->id)->firstOrFail()->expires_at->greaterThan(now()->addDays(29))
+        );
     }
 
     public function test_login_fails_with_invalid_credentials()
@@ -118,11 +128,21 @@ class AuthenticationServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $token = $user->createToken('test-token');
+        $user->sessions()->create([
+            'token' => $token->accessToken->token,
+            'refresh_token' => hash('sha256', bin2hex(random_bytes(32))),
+            'last_activity' => now()->timestamp,
+            'expires_at' => now()->addDays(30),
+        ]);
 
         $this->authService->logout($user, $token->plainTextToken);
 
         $this->assertDatabaseMissing('personal_access_tokens', [
             'tokenable_id' => $user->id,
+        ]);
+        $this->assertDatabaseMissing('sessions', [
+            'user_id' => $user->id,
+            'token' => $token->accessToken->token,
         ]);
     }
 
@@ -143,16 +163,60 @@ class AuthenticationServiceTest extends TestCase
     {
         $user = User::factory()->create([
             'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+
+        $issued = $this->authService->issueTokensForUser($user, [
+            'device_name' => 'Test Device',
+            'user_agent' => 'Mozilla/5.0',
+        ]);
+
+        $sessionCountBefore = Session::count();
+        $result = $this->authService->refreshToken($issued['refresh_token']);
+
+        $this->assertArrayHasKey('access_token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertNotEquals($issued['refresh_token'], $result['refresh_token']);
+        $this->assertSame($sessionCountBefore, Session::count());
+        $this->assertDatabaseMissing('sessions', [
+            'refresh_token' => hash('sha256', $issued['refresh_token']),
+        ]);
+        $this->assertDatabaseHas('sessions', [
+            'user_id' => $user->id,
+            'refresh_token' => hash('sha256', $result['refresh_token']),
+        ]);
+    }
+
+    public function test_refresh_token_fails_for_legacy_remember_token_cutover()
+    {
+        $user = User::factory()->create([
+            'status' => 'active',
         ]);
 
         $refreshToken = bin2hex(random_bytes(32));
         $user->update(['remember_token' => hash('sha256', $refreshToken)]);
 
-        $result = $this->authService->refreshToken($refreshToken);
+        $this->expectException(ModelNotFoundException::class);
 
-        $this->assertArrayHasKey('access_token', $result);
-        $this->assertArrayHasKey('refresh_token', $result);
-        $this->assertNotEquals($refreshToken, $result['refresh_token']);
+        $this->authService->refreshToken($refreshToken);
+    }
+
+    public function test_refresh_token_fails_when_session_is_expired()
+    {
+        $user = User::factory()->create([
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('customer');
+
+        $issued = $this->authService->issueTokensForUser($user, []);
+        $session = Session::query()->where('user_id', $user->id)->firstOrFail();
+        $session->forceFill(['expires_at' => now()->subMinute()])->save();
+
+        $this->expectException(ModelNotFoundException::class);
+
+        $this->authService->refreshToken($issued['refresh_token']);
     }
 
     protected function tearDown(): void

@@ -20,7 +20,7 @@ class UpdateUserSession
 
             if ($currentToken) {
                 Session::where('user_id', $user->id)
-                    ->where('token', hash('sha256', $currentToken->token))
+                    ->where('token', $currentToken->token)
                     ->update([
                     'last_activity' => now()->timestamp,
                 ]);

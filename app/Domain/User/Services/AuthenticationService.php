@@ -6,8 +6,10 @@ use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
 use App\Domain\User\Events\UserLoggedIn;
 use App\Domain\User\Events\UserLoggedOut;
+use App\Domain\User\Models\Session;
 use App\Domain\User\Models\User;
 use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +18,8 @@ use Spatie\Permission\Models\Role;
 
 class AuthenticationService
 {
+    private const REFRESH_TOKEN_TTL_DAYS = 30;
+
     /**
      * Create a new class instance.
      */
@@ -74,12 +78,12 @@ class AuthenticationService
         ]);
 
         $session = $user->sessions()->create([
-            'token' => hash('sha256', $accessToken->plainTextToken),
+            'token' => $accessToken->accessToken->token,
             'refresh_token' => hash('sha256', $refreshToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
-            'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
+            'expires_at' => $this->refreshSessionExpiresAt(),
             'last_activity' => now()->timestamp,
         ]);
 
@@ -138,12 +142,12 @@ class AuthenticationService
         ]);
 
         $session = $user->sessions()->create([
-            'token' => hash('sha256', $accessToken->plainTextToken),
+            'token' => $accessToken->accessToken->token,
             'refresh_token' => hash('sha256', $refreshToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
-            'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
+            'expires_at' => $this->refreshSessionExpiresAt(),
             'last_activity' => now()->timestamp,
         ]);
 
@@ -184,13 +188,22 @@ class AuthenticationService
     public function refreshToken(string $refreshToken, array $context = []): array
     {
         $hashedToken = hash('sha256', $refreshToken);
+        $session = Session::query()
+            ->where('refresh_token', $hashedToken)
+            ->first();
 
-        $session = \App\Domain\User\Models\Session::where('refresh_token', $hashedToken)->first();
-        $user = $session?->user;
-
-        if (!$user) {
-            $user = User::query()->where('remember_token', $hashedToken)->firstOrFail();
+        if (!$session || !$session->user) {
+            throw (new ModelNotFoundException())->setModel(Session::class);
         }
+
+        if ($session->isExpired()) {
+            $session->user->tokens()->where('token', $session->token)->delete();
+            $session->delete();
+
+            throw (new ModelNotFoundException())->setModel(Session::class);
+        }
+
+        $user = $session->user;
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
@@ -198,29 +211,23 @@ class AuthenticationService
             ]);
         }
 
-        if ($session) {
-            $user->tokens()->where('token', $session->token)->delete();
-            $session->delete();
-        } else {
-            $user->update(['remember_token' => null]);
-        }
+        $user->tokens()->where('token', $session->token)->delete();
+        $session->delete();
 
         // Generate new tokens
         $accessToken = $this->generateAccessToken($user, $context);
         $newRefreshToken = $this->generateRefreshToken($user);
 
         // Create new session
-        $newSession = $user->sessions()->create([
-            'token' => hash('sha256', $accessToken->plainTextToken),
+        $user->sessions()->create([
+            'token' => $accessToken->accessToken->token,
             'refresh_token' => hash('sha256', $newRefreshToken),
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
             'device_type' => $this->detectDeviceType($context['user_agent'] ?? ''),
-            'expires_at' => now()->addMinutes(config('sanctum.expiration', 60)),
+            'expires_at' => $this->refreshSessionExpiresAt(),
             'last_activity' => now()->timestamp,
         ]);
-
-        $user->update(['remember_token' => hash('sha256', $newRefreshToken)]);
 
         return [
             'access_token' => $accessToken->plainTextToken,
@@ -299,20 +306,18 @@ class AuthenticationService
     {
         // Revoke specific token or all tokens
         if ($currentToken) {
+            $hashedToken = $this->hashPlainTextAccessToken($currentToken);
+
             $user->tokens()
-                ->where('token', hash('sha256', explode('|', $currentToken)[1] ?? ''))
+                ->where('token', $hashedToken)
+                ->delete();
+            $user->sessions()
+                ->where('token', $hashedToken)
                 ->delete();
         } else {
-            $user->tokens()->delete();
+            $this->logoutAll($user);
+            return;
         }
-
-        // Clear remember token
-        $user->update(['remember_token' => null]);
-
-        // Mark sessions as expired
-        $user->sessions()
-            ->where('expires_at', '>', now())
-            ->update(['expires_at' => now()]);
 
         event(new UserLoggedOut($user));
     }
@@ -321,6 +326,16 @@ class AuthenticationService
     {
         $user->tokens()->delete();
         $user->sessions()->delete();
+    }
+
+    private function refreshSessionExpiresAt()
+    {
+        return now()->addDays(self::REFRESH_TOKEN_TTL_DAYS);
+    }
+
+    private function hashPlainTextAccessToken(string $token): string
+    {
+        return hash('sha256', explode('|', $token)[1] ?? '');
     }
 
     private function assertUserCanLoginWithRole(User $user, ?string $requestedRole): void

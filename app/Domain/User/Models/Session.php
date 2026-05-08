@@ -24,6 +24,15 @@ class Session extends Model
         'expired_at',
     ];
 
+    protected $casts = [
+        'expires_at' => 'datetime',
+        'verified_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'expired_at' => 'datetime',
+        'last_activity' => 'integer',
+    ];
+
     protected static function boot()
     {
         parent::boot();
