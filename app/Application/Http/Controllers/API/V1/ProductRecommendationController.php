@@ -4,6 +4,7 @@ namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Resources\ProductCollection;
+use App\Application\Http\Resources\PublicProductCollection;
 use App\Domain\Product\Services\ProductRecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class ProductRecommendationController extends Controller
             return $this->localizedJson([
                 'success' => true,
                 'message' => __('api.product.recommendations_retrieved'),
-                'data' => (new ProductCollection($products))->resolve($request),
+                'data' => (new PublicProductCollection($products))->resolve($request),
             ]);
         } catch (\Throwable $throwable) {
             report($throwable);
