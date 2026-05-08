@@ -7,6 +7,7 @@ use App\Application\Http\Requests\ChangePasswordRequest;
 use App\Application\Http\Requests\loginUserRequest;
 use App\Application\Http\Resources\UserResource;
 use App\Domain\Store\Models\Store;
+use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Services\GoogleTokenVerifier;
@@ -177,6 +178,16 @@ class LoginController extends Controller
             'bio' => ['sometimes', 'nullable', 'string'],
             'avatar' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'remove_avatar' => ['sometimes', 'boolean'],
+            'formatted_address' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_line1' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_line2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'state_province' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'postal_code' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'country_code' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            'delivery_instructions' => ['sometimes', 'nullable', 'string'],
         ]);
 
         try {
@@ -218,6 +229,8 @@ class LoginController extends Controller
                         $profileFields
                     );
                 }
+
+                $this->syncInitialAddress($user, $validated);
             });
 
             $user->load(['profile', 'roles', 'points', 'stores']);
@@ -349,6 +362,63 @@ class LoginController extends Controller
         }
 
         return $filePaths;
+    }
+
+    private function syncInitialAddress(User $user, array $validated): void
+    {
+        if (! $this->hasAddressPayload($validated) || $user->addresses()->exists()) {
+            return;
+        }
+
+        $addressLine1 = $validated['address_line1'] ?? $validated['formatted_address'] ?? null;
+        $city = $validated['city'] ?? $validated['formatted_address'] ?? $addressLine1;
+
+        if (! filled($addressLine1) || ! filled($city)) {
+            return;
+        }
+
+        $address = Address::create([
+            'first_name' => $validated['first_name'] ?? $user->profile?->first_name,
+            'last_name' => $validated['last_name'] ?? $user->profile?->last_name,
+            'address_line1' => $addressLine1,
+            'address_line2' => $validated['address_line2'] ?? null,
+            'city' => $city,
+            'state_province' => $validated['state_province'] ?? null,
+            'postal_code' => $validated['postal_code'] ?? null,
+            'country_code' => $validated['country_code'] ?? null,
+            'phone_number' => $validated['phone_number'] ?? $user->phone_number,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'delivery_instructions' => $validated['delivery_instructions'] ?? null,
+        ]);
+
+        $user->addresses()->attach($address->id, [
+            'label' => 'home',
+            'is_default_shipping' => true,
+            'is_default_billing' => true,
+        ]);
+    }
+
+    private function hasAddressPayload(array $validated): bool
+    {
+        foreach ([
+            'formatted_address',
+            'address_line1',
+            'address_line2',
+            'city',
+            'state_province',
+            'postal_code',
+            'country_code',
+            'latitude',
+            'longitude',
+            'delivery_instructions',
+        ] as $field) {
+            if (array_key_exists($field, $validated)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function detachOwnerAddresses(string $ownerType, array $ownerIds): array

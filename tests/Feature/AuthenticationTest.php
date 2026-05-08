@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\Session;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -353,6 +354,78 @@ class AuthenticationTest extends TestCase
         ]);
 
         Storage::disk('public')->assertExists(ltrim($avatarPath, '/'));
+    }
+
+    public function test_me_update_creates_initial_default_address_from_location_payload(): void
+    {
+        $user = User::factory()->create([
+            'phone_number' => '+201000000000',
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->patchJson('/api/v1/auth/me', [
+                'first_name' => 'Ahmed',
+                'last_name' => 'Mostafa',
+                'formatted_address' => '12 Nile Street, Cairo, Egypt',
+                'city' => 'Cairo',
+                'country_code' => 'EG',
+                'latitude' => 30.0444,
+                'longitude' => 31.2357,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.profile.first_name', 'Ahmed')
+            ->assertJsonPath('data.profile.last_name', 'Mostafa');
+
+        $address = Address::query()->where('address_line1', '12 Nile Street, Cairo, Egypt')->first();
+
+        $this->assertNotNull($address);
+
+        $this->assertDatabaseHas('addressables', [
+            'address_id' => $address->id,
+            'owner_id' => $user->id,
+            'owner_type' => User::class,
+            'label' => 'home',
+            'is_default_shipping' => true,
+            'is_default_billing' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/addresses')
+            ->assertOk()
+            ->assertJsonPath('data.0.address_line1', '12 Nile Street, Cairo, Egypt')
+            ->assertJsonPath('data.0.city', 'Cairo')
+            ->assertJsonPath('data.0.is_default_shipping', true)
+            ->assertJsonPath('data.0.is_default_billing', true);
+    }
+
+    public function test_me_update_does_not_create_duplicate_initial_address_when_one_already_exists(): void
+    {
+        $user = User::factory()->create();
+        $existingAddress = Address::factory()->create([
+            'address_line1' => 'Existing Address',
+            'city' => 'Cairo',
+        ]);
+
+        $user->addresses()->attach($existingAddress->id, [
+            'label' => 'home',
+            'is_default_shipping' => true,
+            'is_default_billing' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->patchJson('/api/v1/auth/me', [
+                'formatted_address' => '12 Nile Street, Cairo, Egypt',
+                'city' => 'Cairo',
+                'latitude' => 30.0444,
+                'longitude' => 31.2357,
+            ])
+            ->assertOk();
+
+        $this->assertCount(1, $user->fresh()->addresses);
+        $this->assertDatabaseMissing('addresses', [
+            'address_line1' => '12 Nile Street, Cairo, Egypt',
+        ]);
     }
 
     public function test_me_update_requires_unique_email()
