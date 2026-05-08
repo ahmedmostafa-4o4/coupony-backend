@@ -5,15 +5,21 @@ namespace Tests\Feature;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
+use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductCommentLike;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductVariant;
+use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
+use App\Domain\User\Models\UserPreference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -402,6 +408,321 @@ class ProductTest extends TestCase
         $otherUserResponse->assertOk()
             ->assertJsonPath('data.likes_count', 1)
             ->assertJsonPath('data.is_liked', false);
+    }
+
+    public function test_authenticated_user_can_fetch_product_recommendations(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create(['title' => 'Seed Product']);
+        $recommendedProduct = Product::factory()->active()->approved()->create(['title' => 'Recommended Product']);
+
+        $this->recordProductView($user, $seedProduct);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response([
+                'user_id' => $user->id,
+                'recommended_ids' => [$recommendedProduct->id],
+            ]),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $response->assertOk()
+            ->assertJsonPath('message', __('api.product.recommendations_retrieved'))
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $recommendedProduct->id);
+
+        Http::assertSent(function (HttpRequest $request) use ($user, $seedProduct) {
+            return $request->url() === 'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend'
+                && $request['user_id'] === $user->id
+                && $request['recent_product_ids'] === [$seedProduct->id]
+                && $request['limit'] === 1;
+        });
+    }
+
+    public function test_recommendations_preserve_ml_rank_order(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create();
+        $firstRecommended = Product::factory()->active()->approved()->create(['title' => 'First']);
+        $secondRecommended = Product::factory()->active()->approved()->create(['title' => 'Second']);
+
+        $this->recordProductLike($user, $seedProduct);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response([
+                'user_id' => $user->id,
+                'recommended_ids' => [$secondRecommended->id, $firstRecommended->id],
+            ]),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=2');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.id', $secondRecommended->id)
+            ->assertJsonPath('data.1.id', $firstRecommended->id);
+    }
+
+    public function test_recommendations_filter_non_public_products_returned_by_ml(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create();
+        $inactiveProduct = Product::factory()->create(['status' => ProductStatus::INACTIVE]);
+        $pendingProduct = Product::factory()->active()->create(['approval_status' => ProductApprovalStatus::PENDING]);
+        $visibleProduct = Product::factory()->active()->approved()->create();
+
+        $this->recordProductView($user, $seedProduct);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response([
+                'user_id' => $user->id,
+                'recommended_ids' => [$inactiveProduct->id, $pendingProduct->id, $visibleProduct->id],
+            ]),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $visibleProduct->id);
+    }
+
+    public function test_recommendations_exclude_seed_products_even_if_ml_returns_them(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create(['title' => 'Seen Already']);
+        $recommendedProduct = Product::factory()->active()->approved()->create(['title' => 'Fresh Pick']);
+
+        $this->recordProductView($user, $seedProduct);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response([
+                'user_id' => $user->id,
+                'recommended_ids' => [$seedProduct->id, $recommendedProduct->id],
+            ]),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $recommendedProduct->id);
+    }
+
+    public function test_recommendations_top_up_with_popular_fallback_when_ml_returns_too_few_products(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create();
+        $mlRecommended = Product::factory()->active()->approved()->create();
+        $fallbackOne = Product::factory()->active()->approved()->create(['created_at' => now()->subMinute()]);
+        $fallbackTwo = Product::factory()->active()->approved()->create(['created_at' => now()->subMinutes(2)]);
+
+        ProductLike::query()->create(['product_id' => $fallbackOne->id, 'user_id' => $this->customer()->id]);
+        ProductLike::query()->create(['product_id' => $fallbackTwo->id, 'user_id' => $this->customer()->id]);
+        $this->recordProductComment($user, $seedProduct);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response([
+                'user_id' => $user->id,
+                'recommended_ids' => [$mlRecommended->id],
+            ]),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=3');
+
+        $response->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('data.0.id', $mlRecommended->id);
+
+        $this->assertSame(
+            [$mlRecommended->id, $fallbackOne->id, $fallbackTwo->id],
+            array_column($response->json('data'), 'id')
+        );
+    }
+
+    public function test_recommendations_fall_back_to_popular_products_when_ml_service_fails(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create();
+        $popularProduct = Product::factory()->active()->approved()->create();
+        $secondaryPopularProduct = Product::factory()->active()->approved()->create(['created_at' => now()->subMinute()]);
+
+        $this->recordOfferClaim($user, $seedProduct);
+        ProductLike::query()->create(['product_id' => $popularProduct->id, 'user_id' => $this->customer()->id]);
+        ProductLike::query()->create(['product_id' => $secondaryPopularProduct->id, 'user_id' => $this->customer()->id]);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response(['message' => 'upstream error'], 500),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=2');
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->assertSame(
+            [$popularProduct->id, $secondaryPopularProduct->id],
+            array_column($response->json('data'), 'id')
+        );
+    }
+
+    public function test_recommendations_fall_back_when_ml_returns_invalid_payload_or_empty_results(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create();
+        $popularProduct = Product::factory()->active()->approved()->create();
+
+        $this->recordProductLike($user, $seedProduct);
+        ProductLike::query()->create(['product_id' => $popularProduct->id, 'user_id' => $this->customer()->id]);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response('not-json', 200, [
+                'Content-Type' => 'application/json',
+            ]),
+        ]);
+
+        $invalidPayloadResponse = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $invalidPayloadResponse->assertOk()
+            ->assertJsonPath('data.0.id', $popularProduct->id);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => Http::response([
+                'user_id' => $user->id,
+                'recommended_ids' => [],
+            ]),
+        ]);
+
+        $emptyResultResponse = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $emptyResultResponse->assertOk()
+            ->assertJsonPath('data.0.id', $popularProduct->id);
+    }
+
+    public function test_recommendations_fall_back_when_ml_request_times_out(): void
+    {
+        $user = $this->customer();
+        $seedProduct = Product::factory()->active()->approved()->create();
+        $popularProduct = Product::factory()->active()->approved()->create();
+
+        $this->recordProductComment($user, $seedProduct);
+        ProductLike::query()->create(['product_id' => $popularProduct->id, 'user_id' => $this->customer()->id]);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => function () {
+                throw new ConnectionException('timeout');
+            },
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.id', $popularProduct->id);
+    }
+
+    public function test_recommendations_skip_ml_when_personalization_is_disabled(): void
+    {
+        $user = $this->customer();
+        $popularProduct = Product::factory()->active()->approved()->create();
+        UserPreference::factory()->create([
+            'user_id' => $user->id,
+            'enable_personalized_recommendations' => false,
+        ]);
+
+        ProductLike::query()->create(['product_id' => $popularProduct->id, 'user_id' => $this->customer()->id]);
+
+        Http::fake();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.id', $popularProduct->id);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_recommendation_seed_excludes_views_when_browsing_history_tracking_is_disabled(): void
+    {
+        $user = $this->customer();
+        $viewedProduct = Product::factory()->active()->approved()->create();
+        $likedProduct = Product::factory()->active()->approved()->create();
+        $recommendedProduct = Product::factory()->active()->approved()->create();
+
+        UserPreference::factory()->create([
+            'user_id' => $user->id,
+            'browsing_history_tracking' => false,
+        ]);
+
+        $this->recordProductView($user, $viewedProduct);
+        $this->recordProductLike($user, $likedProduct);
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => function (HttpRequest $request) use ($user, $likedProduct, $recommendedProduct) {
+                $this->assertSame($user->id, $request['user_id']);
+                $this->assertSame([$likedProduct->id], $request['recent_product_ids']);
+
+                return Http::response([
+                    'user_id' => $user->id,
+                    'recommended_ids' => [$recommendedProduct->id],
+                ]);
+            },
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $recommendedProduct->id);
+    }
+
+    public function test_recommendation_seed_uses_recent_interactions_ordered_by_recency(): void
+    {
+        $user = $this->customer();
+        $viewedProduct = Product::factory()->active()->approved()->create();
+        $likedProduct = Product::factory()->active()->approved()->create();
+        $commentedProduct = Product::factory()->active()->approved()->create();
+        $claimedProduct = Product::factory()->active()->approved()->create();
+        $recommendedProduct = Product::factory()->active()->approved()->create();
+
+        $this->recordProductView($user, $viewedProduct, now()->subMinutes(40));
+        $this->recordProductLike($user, $likedProduct, now()->subMinutes(30));
+        $this->recordProductComment($user, $commentedProduct, now()->subMinutes(20));
+        $this->recordOfferClaim($user, $claimedProduct, now()->subMinutes(10));
+
+        Http::fake([
+            'https://ahmedmostafa56-ml-recommendation-service.hf.space/recommend' => function (HttpRequest $request) use ($user, $viewedProduct, $likedProduct, $commentedProduct, $claimedProduct, $recommendedProduct) {
+                $this->assertSame($user->id, $request['user_id']);
+                $this->assertSame(
+                    [$claimedProduct->id, $commentedProduct->id, $likedProduct->id, $viewedProduct->id],
+                    $request['recent_product_ids']
+                );
+
+                return Http::response([
+                    'user_id' => $user->id,
+                    'recommended_ids' => [$recommendedProduct->id],
+                ]);
+            },
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/recommendations/products?limit=1')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $recommendedProduct->id);
+    }
+
+    public function test_anonymous_users_cannot_access_product_recommendations(): void
+    {
+        $this->getJson('/api/v1/me/recommendations/products')
+            ->assertUnauthorized();
     }
 
     public function test_user_can_list_only_their_liked_products(): void
@@ -1747,5 +2068,79 @@ class ProductTest extends TestCase
         ];
 
         return array_replace_recursive($payload, $overrides);
+    }
+
+    private function recordProductView(User $user, Product $product, ?\Illuminate\Support\Carbon $createdAt = null): void
+    {
+        $timestamp = $createdAt ?? now();
+
+        $view = ProductView::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'PHPUnit',
+        ]);
+
+        ProductView::query()->whereKey($view->id)->update([
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+    }
+
+    private function recordProductLike(User $user, Product $product, ?\Illuminate\Support\Carbon $createdAt = null): void
+    {
+        $timestamp = $createdAt ?? now();
+
+        $like = ProductLike::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+
+        ProductLike::query()->whereKey($like->id)->update([
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+    }
+
+    private function recordProductComment(User $user, Product $product, ?\Illuminate\Support\Carbon $createdAt = null): void
+    {
+        $timestamp = $createdAt ?? now();
+
+        $comment = ProductComment::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'rating' => 5,
+            'body' => 'Helpful product review.',
+        ]);
+
+        ProductComment::query()->whereKey($comment->id)->update([
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+    }
+
+    private function recordOfferClaim(User $user, Product $product, ?\Illuminate\Support\Carbon $createdAt = null): void
+    {
+        $timestamp = $createdAt ?? now();
+
+        $claim = OfferClaim::query()->create([
+            'user_id' => $user->id,
+            'store_id' => $product->store_id,
+            'product_id' => $product->id,
+            'offer_id' => $product->offer->id,
+            'status' => 'active',
+            'claim_token' => 'CLM-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(24)),
+            'qr_code_token' => 'QR-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(24)),
+            'offer_snapshot' => [
+                'product_title' => $product->title,
+                'store_name' => $product->store->name,
+            ],
+            'expires_at' => now()->addDay(),
+        ]);
+
+        OfferClaim::query()->whereKey($claim->id)->update([
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
     }
 }

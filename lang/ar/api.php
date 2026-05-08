@@ -204,6 +204,8 @@ return [
         'unlike_failed' => 'فشل إلغاء الإعجاب بالمنتج. يرجى المحاولة مرة أخرى لاحقًا.',
         'liked_products_retrieved' => 'تم جلب المنتجات المعجب بها بنجاح.',
         'liked_products_retrieve_failed' => 'فشل جلب المنتجات المعجب بها. يرجى المحاولة مرة أخرى لاحقًا.',
+        'recommendations_retrieved' => 'تم جلب توصيات المنتجات بنجاح.',
+        'recommendations_retrieve_failed' => 'فشل جلب توصيات المنتجات. يرجى المحاولة مرة أخرى لاحقًا.',
         'comments_retrieved' => 'تم جلب تعليقات المنتج بنجاح.',
         'comment_created' => 'تم إنشاء مراجعة المنتج بنجاح.',
         'comment_create_failed' => 'فشل إنشاء مراجعة المنتج. يرجى المحاولة مرة أخرى لاحقًا.',

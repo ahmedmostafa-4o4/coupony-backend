@@ -804,6 +804,139 @@ class ProductRepository
         )->paginate($perPage);
     }
 
+    public function recentInteractionProductIds(User $user, int $limit = 20, bool $includeViews = true): array
+    {
+        $fetchLimit = max($limit * 5, 50);
+        $interactions = collect();
+
+        if ($includeViews) {
+            $interactions = $interactions->concat(
+                ProductView::query()
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->limit($fetchLimit)
+                    ->get(['product_id', 'created_at'])
+                    ->map(fn(ProductView $view) => [
+                        'product_id' => $view->product_id,
+                        'occurred_at' => $view->created_at,
+                    ])
+            );
+        }
+
+        $interactions = $interactions
+            ->concat(
+                ProductLike::query()
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->limit($fetchLimit)
+                    ->get(['product_id', 'created_at'])
+                    ->map(fn(ProductLike $like) => [
+                        'product_id' => $like->product_id,
+                        'occurred_at' => $like->created_at,
+                    ])
+            )
+            ->concat(
+                ProductComment::query()
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->limit($fetchLimit)
+                    ->get(['product_id', 'created_at'])
+                    ->map(fn(ProductComment $comment) => [
+                        'product_id' => $comment->product_id,
+                        'occurred_at' => $comment->created_at,
+                    ])
+            )
+            ->concat(
+                OfferClaim::query()
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->limit($fetchLimit)
+                    ->get(['product_id', 'created_at'])
+                    ->map(fn(OfferClaim $claim) => [
+                        'product_id' => $claim->product_id,
+                        'occurred_at' => $claim->created_at,
+                    ])
+            )
+            ->filter(fn(array $interaction) => filled($interaction['product_id']))
+            ->sortByDesc(fn(array $interaction) => $interaction['occurred_at']?->getTimestamp() ?? 0)
+            ->values();
+
+        $orderedIds = $interactions
+            ->pluck('product_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($orderedIds === []) {
+            return [];
+        }
+
+        $eligibleIds = Product::query()
+            ->active()
+            ->whereIn('id', $orderedIds)
+            ->pluck('id')
+            ->all();
+
+        $eligibleLookup = array_fill_keys($eligibleIds, true);
+
+        return collect($orderedIds)
+            ->filter(static fn(string $id) => isset($eligibleLookup[$id]))
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    public function publicProductsByIdsInOrder(array $productIds, ?User $user = null, array $excludeIds = []): Collection
+    {
+        $orderedIds = collect($productIds)
+            ->filter(fn($id) => is_string($id) && $id !== '')
+            ->reject(fn(string $id) => in_array($id, $excludeIds, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($orderedIds === []) {
+            return collect();
+        }
+
+        $products = $this->withLikeMetadata(
+            Product::query()
+                ->active()
+                ->whereIn('products.id', $orderedIds)
+                ->with($this->publicRelations()),
+            $user
+        )->get();
+
+        $productsById = $products->keyBy('id');
+
+        return collect($orderedIds)
+            ->map(fn(string $id) => $productsById->get($id))
+            ->filter()
+            ->values();
+    }
+
+    public function popularPublicProducts(int $limit, ?User $user = null, array $excludeIds = []): Collection
+    {
+        if ($limit <= 0) {
+            return collect();
+        }
+
+        $query = Product::query()
+            ->active()
+            ->with($this->publicRelations());
+
+        if ($excludeIds !== []) {
+            $query->whereNotIn('products.id', $excludeIds);
+        }
+
+        return $this->withLikeMetadata($query, $user)
+            ->orderByDesc('likes_count')
+            ->orderByDesc('views_count')
+            ->orderByDesc('products.created_at')
+            ->limit($limit)
+            ->get();
+    }
+
     public function like(Product $product, User $user): ProductLike
     {
         return ProductLike::query()->firstOrCreate([

@@ -23,6 +23,7 @@ use App\Application\Http\Controllers\API\V1\ProductLikeController;
 use App\Application\Http\Controllers\API\V1\ProductCommentController;
 use App\Application\Http\Controllers\API\V1\ProductCommentLikeController;
 use App\Application\Http\Controllers\API\V1\ProductController;
+use App\Application\Http\Controllers\API\V1\ProductRecommendationController;
 use App\Application\Http\Controllers\API\V1\ProductRevisionController;
 use App\Application\Http\Controllers\API\V1\ProductVariantController;
 use App\Application\Http\Controllers\API\V1\SocialController;
@@ -191,6 +192,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
         Route::delete('/me/addresses/{addressId}', [MeAddressController::class, 'destroy'])->name('me.addresses.destroy');
         Route::get('/me/liked-products', [ProductLikeController::class, 'index'])->name('me.products.likes.index');
+        Route::get('/me/recommendations/products', [ProductRecommendationController::class, 'index'])->name('me.products.recommendations.index');
         Route::get('/me/followed-stores', [StoreFollowController::class, 'index'])->name('me.followed-stores.index');
     });
 

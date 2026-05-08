@@ -109,6 +109,8 @@ return [
         'unlike_failed' => 'Failed to unlike product. Please try again later.',
         'liked_products_retrieved' => 'Liked products retrieved successfully.',
         'liked_products_retrieve_failed' => 'Failed to retrieve liked products. Please try again later.',
+        'recommendations_retrieved' => 'Product recommendations retrieved successfully.',
+        'recommendations_retrieve_failed' => 'Failed to retrieve product recommendations. Please try again later.',
         'comments_retrieved' => 'Product comments retrieved successfully.',
         'comment_created' => 'Product review created successfully.',
         'comment_create_failed' => 'Failed to create product review. Please try again later.',

@@ -39,4 +39,11 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
     ],
 
+    'recommendation' => [
+        'base_url' => env('RECOMMENDATION_SERVICE_BASE_URL', 'https://ahmedmostafa56-ml-recommendation-service.hf.space'),
+        'timeout' => (int) env('RECOMMENDATION_SERVICE_TIMEOUT', 10),
+        'enabled' => filter_var(env('RECOMMENDATION_SERVICE_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'seed_limit' => (int) env('RECOMMENDATION_SERVICE_SEED_LIMIT', 20),
+    ],
+
 ];
