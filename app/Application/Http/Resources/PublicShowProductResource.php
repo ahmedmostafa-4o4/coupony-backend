@@ -21,6 +21,8 @@ class PublicShowProductResource extends JsonResource
             'short_description' => $this->short_description,
             'description' => $this->description,
             'currency' => $this->currency,
+            'base_price' => $this->base_price,
+            'compare_at_price' => $this->compare_at_price,
             'status' => $this->status?->value ?? $this->status,
             'is_featured' => $this->is_featured,
             'sale_count' => $this->sale_count,
