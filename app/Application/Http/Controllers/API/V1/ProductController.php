@@ -178,7 +178,7 @@ class ProductController extends Controller
             );
 
             return $this->paginatedResponse(
-                (new ProductCollection($products->getCollection()))->resolve($request),
+                (new PublicProductCollection($products->getCollection()))->resolve($request),
                 __('api.product.public_retrieved'),
                 $products
             );
