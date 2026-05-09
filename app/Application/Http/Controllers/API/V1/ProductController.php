@@ -10,6 +10,7 @@ use App\Application\Http\Resources\CategoryResource;
 use App\Application\Http\Resources\ProductCollection;
 use App\Application\Http\Resources\ProductResource;
 use App\Application\Http\Resources\PublicProductCollection;
+use App\Application\Http\Resources\PublicShowProductResource;
 use App\Domain\Product\Actions\CreateProduct;
 use App\Domain\Product\Actions\DeleteProduct;
 use App\Domain\Product\Actions\UpdateProduct;
@@ -236,7 +237,7 @@ class ProductController extends Controller
             $this->products->recordView($product, $viewer, $request->ip(), $request->userAgent());
 
             return $this->successResponse(
-                new ProductResource($this->products->loadPublicProduct($product, $viewer)),
+                new PublicShowProductResource($this->products->loadPublicProduct($product, $viewer)),
                 __('api.product.public_details_retrieved')
             );
         } catch (\Throwable $throwable) {
