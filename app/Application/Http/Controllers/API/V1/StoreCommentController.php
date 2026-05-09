@@ -44,6 +44,49 @@ class StoreCommentController extends Controller
         );
     }
 
+    public function summary(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        if (!$this->isPublicStore($store)) {
+            return $this->errorResponse(__('api.store_comment.store_not_found'), 404);
+        }
+
+        $distribution = StoreComment::query()
+            ->where('store_id', $store->id)
+            ->topLevel()
+            ->visible()
+            ->whereNotNull('rating')
+            ->selectRaw('rating, COUNT(*) as total')
+            ->groupBy('rating')
+            ->pluck('total', 'rating');
+
+        $counts = [
+            5 => (int) ($distribution[5] ?? 0),
+            4 => (int) ($distribution[4] ?? 0),
+            3 => (int) ($distribution[3] ?? 0),
+            2 => (int) ($distribution[2] ?? 0),
+            1 => (int) ($distribution[1] ?? 0),
+        ];
+
+        return $this->successResponse([
+            'avg_rating' => round((float) ($store->rating_avg ?? 0), 2),
+            'rating_count' => (int) ($store->rating_count ?? 0),
+            'five_star_count' => $counts[5],
+            'four_star_count' => $counts[4],
+            'three_star_count' => $counts[3],
+            'two_star_count' => $counts[2],
+            'one_star_count' => $counts[1],
+            'ratings_breakdown' => [
+                '5' => $counts[5],
+                '4' => $counts[4],
+                '3' => $counts[3],
+                '2' => $counts[2],
+                '1' => $counts[1],
+            ],
+        ], __('api.store_comment.comments_retrieved'));
+    }
+
     public function store(Request $request, Store $store): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);

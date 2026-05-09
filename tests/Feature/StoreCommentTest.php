@@ -66,6 +66,65 @@ class StoreCommentTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    public function test_can_get_store_review_summary_on_active_store(): void
+    {
+        $store = Store::factory()->active()->create(['rating_avg' => 0, 'rating_count' => 0]);
+
+        $users = User::factory()->count(5)->create();
+
+        StoreComment::create([
+            'store_id' => $store->id,
+            'user_id' => $users[0]->id,
+            'rating' => 5,
+            'body' => 'Excellent',
+        ]);
+
+        StoreComment::create([
+            'store_id' => $store->id,
+            'user_id' => $users[1]->id,
+            'rating' => 5,
+            'body' => 'Perfect',
+        ]);
+
+        StoreComment::create([
+            'store_id' => $store->id,
+            'user_id' => $users[2]->id,
+            'rating' => 4,
+            'body' => 'Very good',
+        ]);
+
+        StoreComment::create([
+            'store_id' => $store->id,
+            'user_id' => $users[3]->id,
+            'rating' => 3,
+            'body' => 'Good',
+        ]);
+
+        StoreComment::create([
+            'store_id' => $store->id,
+            'user_id' => $users[4]->id,
+            'rating' => 1,
+            'body' => 'Bad',
+        ]);
+
+        $response = $this->getJson("/api/v1/public-stores/{$store->id}/reviews-summary");
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.avg_rating', 3.6)
+            ->assertJsonPath('data.rating_count', 5)
+            ->assertJsonPath('data.five_star_count', 2)
+            ->assertJsonPath('data.four_star_count', 1)
+            ->assertJsonPath('data.three_star_count', 1)
+            ->assertJsonPath('data.two_star_count', 0)
+            ->assertJsonPath('data.one_star_count', 1)
+            ->assertJsonPath('data.ratings_breakdown.5', 2)
+            ->assertJsonPath('data.ratings_breakdown.4', 1)
+            ->assertJsonPath('data.ratings_breakdown.3', 1)
+            ->assertJsonPath('data.ratings_breakdown.2', 0)
+            ->assertJsonPath('data.ratings_breakdown.1', 1);
+    }
+
     // ──────────────────────────────────────────────
     //  Create review
     // ──────────────────────────────────────────────

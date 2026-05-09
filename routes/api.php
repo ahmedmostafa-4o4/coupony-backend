@@ -62,6 +62,7 @@ Route::prefix('v1')->group(function () {
     // Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
     Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
+    Route::get('/public-stores/{store}/reviews-summary', [StoreCommentController::class, 'summary'])->name('public.stores.reviews.summary');
     Route::get('/public-stores/{store}/comments', [StoreCommentController::class, 'index'])->name('public.stores.comments.index');
     Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
     Route::get('/categories/{category}/products', [ProductController::class, 'categoryProducts'])->name('categories.products.index');
