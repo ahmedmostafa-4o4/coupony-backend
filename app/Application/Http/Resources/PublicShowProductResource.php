@@ -5,7 +5,7 @@ namespace App\Application\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PublicProductResource extends JsonResource
+class PublicShowProductResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -21,6 +21,7 @@ class PublicProductResource extends JsonResource
             'short_description' => $this->short_description,
             'description' => $this->description,
             'currency' => $this->currency,
+            'status' => $this->status?->value ?? $this->status,
             'is_featured' => $this->is_featured,
             'sale_count' => $this->sale_count,
             'redemption_count' => $this->redemption_count,
@@ -41,17 +42,9 @@ class PublicProductResource extends JsonResource
 
                 return ProductImageResource::make($primaryImage)->resolve()['url'];
             }),
-            'offer' => ProductOfferResource::make($this->whenLoaded('offer', function () {
-                return [
-                    'id' => $this->offer?->id,
-                    'type' => $this->offer?->type,
-                    'label' => $this->offer?->label,
-                    'fixed_amount' => $this->offer?->fixed_amount,
-                    'percentage_value' => $this->offer?->percentage_value,
-                    'buy_qty' => $this->offer?->buy_qty,
-                    'get_qty' => $this->offer?->get_qty,
-                ];
-            })),
+            'categories' => CategoryResource::collection($this->whenLoaded('categories')),
+            'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
+            'offer' => ProductOfferResource::make($this->whenLoaded('offer')),
             'store' => $this->whenLoaded('store', function () {
                 return [
                     'id' => $this->store?->id,
