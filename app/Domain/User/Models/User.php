@@ -6,6 +6,7 @@ namespace App\Domain\User\Models;
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Product\Models\OfferClaim;
+use App\Domain\Product\Models\ProductFavorite;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductCommentLike;
@@ -228,6 +229,11 @@ class User extends Authenticatable
         return $this->hasMany(ProductLike::class, 'user_id');
     }
 
+    public function productFavorites()
+    {
+        return $this->hasMany(ProductFavorite::class, 'user_id');
+    }
+
     public function productViews()
     {
         return $this->hasMany(ProductView::class, 'user_id');
@@ -246,6 +252,12 @@ class User extends Authenticatable
     public function likedProducts()
     {
         return $this->belongsToMany(Product::class, 'product_likes', 'user_id', 'product_id')
+            ->withTimestamps();
+    }
+
+    public function favoritedProducts()
+    {
+        return $this->belongsToMany(Product::class, 'product_favorites', 'user_id', 'product_id')
             ->withTimestamps();
     }
 

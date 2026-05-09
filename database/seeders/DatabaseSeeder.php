@@ -65,6 +65,7 @@ class DatabaseSeeder extends Seeder
             'store_comments',
             'product_views',
             'product_likes',
+            'product_favorites',
             'offer_claims',
             'product_offer_variant_targets',
             'product_offers',

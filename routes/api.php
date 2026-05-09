@@ -18,6 +18,7 @@ use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\OnboardingController;
 use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\CategoryController;
+use App\Application\Http\Controllers\API\V1\ProductFavoriteController;
 use App\Application\Http\Controllers\API\V1\ProductImageController;
 use App\Application\Http\Controllers\API\V1\ProductLikeController;
 use App\Application\Http\Controllers\API\V1\ProductCommentController;
@@ -108,6 +109,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/products/{product}/claims', [OfferClaimController::class, 'store'])->name('products.claims.store');
         Route::post('/products/{product}/likes', [ProductLikeController::class, 'store'])->name('products.likes.store');
         Route::delete('/products/{product}/likes', [ProductLikeController::class, 'destroy'])->name('products.likes.destroy');
+        Route::post('/products/{product}/favorites', [ProductFavoriteController::class, 'store'])->name('products.favorites.store');
+        Route::delete('/products/{product}/favorites', [ProductFavoriteController::class, 'destroy'])->name('products.favorites.destroy');
         Route::post('/products/{product}/comments', [ProductCommentController::class, 'store'])->name('products.comments.store');
         Route::post('/products/{product}/comments/{comment}/replies', [ProductCommentController::class, 'reply'])->name('products.comments.replies.store');
         Route::patch('/product-comments/{comment}', [ProductCommentController::class, 'update'])->name('product-comments.update');
@@ -192,6 +195,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
         Route::delete('/me/addresses/{addressId}', [MeAddressController::class, 'destroy'])->name('me.addresses.destroy');
         Route::get('/me/liked-products', [ProductLikeController::class, 'index'])->name('me.products.likes.index');
+        Route::get('/me/favorite-products', [ProductFavoriteController::class, 'index'])->name('me.products.favorites.index');
         Route::get('/me/recommendations/products', [ProductRecommendationController::class, 'index'])->name('me.products.recommendations.index');
         Route::get('/me/followed-stores', [StoreFollowController::class, 'index'])->name('me.followed-stores.index');
     });

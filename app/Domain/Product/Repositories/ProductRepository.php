@@ -12,6 +12,7 @@ use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductFavorite;
 use App\Domain\Product\Models\ProductImage;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductComment;
@@ -653,7 +654,7 @@ class ProductRepository
 
     public function sellerPaginate(Store $store, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return $this->withLikeMetadata(
+        return $this->withInteractionMetadata(
             Product::query()
             ->where('store_id', $store->id)
             ->with($this->sellerRelations())
@@ -676,7 +677,7 @@ class ProductRepository
 
     public function adminPaginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return $this->withLikeMetadata(
+        return $this->withInteractionMetadata(
             Product::query()
                 ->with($this->adminRelations())
                 ->when(
@@ -701,7 +702,7 @@ class ProductRepository
 
     public function publicPaginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return $this->withLikeMetadata(
+        return $this->withInteractionMetadata(
             Product::query()
             ->active()
             ->with($this->publicRelations())
@@ -724,7 +725,7 @@ class ProductRepository
 
     public function publicStorePaginate(Store $store, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return $this->withLikeMetadata(
+        return $this->withInteractionMetadata(
             Product::query()
                 ->active()
                 ->where('store_id', $store->id)
@@ -748,7 +749,7 @@ class ProductRepository
 
     public function publicCategoryProductsPaginate(Category $category, int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
-        return $this->withLikeMetadata(
+        return $this->withInteractionMetadata(
             $category->products()
             ->where('status', ProductStatus::ACTIVE->value)
             ->where('approval_status', ProductApprovalStatus::APPROVED->value)
@@ -776,30 +777,45 @@ class ProductRepository
     public function loadSellerProduct(Product $product, ?User $user = null): Product
     {
         return $this->attachRecentViewers(
-            $this->loadProductWithLikeMetadata($product, $this->sellerRelations(), $user)
+            $this->loadProductWithInteractionMetadata($product, $this->sellerRelations(), $user)
         );
     }
 
     public function loadAdminProduct(Product $product): Product
     {
         return $this->attachRecentViewers(
-            $this->loadProductWithLikeMetadata($product, $this->adminRelations())
+            $this->loadProductWithInteractionMetadata($product, $this->adminRelations())
         );
     }
 
     public function loadPublicProduct(Product $product, ?User $user = null): Product
     {
-        return $this->loadProductWithLikeMetadata($product, $this->publicRelations(), $user);
+        return $this->loadProductWithInteractionMetadata($product, $this->publicRelations(), $user);
     }
 
     public function likedProductsPaginate(User $user, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->withLikeMetadata(
+        return $this->withInteractionMetadata(
             Product::query()
                 ->active()
                 ->whereHas('likes', fn(Builder $query) => $query->where('user_id', $user->id))
                 ->with($this->publicRelations())
                 ->latest(),
+            $user
+        )->paginate($perPage);
+    }
+
+    public function favoriteProductsPaginate(User $user, int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->withInteractionMetadata(
+            Product::query()
+                ->active()
+                ->join('product_favorites', function ($join) use ($user) {
+                    $join->on('product_favorites.product_id', '=', 'products.id')
+                        ->where('product_favorites.user_id', '=', $user->id);
+                })
+                ->with($this->publicRelations())
+                ->orderByDesc('product_favorites.created_at'),
             $user
         )->paginate($perPage);
     }
@@ -899,7 +915,7 @@ class ProductRepository
             return collect();
         }
 
-        $products = $this->withLikeMetadata(
+        $products = $this->withInteractionMetadata(
             Product::query()
                 ->active()
                 ->whereIn('products.id', $orderedIds)
@@ -929,7 +945,7 @@ class ProductRepository
             $query->whereNotIn('products.id', $excludeIds);
         }
 
-        return $this->withLikeMetadata($query, $user)
+        return $this->withInteractionMetadata($query, $user)
             ->orderByDesc('likes_count')
             ->orderByDesc('views_count')
             ->orderByDesc('products.created_at')
@@ -940,6 +956,14 @@ class ProductRepository
     public function like(Product $product, User $user): ProductLike
     {
         return ProductLike::query()->firstOrCreate([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function favorite(Product $product, User $user): ProductFavorite
+    {
+        return ProductFavorite::query()->firstOrCreate([
             'product_id' => $product->id,
             'user_id' => $user->id,
         ]);
@@ -962,6 +986,14 @@ class ProductRepository
     public function unlike(Product $product, User $user): void
     {
         ProductLike::query()
+            ->where('product_id', $product->id)
+            ->where('user_id', $user->id)
+            ->delete();
+    }
+
+    public function unfavorite(Product $product, User $user): void
+    {
+        ProductFavorite::query()
             ->where('product_id', $product->id)
             ->where('user_id', $user->id)
             ->delete();
@@ -1012,7 +1044,7 @@ class ProductRepository
         ];
     }
 
-    private function withLikeMetadata(Builder $query, ?User $user = null): Builder
+    private function withInteractionMetadata(Builder $query, ?User $user = null): Builder
     {
         $query->select('products.*');
         $query->withCount('likes');
@@ -1031,15 +1063,16 @@ class ProductRepository
         if ($user) {
             $query->withExists([
                 'likes as is_liked' => fn(Builder $likeQuery) => $likeQuery->where('user_id', $user->id),
+                'favorites as is_favorited' => fn(Builder $favoriteQuery) => $favoriteQuery->where('user_id', $user->id),
             ]);
 
             return $query;
         }
 
-        return $query->selectRaw('false as is_liked');
+        return $query->selectRaw('false as is_liked, false as is_favorited');
     }
 
-    private function loadProductWithLikeMetadata(Product $product, array $relations, ?User $user = null): Product
+    private function loadProductWithInteractionMetadata(Product $product, array $relations, ?User $user = null): Product
     {
         $loaded = $product->load($relations)
             ->loadCount('likes')
@@ -1061,12 +1094,19 @@ class ProductRepository
                 $loaded->likes()->where('user_id', $user->id)->exists()
             );
             $loaded->syncOriginalAttribute('is_liked');
+            $loaded->setAttribute(
+                'is_favorited',
+                $loaded->favorites()->where('user_id', $user->id)->exists()
+            );
+            $loaded->syncOriginalAttribute('is_favorited');
 
             return $loaded;
         }
 
         $loaded->setAttribute('is_liked', false);
         $loaded->syncOriginalAttribute('is_liked');
+        $loaded->setAttribute('is_favorited', false);
+        $loaded->syncOriginalAttribute('is_favorited');
 
         return $loaded;
     }

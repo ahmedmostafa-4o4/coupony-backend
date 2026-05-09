@@ -9,6 +9,7 @@ use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductCommentLike;
+use App\Domain\Product\Models\ProductFavorite;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Models\ProductView;
@@ -316,6 +317,124 @@ class ProductTest extends TestCase
         ]);
     }
 
+    public function test_customer_can_favorite_a_product(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/favorites");
+
+        $response->assertOk()
+            ->assertJsonPath('data.product_id', $product->id)
+            ->assertJsonPath('data.is_favorited', true);
+
+        $this->assertDatabaseHas('product_favorites', [
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_seller_can_favorite_own_product(): void
+    {
+        $seller = $this->seller();
+        $store = $this->storeFor($seller);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+
+        $response = $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/favorites");
+
+        $response->assertOk()
+            ->assertJsonPath('data.product_id', $product->id)
+            ->assertJsonPath('data.is_favorited', true);
+
+        $this->assertDatabaseHas('product_favorites', [
+            'product_id' => $product->id,
+            'user_id' => $seller->id,
+        ]);
+    }
+
+    public function test_duplicate_favorite_requests_do_not_create_duplicate_rows(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/favorites")
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/favorites")
+            ->assertOk()
+            ->assertJsonPath('data.is_favorited', true);
+
+        $this->assertSame(1, ProductFavorite::query()->count());
+    }
+
+    public function test_authenticated_user_can_unfavorite_a_product(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        ProductFavorite::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/products/{$product->id}/favorites");
+
+        $response->assertOk()
+            ->assertJsonPath('data.product_id', $product->id)
+            ->assertJsonPath('data.is_favorited', false);
+
+        $this->assertDatabaseMissing('product_favorites', [
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_duplicate_unfavorite_requests_are_idempotent(): void
+    {
+        $user = $this->customer();
+        $product = Product::factory()->active()->approved()->create();
+
+        ProductFavorite::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/products/{$product->id}/favorites")
+            ->assertOk();
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/products/{$product->id}/favorites")
+            ->assertOk()
+            ->assertJsonPath('data.is_favorited', false);
+
+        $this->assertSame(0, ProductFavorite::query()->count());
+    }
+
+    public function test_cannot_favorite_inactive_or_unapproved_products(): void
+    {
+        $user = $this->customer();
+        $inactiveProduct = Product::factory()->create(['status' => ProductStatus::INACTIVE]);
+        $pendingProduct = Product::factory()->active()->create([
+            'approval_status' => ProductApprovalStatus::PENDING,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$inactiveProduct->id}/favorites")
+            ->assertNotFound();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/products/{$pendingProduct->id}/favorites")
+            ->assertNotFound();
+
+        $this->assertSame(0, ProductFavorite::query()->count());
+    }
+
     public function test_duplicate_like_requests_do_not_create_duplicate_rows(): void
     {
         $user = $this->customer();
@@ -408,6 +527,55 @@ class ProductTest extends TestCase
         $otherUserResponse->assertOk()
             ->assertJsonPath('data.likes_count', 1)
             ->assertJsonPath('data.is_liked', false);
+    }
+
+    public function test_product_responses_include_favorite_metadata_for_authenticated_and_anonymous_users(): void
+    {
+        $favoritingUser = $this->customer();
+        $otherUser = $this->customer();
+        $product = Product::factory()->active()->approved()->create(['title' => 'Favorited Product']);
+
+        ProductFavorite::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $favoritingUser->id,
+        ]);
+
+        $anonymousResponse = $this->getJson("/api/v1/products/{$product->id}");
+        $anonymousResponse->assertOk()
+            ->assertJsonPath('data.is_favorited', false);
+
+        $authenticatedListResponse = $this->actingAs($favoritingUser, 'sanctum')
+            ->getJson('/api/v1/products');
+        $authenticatedListResponse->assertOk()
+            ->assertJsonPath('data.0.is_favorited', true);
+
+        $otherUserResponse = $this->actingAs($otherUser, 'sanctum')
+            ->getJson("/api/v1/products/{$product->id}");
+        $otherUserResponse->assertOk()
+            ->assertJsonPath('data.is_favorited', false);
+    }
+
+    public function test_authenticated_user_can_list_favorite_products_in_latest_favorite_order(): void
+    {
+        $user = $this->customer();
+        $olderFavorite = Product::factory()->active()->approved()->create(['title' => 'Older Favorite']);
+        $newerFavorite = Product::factory()->active()->approved()->create(['title' => 'Newer Favorite']);
+        $otherUsersFavorite = Product::factory()->active()->approved()->create(['title' => 'Other User Favorite']);
+
+        $this->recordProductFavorite($user, $olderFavorite, now()->subHour());
+        $this->recordProductFavorite($user, $newerFavorite, now()->subMinute());
+        $this->recordProductFavorite($this->customer(), $otherUsersFavorite, now());
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/me/favorite-products?per_page=10');
+
+        $response->assertOk()
+            ->assertJsonPath('message', __('api.product.favorite_products_retrieved'))
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('data.0.id', $newerFavorite->id)
+            ->assertJsonPath('data.0.is_favorited', true)
+            ->assertJsonPath('data.1.id', $olderFavorite->id)
+            ->assertJsonPath('data.1.is_favorited', true);
     }
 
     public function test_authenticated_user_can_fetch_product_recommendations(): void
@@ -2097,6 +2265,21 @@ class ProductTest extends TestCase
         ]);
 
         ProductLike::query()->whereKey($like->id)->update([
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+    }
+
+    private function recordProductFavorite(User $user, Product $product, ?\Illuminate\Support\Carbon $createdAt = null): void
+    {
+        $timestamp = $createdAt ?? now();
+
+        $favorite = ProductFavorite::query()->create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ]);
+
+        ProductFavorite::query()->whereKey($favorite->id)->update([
             'created_at' => $timestamp,
             'updated_at' => $timestamp,
         ]);
