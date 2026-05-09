@@ -41,7 +41,7 @@ class PublicProductResource extends JsonResource
 
                 return ProductImageResource::make($primaryImage)->resolve()['url'];
             }),
-            'offer' => ProductOfferResource::make($this->whenLoaded('offer', function () {
+            'offer' => $this->whenLoaded('offer', function () {
                 return [
                     'id' => $this->offer?->id,
                     'type' => $this->offer?->type,
@@ -51,7 +51,7 @@ class PublicProductResource extends JsonResource
                     'buy_qty' => $this->offer?->buy_qty,
                     'get_qty' => $this->offer?->get_qty,
                 ];
-            })),
+            }),
             'store' => $this->whenLoaded('store', function () {
                 return [
                     'id' => $this->store?->id,
