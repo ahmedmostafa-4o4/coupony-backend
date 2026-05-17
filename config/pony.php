@@ -94,4 +94,20 @@ return [
 
     'image_retention_days' => (int) env('PONY_IMAGE_RETENTION_DAYS', 14),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pony AI - Product Image Download
+    |--------------------------------------------------------------------------
+    |
+    | When a product_images.image_url points at an external HTTP(S) URL, the
+    | ImageEmbeddingService fetches it on demand so Gemini Vision can caption
+    | it. We bound the download to a max size and a short timeout to avoid
+    | wedging the embed job on a hostile or slow remote.
+    |
+    */
+
+    'image_download_max_bytes' => (int) env('PONY_IMAGE_DOWNLOAD_MAX_BYTES', 6 * 1024 * 1024),
+
+    'image_download_timeout' => (int) env('PONY_IMAGE_DOWNLOAD_TIMEOUT', 15),
+
 ];
