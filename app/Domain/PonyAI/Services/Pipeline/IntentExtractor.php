@@ -6,6 +6,7 @@ use App\Domain\PonyAI\Contracts\GeminiClient;
 use App\Domain\PonyAI\DTOs\ChatIntent;
 use App\Domain\PonyAI\Exceptions\GeminiException;
 use App\Domain\Product\Models\Category;
+use Illuminate\Support\Facades\Cache;
 
 class IntentExtractor
 {
@@ -21,21 +22,60 @@ class IntentExtractor
             return new ChatIntent(freeText: '');
         }
 
+        $payload = $this->resolvePayload($trimmed);
+
+        return ChatIntent::fromGeminiPayload($payload, $trimmed);
+    }
+
+    /**
+     * Pull the Gemini JSON intent payload for this prompt, hitting the cache
+     * first. The cache key is keyed on a normalized form of the prompt so
+     * trivial whitespace / case differences still share a cache slot.
+     *
+     * @return array<string, mixed>
+     */
+    private function resolvePayload(string $trimmed): array
+    {
+        $cacheEnabled = (bool) config('pony.cache.enabled', true);
+        $ttl = max(1, (int) config('pony.cache.intent_ttl_seconds', 6 * 3600));
+        $key = 'pony:intent:'.sha1($this->normalizeForCacheKey($trimmed));
+
+        if (! $cacheEnabled) {
+            return $this->callGemini($trimmed);
+        }
+
+        return Cache::remember($key, $ttl, fn(): array => $this->callGemini($trimmed));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function callGemini(string $trimmed): array
+    {
         try {
             $result = $this->gemini->generateJson(
                 $this->buildGeminiPrompt($trimmed),
                 [
                     'temperature' => 0.1,
-                    'max_output_tokens' => 384,
+                    'max_output_tokens' => 192,
                 ],
             );
         } catch (GeminiException) {
             // Intent extraction failures degrade to a free-text-only intent.
             // The downstream retriever still runs and gets useful results.
-            return new ChatIntent(freeText: $trimmed);
+            // Returning [] here lets the cache hold the empty payload too.
+            return [];
         }
 
-        return ChatIntent::fromGeminiPayload($result->decodeJson(), $trimmed);
+        return $result->decodeJson();
+    }
+
+    private function normalizeForCacheKey(string $value): string
+    {
+        $lower = mb_strtolower($value);
+        $collapsed = preg_replace('/\s+/u', ' ', $lower) ?? $lower;
+
+        return trim($collapsed);
     }
 
     private function buildGeminiPrompt(string $userPrompt): string

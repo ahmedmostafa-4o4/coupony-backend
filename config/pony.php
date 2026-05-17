@@ -110,4 +110,30 @@ return [
 
     'image_download_timeout' => (int) env('PONY_IMAGE_DOWNLOAD_TIMEOUT', 15),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pony AI - Latency Tuning
+    |--------------------------------------------------------------------------
+    |
+    | fast_mode skips the AnswerComposer Gemini call whenever the SQL + rerank
+    | pipeline produced at least one candidate, replacing it with a
+    | deterministic reply built from the candidates themselves. Generic
+    | catalog browsing prompts ("show me products" / "هل يوجد منتجات") are
+    | detected before any Gemini call at all and short-circuit to popular
+    | products.
+    |
+    | cache.* lets us memoize the two expensive Gemini round-trips per turn -
+    | intent extraction and the query embedding - keyed on the (sanitized)
+    | prompt content. TTL defaults to six hours.
+    |
+    */
+
+    'fast_mode' => filter_var(env('PONY_FAST_MODE', true), FILTER_VALIDATE_BOOL),
+
+    'cache' => [
+        'enabled' => filter_var(env('PONY_CACHE_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'intent_ttl_seconds' => (int) env('PONY_CACHE_INTENT_TTL', 6 * 3600),
+        'query_embedding_ttl_seconds' => (int) env('PONY_CACHE_QUERY_EMBEDDING_TTL', 6 * 3600),
+    ],
+
 ];

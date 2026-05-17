@@ -43,7 +43,7 @@ PROMPT;
             $result = $this->gemini->generateJson($prompt, [
                 'system_instruction' => CustomerSystemPrompt::text(),
                 'temperature' => 0.3,
-                'max_output_tokens' => 512,
+                'max_output_tokens' => 256,
             ]);
         } catch (GeminiException) {
             return $this->fallback($candidates);

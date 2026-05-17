@@ -62,8 +62,10 @@ class PonyMessageResource extends JsonResource
     }
 
     /**
-     * Strip metadata keys that are useful for debugging but shouldn't leak to the client
-     * (e.g. dropped_product_ids reveals model behavior). Keep grounded ids only.
+     * Strip metadata keys that are useful for debugging but shouldn't leak to the
+     * client (e.g. dropped_product_ids reveals model behavior). Keep grounded ids
+     * only, plus the fast-path flags so the client can render a "no AI was harmed
+     * making this response" indicator if it wants to.
      *
      * @return array<string, mixed>|null
      */
@@ -75,9 +77,19 @@ class PonyMessageResource extends JsonResource
             return null;
         }
 
-        return [
+        $safe = [
             'product_ids' => array_values((array) ($metadata['product_ids'] ?? [])),
             'offer_ids' => array_values((array) ($metadata['offer_ids'] ?? [])),
         ];
+
+        if (array_key_exists('fast_path', $metadata) && $metadata['fast_path'] !== null) {
+            $safe['fast_path'] = (string) $metadata['fast_path'];
+        }
+
+        if (array_key_exists('skipped_gemini', $metadata)) {
+            $safe['skipped_gemini'] = (bool) $metadata['skipped_gemini'];
+        }
+
+        return $safe;
     }
 }

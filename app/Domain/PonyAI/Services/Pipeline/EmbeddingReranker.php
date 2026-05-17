@@ -6,6 +6,7 @@ use App\Domain\PonyAI\Contracts\GeminiClient;
 use App\Domain\PonyAI\Exceptions\GeminiException;
 use App\Domain\PonyAI\Repositories\EmbeddingRepository;
 use App\Domain\PonyAI\Support\VectorMath;
+use Illuminate\Support\Facades\Cache;
 
 class EmbeddingReranker
 {
@@ -71,10 +72,31 @@ class EmbeddingReranker
      */
     private function safeEmbed(string $text): ?array
     {
-        if (trim($text) === '') {
+        $trimmed = trim($text);
+
+        if ($trimmed === '') {
             return null;
         }
 
+        $cacheEnabled = (bool) config('pony.cache.enabled', true);
+
+        if (! $cacheEnabled) {
+            return $this->computeEmbedding($trimmed);
+        }
+
+        $ttl = max(1, (int) config('pony.cache.query_embedding_ttl_seconds', 6 * 3600));
+        $key = 'pony:query_embedding:'.sha1($trimmed);
+
+        $vector = Cache::remember($key, $ttl, fn(): array => $this->computeEmbedding($trimmed) ?? []);
+
+        return is_array($vector) && $vector !== [] ? $vector : null;
+    }
+
+    /**
+     * @return array<int, float>|null
+     */
+    private function computeEmbedding(string $text): ?array
+    {
         try {
             return $this->gemini->embedText($text, ['task_type' => 'RETRIEVAL_QUERY']);
         } catch (GeminiException) {
