@@ -46,4 +46,15 @@ return [
         'seed_limit' => (int) env('RECOMMENDATION_SERVICE_SEED_LIMIT', 20),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+        'text_model' => env('GEMINI_TEXT_MODEL', 'gemini-2.5-flash'),
+        'vision_model' => env('GEMINI_VISION_MODEL', 'gemini-2.5-flash'),
+        'embed_model' => env('GEMINI_EMBED_MODEL', 'text-embedding-004'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 20),
+        'retries' => (int) env('GEMINI_RETRIES', 1),
+        'fake' => filter_var(env('GEMINI_FAKE', false), FILTER_VALIDATE_BOOL),
+    ],
+
 ];

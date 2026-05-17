@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'pony' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/pony.log'),
+            'level' => env('PONY_LOG_LEVEL', 'info'),
+            'days' => env('PONY_LOG_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

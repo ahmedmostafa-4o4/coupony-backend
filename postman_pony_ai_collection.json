@@ -1,0 +1,420 @@
+{
+  "info": {
+    "_postman_id": "c0ffee01-pony-ai-collection",
+    "name": "Coupony Pony AI",
+    "description": "Pony AI assistant endpoints: customer text chat, customer image search, signed image fetch, seller chat + conversations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "store_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "message_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "signed_image_url",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Helpers",
+      "item": [
+        {
+          "name": "Login (Save Bearer Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer1@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  const token = data?.data?.access_token || data?.access_token || data?.token || '';",
+                  "  if (token) pm.collectionVariables.set('token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Seller Login (Save Seller Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seller1@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  const token = data?.data?.access_token || data?.access_token || data?.token || '';",
+                  "  if (token) pm.collectionVariables.set('seller_token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customer Assistant",
+      "description": "Text chat for shoppers. Authenticated with the customer's bearer token.",
+      "item": [
+        {
+          "name": "Send Chat Message (Save Conversation ID)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I want a leather wallet under 300 EGP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/customer/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "customer", "chat"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json()?.data || {};",
+                  "  if (data?.conversation?.id) pm.collectionVariables.set('conversation_id', data.conversation.id);",
+                  "  if (data?.user_message?.id) pm.collectionVariables.set('message_id', data.user_message.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Continue Existing Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversation_id\": \"{{conversation_id}}\",\n  \"message\": \"Show me something cheaper\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/customer/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "customer", "chat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Image Search (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "JPEG / PNG / WEBP, max 6 MB"
+                },
+                {
+                  "key": "message",
+                  "type": "text",
+                  "value": "Looking for something like this",
+                  "description": "Optional user caption to pair with the image"
+                },
+                {
+                  "key": "conversation_id",
+                  "type": "text",
+                  "value": "{{conversation_id}}",
+                  "description": "Optional - attaches the image turn to an existing conversation",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/customer/image-search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "customer", "image-search"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json()?.data || {};",
+                  "  if (data?.conversation?.id) pm.collectionVariables.set('conversation_id', data.conversation.id);",
+                  "  if (data?.user_message?.id) pm.collectionVariables.set('message_id', data.user_message.id);",
+                  "  const imageUrl = data?.user_message?.attachments?.image_url;",
+                  "  if (imageUrl) pm.collectionVariables.set('signed_image_url', imageUrl);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Fetch Signed Image (no auth header - signature is the auth)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "image/*" }
+            ],
+            "url": {
+              "raw": "{{signed_image_url}}",
+              "description": "Use the full signed URL returned by image-search. Includes signature= and expires= query params; expires after pony.image_url_ttl_minutes (default 30)."
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List My Conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/customer/conversations?per_page=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "customer", "conversations"],
+              "query": [
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Conversation (with messages)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/customer/conversations/{{conversation_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "customer", "conversations", "{{conversation_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Conversation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/customer/conversations/{{conversation_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "customer", "conversations", "{{conversation_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Seller Assistant",
+      "description": "Store-scoped analytics + suggestions for sellers and their employees. Set store_id to a store you own or are an employee of.",
+      "item": [
+        {
+          "name": "Send Chat Message (Save Conversation ID)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{seller_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Which of my products should I discount?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/stores/{{store_id}}/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "stores", "{{store_id}}", "chat"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const id = pm.response.json()?.data?.conversation?.id;",
+                  "  if (id) pm.collectionVariables.set('conversation_id', id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Continue Existing Seller Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{seller_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversation_id\": \"{{conversation_id}}\",\n  \"message\": \"Any low-stock warnings I should act on?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/stores/{{store_id}}/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "stores", "{{store_id}}", "chat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Seller Conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{seller_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/stores/{{store_id}}/conversations?per_page=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "stores", "{{store_id}}", "conversations"],
+              "query": [
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Seller Conversation",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{seller_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/stores/{{store_id}}/conversations/{{conversation_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "stores", "{{store_id}}", "conversations", "{{conversation_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Seller Conversation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{seller_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pony/stores/{{store_id}}/conversations/{{conversation_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pony", "stores", "{{store_id}}", "conversations", "{{conversation_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

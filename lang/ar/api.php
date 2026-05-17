@@ -311,4 +311,13 @@ return [
         'followed_stores_retrieve_failed' => 'فشل جلب المتاجر المُتابعة. يرجى المحاولة مرة أخرى لاحقًا.',
         'store_not_found' => 'المتجر غير موجود.',
     ],
+    'pony' => [
+        'reply_generated' => 'تم إنشاء الرد.',
+        'conversation_not_found' => 'لم يتم العثور على المحادثة.',
+        'conversations_retrieved' => 'تم جلب المحادثات.',
+        'conversation_retrieved' => 'تم جلب المحادثة.',
+        'conversation_deleted' => 'تم حذف المحادثة.',
+        'chat_failed' => 'تعذر على Pony AI إنشاء رد. يرجى المحاولة مرة أخرى.',
+        'rate_limited' => 'أنت ترسل الطلبات بسرعة كبيرة. يرجى الانتظار قليلًا.',
+    ],
 ];

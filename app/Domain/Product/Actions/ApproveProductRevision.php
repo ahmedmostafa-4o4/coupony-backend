@@ -5,6 +5,7 @@ namespace App\Domain\Product\Actions;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Enums\ProductStatus;
+use App\Domain\Product\Events\ProductRevisionApproved;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Repositories\ProductRepository;
@@ -50,7 +51,11 @@ class ApproveProductRevision
                 'admin_notes' => $notes,
             ]);
 
-            return $this->products->loadSellerProduct($product->fresh());
+            $fresh = $this->products->loadSellerProduct($product->fresh());
+
+            ProductRevisionApproved::dispatch($fresh, $revision->fresh(), $admin);
+
+            return $fresh;
         });
     }
 }

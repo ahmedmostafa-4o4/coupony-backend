@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(git stash *)",
+      "Bash(grep *)",
+      "Bash(php -r \"json_decode\\(file_get_contents\\('postman_pony_ai_collection.json'\\), true, 512, JSON_THROW_ON_ERROR\\); echo 'JSON is valid';\")"
+    ]
+  }
+}

@@ -16,6 +16,9 @@ use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\MeAddressController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\OnboardingController;
+use App\Application\Http\Controllers\API\V1\PonyAI\CustomerChatController;
+use App\Application\Http\Controllers\API\V1\PonyAI\PonyImageController;
+use App\Application\Http\Controllers\API\V1\PonyAI\SellerChatController;
 use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\CategoryController;
 use App\Application\Http\Controllers\API\V1\ProductFavoriteController;
@@ -66,6 +69,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/public-stores/{store}/comments', [StoreCommentController::class, 'index'])->name('public.stores.comments.index');
     Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
     Route::get('/categories/{category}/products', [ProductController::class, 'categoryProducts'])->name('categories.products.index');
+
+    Route::get('/pony/customer/images/{message}', [PonyImageController::class, 'show'])
+        ->middleware('signed')
+        ->name('pony.customer.images.show');
 
     /*
     |--------------------------------------------------------------------------
@@ -199,6 +206,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/favorite-products', [ProductFavoriteController::class, 'index'])->name('me.products.favorites.index');
         Route::get('/me/recommendations/products', [ProductRecommendationController::class, 'index'])->name('me.products.recommendations.index');
         Route::get('/me/followed-stores', [StoreFollowController::class, 'index'])->name('me.followed-stores.index');
+
+        Route::prefix('pony/customer')->name('pony.customer.')->group(function () {
+            Route::post('/chat', [CustomerChatController::class, 'store'])->name('chat')->middleware('pony.throttle:text');
+            Route::post('/image-search', [CustomerChatController::class, 'imageSearch'])->name('image-search')->middleware('pony.throttle:image');
+            Route::get('/conversations', [CustomerChatController::class, 'index'])->name('conversations.index');
+            Route::get('/conversations/{conversation}', [CustomerChatController::class, 'show'])->name('conversations.show');
+            Route::delete('/conversations/{conversation}', [CustomerChatController::class, 'destroy'])->name('conversations.destroy');
+        });
+
+        Route::prefix('pony/stores/{store}')->name('pony.seller.')->group(function () {
+            Route::post('/chat', [SellerChatController::class, 'store'])->name('chat')->middleware('pony.throttle:text');
+            Route::get('/conversations', [SellerChatController::class, 'index'])->name('conversations.index');
+            Route::get('/conversations/{conversation}', [SellerChatController::class, 'show'])->name('conversations.show');
+            Route::delete('/conversations/{conversation}', [SellerChatController::class, 'destroy'])->name('conversations.destroy');
+        });
     });
 
     // Public Store Categories

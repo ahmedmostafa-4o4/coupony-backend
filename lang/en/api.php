@@ -311,4 +311,13 @@ return [
         'followed_stores_retrieve_failed' => 'Failed to retrieve followed stores. Please try again later.',
         'store_not_found' => 'Store not found.',
     ],
+    'pony' => [
+        'reply_generated' => 'Reply generated.',
+        'conversation_not_found' => 'Conversation not found.',
+        'conversations_retrieved' => 'Conversations retrieved.',
+        'conversation_retrieved' => 'Conversation retrieved.',
+        'conversation_deleted' => 'Conversation deleted.',
+        'chat_failed' => 'Pony AI could not generate a reply. Please try again.',
+        'rate_limited' => 'You are sending requests too quickly. Please slow down.',
+    ],
 ];
