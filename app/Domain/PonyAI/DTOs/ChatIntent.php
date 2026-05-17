@@ -6,6 +6,7 @@ final class ChatIntent
 {
     /**
      * @param  array<int, string>  $attributes
+     * @param  array<int, string>  $keywords
      */
     public function __construct(
         public readonly string $freeText,
@@ -13,6 +14,10 @@ final class ChatIntent
         public readonly ?float $priceMin = null,
         public readonly ?float $priceMax = null,
         public readonly array $attributes = [],
+        public readonly ?string $semanticQuery = null,
+        public readonly ?string $arabicQuery = null,
+        public readonly array $keywords = [],
+        public readonly bool $isGenericCatalogRequest = false,
     ) {
     }
 
@@ -34,15 +39,13 @@ final class ChatIntent
             [$priceMin, $priceMax] = [$priceMax, $priceMin];
         }
 
-        $attributes = [];
-        if (is_array($payload['attributes'] ?? null)) {
-            foreach ($payload['attributes'] as $attribute) {
-                if (is_string($attribute) && trim($attribute) !== '') {
-                    $attributes[] = trim(mb_strtolower($attribute));
-                }
-            }
-            $attributes = array_values(array_unique($attributes));
-        }
+        $semanticQuery = self::cleanString($payload['semantic_query'] ?? null);
+        $arabicQuery = self::cleanString($payload['arabic_query'] ?? null);
+
+        $attributes = self::cleanLowerStringList($payload['attributes'] ?? null);
+        $keywords = self::cleanLowerStringList($payload['keywords'] ?? null);
+
+        $isGeneric = (bool) ($payload['is_generic_catalog_request'] ?? false);
 
         return new self(
             freeText: $freeText,
@@ -50,7 +53,29 @@ final class ChatIntent
             priceMin: $priceMin,
             priceMax: $priceMax,
             attributes: $attributes,
+            semanticQuery: $semanticQuery,
+            arabicQuery: $arabicQuery,
+            keywords: $keywords,
+            isGenericCatalogRequest: $isGeneric,
         );
+    }
+
+    /**
+     * Return a single multilingual query string suitable for embedding or
+     * for soft-ranking against product titles/descriptions. Order matters:
+     * the model-emitted semantic / arabic expansions go first, then the
+     * user's original text, then any aliases.
+     */
+    public function combinedQueryText(): string
+    {
+        $parts = array_filter([
+            $this->semanticQuery,
+            $this->arabicQuery,
+            $this->freeText,
+            $this->keywords === [] ? null : implode(' ', $this->keywords),
+        ], static fn($value) => is_string($value) && trim($value) !== '');
+
+        return trim(implode(' ', $parts));
     }
 
     private static function nonNegativeFloat(mixed $value): ?float
@@ -66,5 +91,42 @@ final class ChatIntent
         }
 
         return null;
+    }
+
+    private static function cleanString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function cleanLowerStringList(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($value as $item) {
+            if (! is_string($item)) {
+                continue;
+            }
+
+            $clean = trim(mb_strtolower($item));
+
+            if ($clean !== '') {
+                $out[] = $clean;
+            }
+        }
+
+        return array_values(array_unique($out));
     }
 }

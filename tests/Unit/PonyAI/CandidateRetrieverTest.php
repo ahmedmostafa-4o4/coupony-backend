@@ -88,8 +88,10 @@ class CandidateRetrieverTest extends TestCase
         $this->assertNotContains($tooPricey->id, $ids);
     }
 
-    public function test_free_text_matches_title_summary_or_description(): void
+    public function test_free_text_soft_ranks_matches_above_unrelated_products(): void
     {
+        // Text is soft ranking, not a WHERE filter - all active+approved products
+        // come back, but the ones matching "bluetooth" should appear first.
         $byTitle = $this->active(['title' => 'Bluetooth headphones', 'description' => 'audio device']);
         $byShort = $this->active(['title' => 'Generic', 'short_description' => 'noise-cancelling Bluetooth']);
         $byLong = $this->active(['title' => 'Mystery', 'description' => 'Has Bluetooth and a battery']);
@@ -100,13 +102,20 @@ class CandidateRetrieverTest extends TestCase
             10,
         );
 
-        $this->assertContains($byTitle->id, $ids);
-        $this->assertContains($byShort->id, $ids);
-        $this->assertContains($byLong->id, $ids);
-        $this->assertNotContains($unrelated->id, $ids);
+        // All four products are still candidates (no WHERE-LIKE filter).
+        $this->assertEqualsCanonicalizing(
+            [$byTitle->id, $byShort->id, $byLong->id, $unrelated->id],
+            $ids,
+        );
+
+        // The title-match outranks the unrelated product.
+        $this->assertLessThan(
+            array_search($unrelated->id, $ids, true),
+            array_search($byTitle->id, $ids, true),
+        );
     }
 
-    public function test_attributes_widen_the_text_search(): void
+    public function test_attributes_widen_the_soft_ranking(): void
     {
         $match = $this->active(['title' => 'Sneakers', 'description' => 'comfortable trainers']);
         $other = $this->active(['title' => 'Boots', 'description' => 'heavy duty']);
@@ -116,8 +125,49 @@ class CandidateRetrieverTest extends TestCase
             10,
         );
 
-        $this->assertContains($match->id, $ids);
-        $this->assertNotContains($other->id, $ids);
+        // Both come back, but 'sneakers' attribute boosts Sneakers above Boots.
+        $this->assertEqualsCanonicalizing([$match->id, $other->id], $ids);
+        $this->assertLessThan(
+            array_search($other->id, $ids, true),
+            array_search($match->id, $ids, true),
+        );
+    }
+
+    public function test_generic_catalog_request_returns_active_products_without_text_filter(): void
+    {
+        // Even with restrictive-sounding free text, a generic catalog request
+        // should ignore text and return everything that's active+approved.
+        $a = $this->active(['title' => 'Sneakers']);
+        $b = $this->active(['title' => 'Mug']);
+        $c = $this->active(['title' => 'Watch']);
+
+        $ids = $this->app->make(CandidateRetriever::class)->candidates(
+            new ChatIntent(freeText: 'unrelated string', isGenericCatalogRequest: true),
+            10,
+        );
+
+        $this->assertEqualsCanonicalizing([$a->id, $b->id, $c->id], $ids);
+    }
+
+    public function test_arabic_tokens_in_keywords_drive_soft_ranking(): void
+    {
+        $sneakers = $this->active(['title' => 'Nike Sneakers']);
+        $mug = $this->active(['title' => 'Coffee Mug']);
+
+        $ids = $this->app->make(CandidateRetriever::class)->candidates(
+            new ChatIntent(
+                freeText: 'عايز كوتشي',
+                semanticQuery: 'sneakers',
+                keywords: ['sneakers', 'كوتشي'],
+            ),
+            10,
+        );
+
+        $this->assertEqualsCanonicalizing([$sneakers->id, $mug->id], $ids);
+        $this->assertLessThan(
+            array_search($mug->id, $ids, true),
+            array_search($sneakers->id, $ids, true),
+        );
     }
 
     public function test_respects_limit(): void

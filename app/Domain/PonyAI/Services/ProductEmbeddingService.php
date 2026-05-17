@@ -44,13 +44,19 @@ class ProductEmbeddingService
         }
 
         $categoryNames = $product->categories
-            ->map(fn($category) => (string) ($category->name_en ?? $category->name ?? ''))
+            ->flatMap(fn($category) => [
+                (string) ($category->name_en ?? ''),
+                (string) ($category->name_ar ?? ''),
+            ])
             ->filter()
             ->unique()
             ->values()
             ->all();
 
         if ($categoryNames !== []) {
+            // Include both English and Arabic names so the embedding carries the
+            // multilingual semantics needed to match queries like "كوتشي" against
+            // an "Sneakers" product whose categories include "أحذية رياضية".
             $parts[] = 'Categories: '.implode(', ', $categoryNames);
         }
 

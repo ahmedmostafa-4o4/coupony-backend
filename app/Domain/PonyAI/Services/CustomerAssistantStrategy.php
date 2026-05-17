@@ -46,11 +46,25 @@ class CustomerAssistantStrategy
         $topK = (int) config('pony.retrieval.rerank_top_k', 8);
 
         $candidateIds = $this->retriever->candidates($intent, $candidateLimit);
-        $rankedIds = $this->reranker->rerank($intent->freeText, $candidateIds, $topK);
 
-        $candidates = $rankedIds === []
-            ? collect()
-            : $this->products->publicProductsByIdsInOrder($rankedIds, $user);
+        $fellBackToPopular = false;
+
+        if ($candidateIds === []) {
+            // Pure popularity fallback - guarantees the user never sees an empty
+            // result when there are active/approved products in the catalog,
+            // even if the intent extractor returned restrictive filters.
+            $fallback = $this->products->popularPublicProducts($topK, $user);
+            $candidates = $fallback;
+            $rankedIds = $fallback->pluck('id')->map(static fn($id): string => (string) $id)->all();
+            $fellBackToPopular = $fallback->isNotEmpty();
+        } else {
+            $queryText = $intent->combinedQueryText() !== '' ? $intent->combinedQueryText() : $promptForModel;
+            $rankedIds = $this->reranker->rerank($queryText, $candidateIds, $topK);
+
+            $candidates = $rankedIds === []
+                ? collect()
+                : $this->products->publicProductsByIdsInOrder($rankedIds, $user);
+        }
 
         $composed = $this->composer->compose($promptForModel, $candidates);
 
@@ -69,9 +83,14 @@ class CustomerAssistantStrategy
                     'price_min' => $intent->priceMin,
                     'price_max' => $intent->priceMax,
                     'attributes' => $intent->attributes,
+                    'semantic_query' => $intent->semanticQuery,
+                    'arabic_query' => $intent->arabicQuery,
+                    'keywords' => $intent->keywords,
+                    'is_generic_catalog_request' => $intent->isGenericCatalogRequest,
                 ],
                 'candidate_count' => count($candidateIds),
                 'reranked_count' => count($rankedIds),
+                'fell_back_to_popular' => $fellBackToPopular,
             ],
         );
 
@@ -81,6 +100,8 @@ class CustomerAssistantStrategy
             'conversation_id' => $conversation->id,
             'message_length' => mb_strlen($message),
             'sanitized_length' => mb_strlen($promptForModel),
+            'is_generic_catalog_request' => $intent->isGenericCatalogRequest,
+            'fell_back_to_popular' => $fellBackToPopular,
             'candidate_count' => count($candidateIds),
             'reranked_count' => count($rankedIds),
             'returned_count' => $grounded->count(),

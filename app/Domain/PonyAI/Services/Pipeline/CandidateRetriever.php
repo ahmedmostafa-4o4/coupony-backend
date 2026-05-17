@@ -11,9 +11,22 @@ use Illuminate\Database\Eloquent\Builder;
 class CandidateRetriever
 {
     /**
-     * Return up to $limit candidate product IDs that match the intent's
-     * structured filters and (loose) free-text search. The list is the SQL
-     * floor; the embedding reranker will narrow it further.
+     * Return up to $limit candidate product IDs.
+     *
+     * Hard filters (a missing filter is ignored):
+     *  - status         = ACTIVE
+     *  - approval       = APPROVED
+     *  - category_id    matches one of the product's categories (only if valid)
+     *  - price_min      <= base_price
+     *  - price_max      >= base_price
+     *
+     * Text is NEVER used as a WHERE clause - it only affects ORDER BY. Any
+     * remaining active+approved products still appear at the tail so the
+     * embedding reranker (and AnswerComposer) get a usable set to work with.
+     *
+     * For generic catalog requests ("show me what you have", "هل يوجد منتجات")
+     * we skip the soft text ranking entirely and order purely by popularity
+     * (rating_avg, sale_count, created_at).
      *
      * @return array<int, string>
      */
@@ -31,46 +44,94 @@ class CandidateRetriever
             ->when($intent->priceMin !== null, fn(Builder $q) => $q->where('base_price', '>=', $intent->priceMin))
             ->when($intent->priceMax !== null, fn(Builder $q) => $q->where('base_price', '<=', $intent->priceMax));
 
-        $this->applyTextSearch($query, $intent);
+        if (! $intent->isGenericCatalogRequest) {
+            $tokens = $this->collectSoftRankingTokens($intent);
+
+            if ($tokens !== []) {
+                $this->applySoftTextRanking($query, $tokens);
+            }
+        }
 
         return $query
             ->orderByDesc('rating_avg')
             ->orderByDesc('sale_count')
+            ->orderByDesc('created_at')
             ->orderBy('id')
             ->limit($limit)
             ->pluck('id')
             ->all();
     }
 
-    private function applyTextSearch(Builder $query, ChatIntent $intent): void
+    /**
+     * Add a `(CASE WHEN title LIKE ? THEN 3 ELSE 0 END + ...)` expression as the
+     * primary ORDER BY so products that contain the user's tokens float to the
+     * top - without filtering anything out.
+     *
+     * @param  array<int, string>  $tokens
+     */
+    private function applySoftTextRanking(Builder $query, array $tokens): void
     {
-        $tokens = $this->tokenize($intent->freeText);
-        $terms = collect([...$tokens, ...$intent->attributes])
-            ->map(fn($value) => trim((string) $value))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        $expressions = [];
+        $bindings = [];
 
-        if ($terms === []) {
-            return;
+        foreach ($tokens as $token) {
+            $like = '%'.$this->escapeLike($token).'%';
+
+            $expressions[] = '(CASE WHEN title LIKE ? THEN 3 ELSE 0 END)';
+            $bindings[] = $like;
+
+            $expressions[] = '(CASE WHEN short_description LIKE ? THEN 2 ELSE 0 END)';
+            $bindings[] = $like;
+
+            $expressions[] = '(CASE WHEN description LIKE ? THEN 1 ELSE 0 END)';
+            $bindings[] = $like;
         }
 
-        $query->where(function (Builder $nested) use ($terms): void {
-            foreach ($terms as $term) {
-                $like = '%'.$this->escapeLike($term).'%';
+        $expression = '('.implode(' + ', $expressions).')';
 
-                $nested->orWhere('title', 'like', $like)
-                    ->orWhere('short_description', 'like', $like)
-                    ->orWhere('description', 'like', $like);
-            }
-        });
+        $query->orderByRaw($expression.' desc', $bindings);
     }
 
     /**
-     * Split a free-text prompt into search tokens, dropping noise words and
-     * very short fragments. Falls back to the full string if tokenizing yields
-     * nothing (e.g. a single short term like a product code).
+     * Pull the multilingual tokens that should boost ranking. We deliberately
+     * collect from arabicQuery / semanticQuery / keywords / attributes BEFORE
+     * touching the raw free text, so the model's expanded vocabulary leads.
+     *
+     * @return array<int, string>
+     */
+    private function collectSoftRankingTokens(ChatIntent $intent): array
+    {
+        $sources = [];
+
+        if ($intent->semanticQuery !== null) {
+            $sources[] = $intent->semanticQuery;
+        }
+        if ($intent->arabicQuery !== null) {
+            $sources[] = $intent->arabicQuery;
+        }
+        foreach ($intent->keywords as $keyword) {
+            $sources[] = $keyword;
+        }
+        foreach ($intent->attributes as $attribute) {
+            $sources[] = $attribute;
+        }
+        $sources[] = $intent->freeText;
+
+        $tokens = [];
+        foreach ($sources as $source) {
+            foreach ($this->tokenize((string) $source) as $token) {
+                $tokens[] = $token;
+            }
+        }
+
+        return array_values(array_unique($tokens));
+    }
+
+    /**
+     * Split text into search-friendly tokens. Stays multilingual:
+     *  - keeps Arabic words (no script filter)
+     *  - drops English stopwords only
+     *  - keeps short Arabic words (>= 2 chars)
      *
      * @return array<int, string>
      */
@@ -91,18 +152,21 @@ class CandidateRetriever
 
         $parts = preg_split('/[\s,;.!?\/\\\\]+/u', mb_strtolower($trimmed)) ?: [];
         $tokens = [];
+
         foreach ($parts as $part) {
             $clean = trim($part);
-            if ($clean === '' || mb_strlen($clean) < 3 || in_array($clean, $stopwords, true)) {
+
+            if ($clean === '' || mb_strlen($clean) < 2) {
                 continue;
             }
+            // Stopword list is English-only; Arabic words pass through.
+            if (in_array($clean, $stopwords, true)) {
+                continue;
+            }
+
             $tokens[] = $clean;
         }
 
-        // If every word was a stopword or too short, return an empty token list rather
-        // than a verbatim fallback. The caller then runs an unfiltered query (sorted by
-        // popularity), which gives a useful candidate set for vague prompts like
-        // "show me something".
         return $tokens;
     }
 
