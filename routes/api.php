@@ -157,7 +157,6 @@ Route::prefix('v1')->group(function () {
         });
         Route::get('/stores/{store}/points', [PointController::class, 'showStorePoints'])->name('stores.points.show');
         Route::get('/stores/{store}/points/transactions', [PointController::class, 'storeTransactions'])->name('stores.points.transactions');
-        Route::get('/store-employee-permissions', [StoreEmployeeController::class, 'permissions'])->name('store-employee-permissions.index');
         Route::scopeBindings()->group(function () {
             Route::prefix('/stores/{store}/addresses')->name('stores.addresses.')->group(function () {
                 Route::get('/', [StoreAddressController::class, 'index'])->name('index');
@@ -212,6 +211,8 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{user}', [StoreEmployeeController::class, 'update'])->name('update');
             Route::delete('/{user}', [StoreEmployeeController::class, 'destroy'])->name('destroy');
         });
+        Route::get('/store-employee-permissions', [StoreEmployeeController::class, 'permissions'])
+            ->name('store-employee-permissions.index');
         Route::post('/invitations/{invitation}/accept', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'accept'])->name('invitations.accept');
         Route::post('/invitations/{invitation}/decline', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'decline'])->name('invitations.decline');
         Route::get('/me/invitations', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'myInvitations'])->name('me.invitations');
