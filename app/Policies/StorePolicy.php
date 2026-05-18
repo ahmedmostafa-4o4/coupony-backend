@@ -17,6 +17,13 @@ class StorePolicy
             || $user->hasRole(['admin', 'super_admin']);
     }
 
+    public function viewPoints(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id
+            || $store->hasEmployee($user)
+            || $user->hasRole(['admin', 'super_admin']);
+    }
+
     /**
      * Determine if the user can update the store.
      */
@@ -40,7 +47,7 @@ class StorePolicy
             return false;
         }
 
-        return !in_array($store->status, [
+        return ! in_array($store->status, [
             StoreStatus::SUSPENDED,
             StoreStatus::CLOSED,
         ], true);
