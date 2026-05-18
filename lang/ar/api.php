@@ -279,6 +279,8 @@ return [
         'cannot_resend' => 'لا يمكن إعادة إرسال هذه الدعوة.',
         'resent' => 'تم إعادة إرسال الدعوة بنجاح.',
         'cannot_remove_owner' => 'لا يمكن إزالة مالك المتجر.',
+        'cannot_update_owner' => 'لا يمكن تحديث مالك المتجر.',
+        'cannot_update_self' => 'لا يمكنك تحديث صلاحياتك الوظيفية.',
         'employee_removed' => 'تمت إزالة الموظف بنجاح.',
         'notification_title' => 'دعوة لمتجر جديد',
         'notification_message' => 'تمت دعوتك للانضمام إلى المتجر ":store".',

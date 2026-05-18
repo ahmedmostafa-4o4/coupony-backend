@@ -39,6 +39,7 @@ use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreCommentController;
 use App\Application\Http\Controllers\API\V1\StoreCommentLikeController;
 use App\Application\Http\Controllers\API\V1\StoreController;
+use App\Application\Http\Controllers\API\V1\StoreEmployeeController;
 use App\Application\Http\Controllers\API\V1\StoreFollowController;
 use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
@@ -137,6 +138,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/public-stores/{store}/followers', [StoreFollowController::class, 'getFollowers'])->name('public.stores.followers.index');
         Route::post('/stores', [StoreController::class, 'store'])->name('store.create');
         Route::get('/stores', [StoreController::class, 'index'])->name('me.stores.index');
+        Route::get('/me/stores', [StoreController::class, 'index'])->name('me.stores.owned-index');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
@@ -155,6 +157,7 @@ Route::prefix('v1')->group(function () {
         });
         Route::get('/stores/{store}/points', [PointController::class, 'showStorePoints'])->name('stores.points.show');
         Route::get('/stores/{store}/points/transactions', [PointController::class, 'storeTransactions'])->name('stores.points.transactions');
+        Route::get('/store-employee-permissions', [StoreEmployeeController::class, 'permissions'])->name('store-employee-permissions.index');
         Route::scopeBindings()->group(function () {
             Route::prefix('/stores/{store}/addresses')->name('stores.addresses.')->group(function () {
                 Route::get('/', [StoreAddressController::class, 'index'])->name('index');
@@ -190,7 +193,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [ProductController::class, 'sellerIndex'])->name('legacy-index');
             });
             Route::prefix('/stores/{store}/offer-claims')
-                ->middleware('role:store_employee')
                 ->name('stores.offer-claims.')
                 ->group(function () {
                     Route::get('/', [StoreOfferClaimController::class, 'index'])->name('index');
@@ -203,10 +205,12 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/{invitation}', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'destroy'])->name('destroy');
                 Route::post('/{invitation}/resend', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'resend'])->name('resend');
             });
-            Route::prefix('/stores/{store}/employees')->name('stores.employees.')->group(function () {
-                Route::get('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'employees'])->name('index');
-                Route::delete('/{user}', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'removeEmployee'])->name('destroy');
-            });
+        });
+        Route::prefix('/stores/{store}/employees')->name('stores.employees.')->group(function () {
+            Route::get('/', [StoreEmployeeController::class, 'index'])->name('index');
+            Route::get('/{user}', [StoreEmployeeController::class, 'show'])->name('show');
+            Route::patch('/{user}', [StoreEmployeeController::class, 'update'])->name('update');
+            Route::delete('/{user}', [StoreEmployeeController::class, 'destroy'])->name('destroy');
         });
         Route::post('/invitations/{invitation}/accept', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'accept'])->name('invitations.accept');
         Route::post('/invitations/{invitation}/decline', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'decline'])->name('invitations.decline');

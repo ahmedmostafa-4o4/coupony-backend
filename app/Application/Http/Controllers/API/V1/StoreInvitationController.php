@@ -4,13 +4,10 @@ namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\SendInvitationRequest;
-use App\Application\Http\Resources\StoreEmployeeResource;
 use App\Application\Http\Resources\StoreInvitationResource;
 use App\Domain\Store\Models\Store;
-use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Store\Models\StoreInvitation;
 use App\Domain\Store\Services\StoreInvitationService;
-use App\Domain\User\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -98,67 +95,6 @@ class StoreInvitationController extends Controller
             'success' => true,
             'message' => __('api.invitation.resent'),
             'data' => new StoreInvitationResource($resentInvitation),
-        ]);
-    }
-
-    public function employees(Request $request, Store $store): JsonResponse
-    {
-        $this->applyAuthenticatedLocale($request);
-        $this->authorize('manageEmployees', $store);
-
-        $query = StoreEmployee::with('user.profile')
-            ->where('store_id', $store->id);
-
-        if ($request->has('role')) {
-            $query->where('role', $request->query('role'));
-        }
-
-        if ($request->has('address_id')) {
-            $query->where('address_id', $request->query('address_id'));
-        }
-
-        if ($request->has('search')) {
-            $search = $request->query('search');
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('email', 'like', '%'.$search.'%')
-                    ->orWhereHas('profile', function ($q2) use ($search) {
-                        $q2->where('first_name', 'like', '%'.$search.'%')
-                            ->orWhere('last_name', 'like', '%'.$search.'%');
-                    });
-            });
-        }
-
-        $employees = $query->paginate((int) $request->query('per_page', 15));
-
-        return $this->localizedJson([
-            'success' => true,
-            'data' => StoreEmployeeResource::collection($employees->items()),
-            'meta' => [
-                'current_page' => $employees->currentPage(),
-                'last_page' => $employees->lastPage(),
-                'per_page' => $employees->perPage(),
-                'total' => $employees->total(),
-            ],
-        ]);
-    }
-
-    public function removeEmployee(Request $request, Store $store, User $user): JsonResponse
-    {
-        $this->applyAuthenticatedLocale($request);
-        $this->authorize('manageEmployees', $store);
-
-        if ($store->owner_user_id === $user->id) {
-            return $this->localizedJson([
-                'success' => false,
-                'message' => __('api.invitation.cannot_remove_owner'),
-            ], 422);
-        }
-
-        StoreEmployee::where('store_id', $store->id)->where('user_id', $user->id)->delete();
-
-        return $this->localizedJson([
-            'success' => true,
-            'message' => __('api.invitation.employee_removed'),
         ]);
     }
 

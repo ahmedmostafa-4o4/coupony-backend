@@ -14,8 +14,8 @@ class StoreEmployee extends Model
 
     protected $fillable = [
         'store_id',
-        'address_id',
         'user_id',
+        'address_id',
         'role',
         'permissions',
     ];

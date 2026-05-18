@@ -243,7 +243,7 @@ class StoreTest extends TestCase
         ]);
         $otherCategoryStore->categories()->attach($otherCategory->id);
 
-        $response = $this->getJson('/api/v1/stores?category_id='.$category->id.'&search=Visible&is_verified=1&min_rating=4');
+        $response = $this->getJson('/api/v1/public-stores?category_id='.$category->id.'&search=Visible&is_verified=1&min_rating=4');
 
         $response->assertOk()
             ->assertJsonPath('data.0.id', $visibleStore->id)

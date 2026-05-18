@@ -12,12 +12,14 @@ class StoreEmployeeResource extends JsonResource
         return [
             'id' => $this->id,
             'store_id' => $this->store_id,
+            'user_id' => $this->user_id,
             'address_id' => $this->address_id,
             'role' => $this->role,
             'permissions' => $this->permissions,
-            'user' => new UserResource($this->whenLoaded('user')),
-            'address' => new AddressResource($this->whenLoaded('address')),
-            'created_at' => $this->created_at,
+            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'address' => $this->whenLoaded('address', fn () => $this->address ? new AddressResource($this->address) : null),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

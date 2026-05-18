@@ -14,10 +14,10 @@ The backend broadcasts Laravel private-channel events through Pusher.
 The Flutter developer needs these values:
 
 ```txt
-API_BASE_URL=https://YOUR_DOMAIN.com
-PUSHER_APP_KEY=<public-app-key>
+API_BASE_URL=https://api.coupony.shop
+PUSHER_APP_KEY=b4bbaf7bfefabd7d2e3c
 PUSHER_APP_CLUSTER=eu
-AUTH_ENDPOINT=https://YOUR_DOMAIN.com/broadcasting/auth
+AUTH_ENDPOINT=https://api.coupony.shop/broadcasting/auth
 CHANNEL=private-users.{userId}
 EVENT=notification.sent
 ```
@@ -58,7 +58,7 @@ POST /broadcasting/auth
 Full URL example:
 
 ```txt
-https://YOUR_DOMAIN.com/broadcasting/auth
+https://api.coupony.shop/broadcasting/auth
 ```
 
 ---
@@ -81,40 +81,40 @@ Response example:
 
 ```json
 {
-  "data": [
-    {
-      "id": 123,
-      "type": "points_earned",
-      "title": "Points earned",
-      "message": "You earned points for redeeming an offer.",
-      "data": {
-        "points": 20,
-        "reason": "offer_redeemed",
-        "claim_id": "uuid",
-        "product_id": "uuid",
-        "store_id": "uuid"
-      },
-      "channel": "in_app",
-      "status": "sent",
-      "is_read": false,
-      "is_sent": true,
-      "time_ago": "1 minute ago",
-      "reference": {
-        "type": "App\\Domain\\Product\\Models\\OfferClaim",
-        "id": "uuid"
-      },
-      "sent_at": "2026-05-18T12:00:00+00:00",
-      "read_at": null,
-      "created_at": "2026-05-18T12:00:00+00:00"
+    "data": [
+        {
+            "id": 123,
+            "type": "points_earned",
+            "title": "Points earned",
+            "message": "You earned points for redeeming an offer.",
+            "data": {
+                "points": 20,
+                "reason": "offer_redeemed",
+                "claim_id": "uuid",
+                "product_id": "uuid",
+                "store_id": "uuid"
+            },
+            "channel": "in_app",
+            "status": "sent",
+            "is_read": false,
+            "is_sent": true,
+            "time_ago": "1 minute ago",
+            "reference": {
+                "type": "App\\Domain\\Product\\Models\\OfferClaim",
+                "id": "uuid"
+            },
+            "sent_at": "2026-05-18T12:00:00+00:00",
+            "read_at": null,
+            "created_at": "2026-05-18T12:00:00+00:00"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 20,
+        "total": 1,
+        "unread_count": 1
     }
-  ],
-  "meta": {
-    "current_page": 1,
-    "last_page": 1,
-    "per_page": 20,
-    "total": 1,
-    "unread_count": 1
-  }
 }
 ```
 
@@ -134,9 +134,9 @@ Example:
 
 ```json
 {
-  "data": {
-    "unread_count": 5
-  }
+    "data": {
+        "unread_count": 5
+    }
 }
 ```
 
@@ -170,10 +170,10 @@ Example:
 
 ```json
 {
-  "data": {
-    "updated_count": 4,
-    "unread_count": 0
-  }
+    "data": {
+        "updated_count": 4,
+        "unread_count": 0
+    }
 }
 ```
 
@@ -224,7 +224,7 @@ Use a Pusher-compatible package, for example:
 
 ```yaml
 dependencies:
-  pusher_channels_flutter: ^latest
+    pusher_channels_flutter: ^latest
 ```
 
 Use the latest stable version from `pub.dev`.
@@ -308,26 +308,26 @@ When `notification.sent` is received:
 
 ```json
 {
-  "notification": {
-    "id": 123,
-    "type": "points_earned",
-    "title": "Points earned",
-    "message": "You earned points for redeeming an offer.",
-    "data": {
-      "points": 20,
-      "reason": "offer_redeemed",
-      "claim_id": "uuid",
-      "product_id": "uuid",
-      "store_id": "uuid"
+    "notification": {
+        "id": 123,
+        "type": "points_earned",
+        "title": "Points earned",
+        "message": "You earned points for redeeming an offer.",
+        "data": {
+            "points": 20,
+            "reason": "offer_redeemed",
+            "claim_id": "uuid",
+            "product_id": "uuid",
+            "store_id": "uuid"
+        },
+        "channel": "in_app",
+        "status": "sent",
+        "reference_type": "App\\Domain\\Product\\Models\\OfferClaim",
+        "reference_id": "uuid",
+        "read_at": null,
+        "created_at": "2026-05-18T12:00:00+00:00"
     },
-    "channel": "in_app",
-    "status": "sent",
-    "reference_type": "App\\Domain\\Product\\Models\\OfferClaim",
-    "reference_id": "uuid",
-    "read_at": null,
-    "created_at": "2026-05-18T12:00:00+00:00"
-  },
-  "unread_count": 3
+    "unread_count": 3
 }
 ```
 
@@ -421,10 +421,10 @@ Sent to customer when an offer claim is created.
 
 ```json
 {
-  "claim_id": "uuid",
-  "product_id": "uuid",
-  "store_id": "uuid",
-  "expires_at": "2026-05-18T12:30:00+00:00"
+    "claim_id": "uuid",
+    "product_id": "uuid",
+    "store_id": "uuid",
+    "expires_at": "2026-05-18T12:30:00+00:00"
 }
 ```
 
@@ -436,10 +436,10 @@ Sent to store owner or employees when a customer claims an offer.
 
 ```json
 {
-  "claim_id": "uuid",
-  "product_id": "uuid",
-  "store_id": "uuid",
-  "customer_id": "uuid"
+    "claim_id": "uuid",
+    "product_id": "uuid",
+    "store_id": "uuid",
+    "customer_id": "uuid"
 }
 ```
 
@@ -451,10 +451,10 @@ Sent to customer when an offer is redeemed.
 
 ```json
 {
-  "claim_id": "uuid",
-  "product_id": "uuid",
-  "store_id": "uuid",
-  "redeemed_at": "2026-05-18T12:00:00+00:00"
+    "claim_id": "uuid",
+    "product_id": "uuid",
+    "store_id": "uuid",
+    "redeemed_at": "2026-05-18T12:00:00+00:00"
 }
 ```
 
@@ -466,11 +466,11 @@ Sent to store owner when an employee redeems an offer.
 
 ```json
 {
-  "claim_id": "uuid",
-  "product_id": "uuid",
-  "store_id": "uuid",
-  "customer_id": "uuid",
-  "redeemed_by": "uuid"
+    "claim_id": "uuid",
+    "product_id": "uuid",
+    "store_id": "uuid",
+    "customer_id": "uuid",
+    "redeemed_by": "uuid"
 }
 ```
 
@@ -482,11 +482,11 @@ Sent to customer when points are earned.
 
 ```json
 {
-  "points": 20,
-  "reason": "offer_redeemed",
-  "claim_id": "uuid",
-  "product_id": "uuid",
-  "store_id": "uuid"
+    "points": 20,
+    "reason": "offer_redeemed",
+    "claim_id": "uuid",
+    "product_id": "uuid",
+    "store_id": "uuid"
 }
 ```
 
@@ -498,11 +498,11 @@ Sent to store owner when store points are earned.
 
 ```json
 {
-  "points": 10,
-  "reason": "offer_redeemed",
-  "claim_id": "uuid",
-  "product_id": "uuid",
-  "store_id": "uuid"
+    "points": 10,
+    "reason": "offer_redeemed",
+    "claim_id": "uuid",
+    "product_id": "uuid",
+    "store_id": "uuid"
 }
 ```
 
@@ -514,9 +514,9 @@ Sent to store owner when the store is approved.
 
 ```json
 {
-  "store_id": "uuid",
-  "status": "active",
-  "approved_at": "2026-05-18T12:00:00+00:00"
+    "store_id": "uuid",
+    "status": "active",
+    "approved_at": "2026-05-18T12:00:00+00:00"
 }
 ```
 
@@ -528,9 +528,9 @@ Sent to store owner when the store is rejected.
 
 ```json
 {
-  "store_id": "uuid",
-  "status": "rejected",
-  "rejection_reason": "Missing documents"
+    "store_id": "uuid",
+    "status": "rejected",
+    "rejection_reason": "Missing documents"
 }
 ```
 
@@ -542,9 +542,9 @@ Sent to store owner when a product or revision is approved.
 
 ```json
 {
-  "product_id": "uuid",
-  "store_id": "uuid",
-  "revision_id": "uuid"
+    "product_id": "uuid",
+    "store_id": "uuid",
+    "revision_id": "uuid"
 }
 ```
 
@@ -556,10 +556,10 @@ Sent to store owner when a product or revision is rejected.
 
 ```json
 {
-  "product_id": "uuid",
-  "store_id": "uuid",
-  "revision_id": "uuid",
-  "rejection_reason": "Invalid image"
+    "product_id": "uuid",
+    "store_id": "uuid",
+    "revision_id": "uuid",
+    "rejection_reason": "Invalid image"
 }
 ```
 
@@ -641,10 +641,10 @@ Check:
 4. Connect to Pusher.
 5. Subscribe to `private-users.{userId}`.
 6. Trigger a backend action:
-   - create offer claim
-   - redeem offer claim
-   - approve/reject store
-   - approve/reject product revision
+    - create offer claim
+    - redeem offer claim
+    - approve/reject store
+    - approve/reject product revision
 7. Confirm Flutter receives `notification.sent`.
 8. Confirm unread count updates.
 9. Open notifications screen and compare with REST list.

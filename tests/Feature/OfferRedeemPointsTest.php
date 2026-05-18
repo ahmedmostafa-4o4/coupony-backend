@@ -9,6 +9,7 @@ use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
+use App\Domain\Store\Enums\StorePermission;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\User\Models\User;
@@ -252,6 +253,10 @@ class OfferRedeemPointsTest extends TestCase
         StoreEmployee::query()->create([
             'store_id' => $store->id,
             'user_id' => $employee->id,
+            'permissions' => [
+                StorePermission::CLAIMS_VIEW->value,
+                StorePermission::CLAIMS_REDEEM->value,
+            ],
         ]);
 
         $product = Product::factory()->active()->approved()->create([

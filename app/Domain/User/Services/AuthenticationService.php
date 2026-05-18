@@ -2,6 +2,7 @@
 
 namespace App\Domain\User\Services;
 
+use App\Domain\Store\Enums\StorePermission;
 use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
 use App\Domain\User\Events\UserLoggedIn;
@@ -248,13 +249,10 @@ class AuthenticationService
 
         if ($user->hasRole('seller')) {
             return [
-                'product:create',
-                'product:read',
-                'product:update',
-                'product:delete',
-                'order:read',
-                'order:update',
-                'store:manage',
+                StorePermission::DASHBOARD_VIEW->value,
+                StorePermission::PRODUCTS_MANAGE->value,
+                StorePermission::ORDERS_VIEW->value,
+                StorePermission::ANALYTICS_VIEW->value,
             ];
         }
 

@@ -279,6 +279,8 @@ return [
         'cannot_resend' => 'Cannot resend this invitation.',
         'resent' => 'Invitation resent successfully.',
         'cannot_remove_owner' => 'Cannot remove the store owner.',
+        'cannot_update_owner' => 'Cannot update the store owner.',
+        'cannot_update_self' => 'Cannot update your own employee access.',
         'employee_removed' => 'Employee removed successfully.',
         'notification_title' => 'New Store Invitation',
         'notification_message' => 'You have been invited to join the store ":store".',

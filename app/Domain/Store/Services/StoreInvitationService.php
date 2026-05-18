@@ -15,6 +15,7 @@ use App\Domain\User\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class StoreInvitationService
 {
@@ -134,6 +135,15 @@ class StoreInvitationService
                     'address_id' => $invitation->address_id,
                 ]
             );
+
+            Role::query()->firstOrCreate([
+                'name' => $invitation->role,
+                'guard_name' => 'sanctum',
+            ]);
+
+            if (! $invitee->hasRole($invitation->role)) {
+                $invitee->assignRole($invitation->role);
+            }
 
             $invitation->markAsAccepted();
 

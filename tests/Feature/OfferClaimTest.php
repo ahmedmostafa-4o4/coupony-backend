@@ -12,6 +12,7 @@ use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductVariant;
+use App\Domain\Store\Enums\StorePermission;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\User\Models\User;
@@ -469,7 +470,7 @@ class OfferClaimTest extends TestCase
             ->assertJsonPath('data.store_id', $store->id);
     }
 
-    public function test_redemption_fails_for_employee_of_different_store_and_for_seller_owner(): void
+    public function test_redemption_fails_for_employee_of_different_store_and_allows_store_owner(): void
     {
         $seller = $this->seller();
         $otherSeller = $this->seller();
@@ -502,7 +503,7 @@ class OfferClaimTest extends TestCase
             ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
                 'qr_code_token' => $qrCodeToken,
             ])
-            ->assertForbidden();
+            ->assertOk();
     }
 
     public function test_store_employee_cannot_manage_products_for_store(): void
@@ -557,6 +558,10 @@ class OfferClaimTest extends TestCase
         StoreEmployee::query()->create([
             'store_id' => $store->id,
             'user_id' => $employee->id,
+            'permissions' => [
+                StorePermission::CLAIMS_VIEW->value,
+                StorePermission::CLAIMS_REDEEM->value,
+            ],
         ]);
 
         return $employee;

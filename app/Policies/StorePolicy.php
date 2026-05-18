@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Domain\Store\Enums\StoreStatus;
+use App\Domain\Store\Enums\StorePermission;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 
@@ -83,17 +84,59 @@ class StorePolicy
 
     public function accessClaims(User $user, Store $store): bool
     {
-        return $user->hasRole('store_employee')
-            && $store->hasEmployee($user);
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasAnyPermission($user, [
+                StorePermission::CLAIMS_VIEW->value,
+                StorePermission::CLAIMS_REDEEM->value,
+                StorePermission::CLAIMS_MANAGE->value,
+            ]);
     }
 
     public function manageInvitations(User $user, Store $store): bool
     {
-        return $store->owner_user_id === $user->id;
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::EMPLOYEES_INVITE->value);
     }
 
     public function manageEmployees(User $user, Store $store): bool
     {
-        return $store->owner_user_id === $user->id;
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::EMPLOYEES_MANAGE->value);
+    }
+
+    public function viewAnalytics(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::ANALYTICS_VIEW->value);
+    }
+
+    public function manageSettings(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::SETTINGS_MANAGE->value);
+    }
+
+    public function manageProducts(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::PRODUCTS_MANAGE->value);
+    }
+
+    public function manageOrders(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::ORDERS_MANAGE->value);
+    }
+
+    public function manageBranches(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasPermission($user, StorePermission::BRANCHES_MANAGE->value);
+    }
+
+    private function isOwnerOrAdmin(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id
+            || $user->hasRole(['admin', 'super_admin']);
     }
 }

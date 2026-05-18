@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasTable('store_employees') || Schema::hasColumn('store_employees', 'address_id')) {
+            return;
+        }
+
         Schema::table('store_employees', function (Blueprint $table) {
-            $table->unsignedBigInteger('address_id')->nullable()->after('store_id');
+            $table->unsignedBigInteger('address_id')->nullable()->after('user_id');
             $table->foreign('address_id')->references('id')->on('addresses')->nullOnDelete();
         });
     }
@@ -22,6 +26,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasTable('store_employees') || ! Schema::hasColumn('store_employees', 'address_id')) {
+            return;
+        }
+
         Schema::table('store_employees', function (Blueprint $table) {
             $table->dropForeign(['address_id']);
             $table->dropColumn('address_id');

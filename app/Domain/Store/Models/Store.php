@@ -223,6 +223,37 @@ class Store extends Model
         return $this->employees()->whereKey($user->id)->exists();
     }
 
+    public function employeeLinkFor(User $user): ?StoreEmployee
+    {
+        return $this->employeeLinks()
+            ->where('user_id', $user->id)
+            ->first();
+    }
+
+    public function employeeHasPermission(User $user, string $permission): bool
+    {
+        return $this->employeeHasAnyPermission($user, [$permission]);
+    }
+
+    public function employeeHasAnyPermission(User $user, array $permissions): bool
+    {
+        $employee = $this->employeeLinkFor($user);
+
+        if (! $employee) {
+            return false;
+        }
+
+        // Safer default: legacy/null permission rows grant no implicit access.
+        // Staff must have explicit per-store permissions in store_employees.permissions.
+        if ($employee->permissions === null) {
+            return false;
+        }
+
+        return collect($employee->permissions)
+            ->intersect($permissions)
+            ->isNotEmpty();
+    }
+
     public function addBranchAddress(array $data): Address
     {
         $address = Address::create($data);

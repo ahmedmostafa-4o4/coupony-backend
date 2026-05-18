@@ -116,7 +116,7 @@ class UserJourneyTest extends TestCase
         $verifyResponse->assertStatus(200);
         $accessToken = $verifyResponse->json('data.access_token');
 
-        // Step 3: Seller login is denied before store creation
+        // Step 3: Seller login is allowed while the seller account is pending store approval
         $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email' => 'john.seller@example.com',
             'password' => 'password123',
@@ -124,8 +124,8 @@ class UserJourneyTest extends TestCase
             'role' => 'seller',
         ]);
 
-        $loginResponse->assertStatus(401)
-            ->assertJsonFragment(['message' => __('api.common.unauthorized')]);
+        $loginResponse->assertStatus(200)
+            ->assertJsonPath('data.role', 'seller');
 
         // Step 4: Create store
         $category = StoreCategory::factory()->create();
