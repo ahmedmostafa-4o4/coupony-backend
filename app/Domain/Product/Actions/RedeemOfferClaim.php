@@ -66,83 +66,80 @@ class RedeemOfferClaim
                 ->keyBy('id');
 
             foreach ($usageCounts as $variantId => $quantity) {
-                /** @var ProductVariant|null $variant */
                 $variant = $variants->get($variantId);
 
                 if (!$variant || $variant->product_id !== $claim->product_id || !$variant->is_active) {
-                    if (!$variant || $variant->product_id !== $claim->product_id || !$variant->is_active) {
-                        throw new \DomainException('One or more claimed variants are no longer redeemable.');
-                    }
-
-                    if (
-                        $variant->inventory_mode === InventoryMode::TRACKED
-                        && (int) ($variant->stock_qty ?? 0) < $quantity
-                    ) {
-                        throw new \DomainException('Insufficient stock is available to redeem this claim.');
-                    }
+                    throw new \DomainException('One or more claimed variants are no longer redeemable.');
                 }
 
-                foreach ($usageCounts as $variantId => $quantity) {
-                    /** @var ProductVariant $variant */
-                    $variant = $variants->get($variantId);
-                    $updates = [
-                        'redemption_count' => DB::raw("redemption_count + {$quantity}"),
-                    ];
-
-                    if ($variant->inventory_mode === InventoryMode::TRACKED) {
-                        $updates['stock_qty'] = max(0, (int) $variant->stock_qty - $quantity);
-                    }
-
-                    ProductVariant::query()->whereKey($variantId)->update($updates);
+                if (
+                    $variant->inventory_mode === InventoryMode::TRACKED
+                    && (int) ($variant->stock_qty ?? 0) < $quantity
+                ) {
+                    throw new \DomainException('Insufficient stock is available to redeem this claim.');
                 }
+            }
 
-                Product::query()
-                    ->whereKey($claim->product_id)
-                    ->lockForUpdate()
-                    ->update([
-                        'redemption_count' => DB::raw('redemption_count + 1'),
-                    ]);
+            foreach ($usageCounts as $variantId => $quantity) {
+                $variant = $variants->get($variantId);
 
-                $claim->update([
-                    'status' => OfferClaimStatus::REDEEMED,
-                    'redeemed_at' => now(),
-                    'redeemed_by' => $redeemedBy->id,
-                ]);
-
-                $claim->loadMissing('user');
-
-                $meta = [
-                    'claim_id' => $claim->id,
-                    'product_id' => $claim->product_id,
-                    'store_id' => $store->id,
+                $updates = [
+                    'redemption_count' => DB::raw("redemption_count + {$quantity}"),
                 ];
 
-                if (!$this->hasRedeemPointsAward($claim)) {
-                    $this->points->addUserPoints(
-                        $claim->user,
-                        (int) config('points.offer_redeemed_user', 20),
-                        'offer_redeemed',
-                        null,
-                        $store,
-                        $claim,
-                        null,
-                        $meta
-                    );
-
-                    $this->points->addStorePoints(
-                        $store,
-                        (int) config('points.offer_redeemed_store', 10),
-                        'offer_redeemed',
-                        null,
-                        $claim->user,
-                        $claim,
-                        null,
-                        $meta
-                    );
+                if ($variant->inventory_mode === InventoryMode::TRACKED) {
+                    $updates['stock_qty'] = max(0, (int) $variant->stock_qty - $quantity);
                 }
 
-                return $claim->fresh();
+                ProductVariant::query()->whereKey($variantId)->update($updates);
             }
+
+            Product::query()
+                ->whereKey($claim->product_id)
+                ->lockForUpdate()
+                ->update([
+                    'redemption_count' => DB::raw('redemption_count + 1'),
+                ]);
+
+            $claim->update([
+                'status' => OfferClaimStatus::REDEEMED,
+                'redeemed_at' => now(),
+                'redeemed_by' => $redeemedBy->id,
+            ]);
+
+            $claim->loadMissing('user');
+
+            $meta = [
+                'claim_id' => $claim->id,
+                'product_id' => $claim->product_id,
+                'store_id' => $store->id,
+            ];
+
+            if (!$this->hasRedeemPointsAward($claim)) {
+                $this->points->addUserPoints(
+                    $claim->user,
+                    (int) config('points.offer_redeemed_user', 20),
+                    'offer_redeemed',
+                    null,
+                    $store,
+                    $claim,
+                    null,
+                    $meta
+                );
+
+                $this->points->addStorePoints(
+                    $store,
+                    (int) config('points.offer_redeemed_store', 10),
+                    'offer_redeemed',
+                    null,
+                    $claim->user,
+                    $claim,
+                    null,
+                    $meta
+                );
+            }
+
+            return $claim->fresh();
         });
 
     }
