@@ -30,6 +30,7 @@ class PublicStoreResource extends JsonResource
             'followers_count' => (int) $this->followers_count,
             'is_following' => $this->whenLoaded('followerUsers', function () use ($request) {
                 $user = $request->user();
+
                 return $user ? $this->followerUsers->contains('id', $user->id) : false;
             }, false),
             'created_at' => $this->created_at?->toIso8601String(),

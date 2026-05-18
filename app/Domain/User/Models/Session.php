@@ -7,8 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Session extends Model
 {
     protected $table = 'sessions';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
+
     protected $fillable = [
         'user_id',
         'token',
@@ -63,6 +66,6 @@ class Session extends Model
      */
     public function isActive(): bool
     {
-        return !$this->isExpired();
+        return ! $this->isExpired();
     }
 }

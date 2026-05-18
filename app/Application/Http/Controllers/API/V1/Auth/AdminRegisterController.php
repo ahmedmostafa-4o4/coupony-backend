@@ -13,8 +13,7 @@ class AdminRegisterController extends Controller implements HasMiddleware
 {
     public function __construct(
         private RegisterUser $registerUser,
-    ) {
-    }
+    ) {}
 
     public static function middleware(): array
     {
@@ -40,6 +39,7 @@ class AdminRegisterController extends Controller implements HasMiddleware
             UserData::fromRequest($request),
             context: $context
         );
+
         return response()->json([
             'success' => true,
             'message' => __('api.auth.admin_registered'),

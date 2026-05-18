@@ -12,8 +12,7 @@ final class ImageQueryUnderstanding
         public readonly ?string $categoryGuess = null,
         public readonly ?string $color = null,
         public readonly array $attributes = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

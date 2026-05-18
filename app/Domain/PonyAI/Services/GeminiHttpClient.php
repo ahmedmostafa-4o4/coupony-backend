@@ -15,9 +15,7 @@ class GeminiHttpClient implements GeminiClient
     /**
      * @param  array<string, mixed>  $config
      */
-    public function __construct(private readonly array $config)
-    {
-    }
+    public function __construct(private readonly array $config) {}
 
     public function generateText(string $prompt, array $options = []): GeminiResult
     {
@@ -50,7 +48,7 @@ class GeminiHttpClient implements GeminiClient
             throw GeminiException::malformedPayload('embedContent response missing embedding.values');
         }
 
-        return array_map(static fn($value) => (float) $value, $values);
+        return array_map(static fn ($value) => (float) $value, $values);
     }
 
     public function embedImage(string $imageBytes, string $mimeType, array $options = []): array

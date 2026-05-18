@@ -9,9 +9,7 @@ use App\Domain\User\Models\User;
 
 class LikeProduct
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function execute(Product $product, User $user): ProductLike
     {

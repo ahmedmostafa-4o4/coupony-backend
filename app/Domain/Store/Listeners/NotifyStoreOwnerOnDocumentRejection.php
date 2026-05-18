@@ -10,8 +10,7 @@ class NotifyStoreOwnerOnDocumentRejection
 {
     public function __construct(
         private NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     public function handle(VerificationDocumentRejected $event): void
     {

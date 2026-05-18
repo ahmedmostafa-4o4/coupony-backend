@@ -2,8 +2,8 @@
 
 namespace App\Domain\User\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class UserPreference extends Model
 {

@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class NotificationService
 {
@@ -33,9 +34,7 @@ class NotificationService
         array $data = [],
         ?string $referenceType = null,
         ?string $referenceId = null
-        ): Notification
-    {
-        // Create notification record
+    ): Notification {
         $notification = Notification::create([
             'user_id' => $user->id,
             'type' => $type,
@@ -48,21 +47,22 @@ class NotificationService
             'reference_id' => $referenceId,
         ]);
 
-        // Send via channel
         try {
             $this->sendViaChannel($notification, $user, $channel);
             $notification->markAsSent();
 
             event(new NotificationSent($notification, $user));
-        }
-        catch (\Exception $e) {
+        } catch (Throwable $e) {
+            $notification->markAsFailed($e->getMessage());
+
             Log::error('Notification Send Failed', [
                 'notification_id' => $notification->id,
+                'user_id' => $user->id,
+                'type' => $type,
                 'channel' => $channel,
                 'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
-
-            $notification->markAsFailed($e->getMessage());
         }
 
         return $notification;
@@ -78,8 +78,7 @@ class NotificationService
         string $message,
         string $channel = 'in_app',
         array $data = []
-        ): array
-    {
+    ): array {
         $sent = [];
         $failed = [];
 
@@ -93,9 +92,27 @@ class NotificationService
                     $channel,
                     $data
                 );
+
+                if ($notification->status === 'failed') {
+                    $failed[] = [
+                        'user_id' => $user->id,
+                        'notification_id' => $notification->id,
+                        'error' => $notification->data['failure_reason'] ?? 'Notification send failed',
+                    ];
+
+                    continue;
+                }
+
                 $sent[] = $notification->id;
-            }
-            catch (\Exception $e) {
+            } catch (Throwable $e) {
+                Log::error('Bulk Notification Send Failed', [
+                    'user_id' => $user->id,
+                    'type' => $type,
+                    'channel' => $channel,
+                    'error' => $e->getMessage(),
+                    'exception' => $e::class,
+                ]);
+
                 $failed[] = [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
@@ -120,8 +137,7 @@ class NotificationService
         string $message,
         array $data = [],
         string $channel = 'in_app'
-        ): void
-    {
+    ): void {
         $admins = User::role('admin')->get();
 
         $this->sendBulk($admins, $type, $title, $message, $channel, $data);
@@ -134,17 +150,16 @@ class NotificationService
         Notification $notification,
         User $user,
         string $channel
-        ): void
-    {
+    ): void {
         // Check user preferences
-        if (!$this->canSendToChannel($user, $channel)) {
-            throw new \Exception("User has disabled {$channel} notifications");
+        if (! $this->canSendToChannel($user, $channel)) {
+            throw new \RuntimeException("User has disabled {$channel} notifications");
         }
 
         $notifier = $this->getNotifier($channel);
 
-        if (!$notifier) {
-            throw new \Exception("No notifier found for channel: {$channel}");
+        if (! $notifier) {
+            throw new \RuntimeException("No notifier found for channel: {$channel}");
         }
 
         $notifier->send($notification, $user);
@@ -161,16 +176,16 @@ class NotificationService
 
         $preferences = $user->preferences;
 
-        if (!$preferences) {
+        if (! $preferences) {
             return true; // Default: allow if no preferences set
         }
 
         return match ($channel) {
-                'email' => $preferences->email_order_updates ?? true,
-                'sms' => $preferences->sms_notifications ?? false,
-                'push' => $preferences->push_notifications ?? true,
-                default => false,
-            };
+            'email' => $preferences->email_order_updates ?? true,
+            'sms' => $preferences->sms_notifications ?? false,
+            'push' => $preferences->push_notifications ?? true,
+            default => false,
+        };
     }
 
     /**

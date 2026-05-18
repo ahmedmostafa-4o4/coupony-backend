@@ -8,9 +8,7 @@ use App\Domain\User\Models\User;
 
 class UnlikeProduct
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function execute(Product $product, User $user): void
     {

@@ -13,7 +13,7 @@ class DeleteStoreAddress
 
         $hasOtherOwners = $address->users()->exists() || $address->stores()->exists();
 
-        if (!$hasOtherOwners) {
+        if (! $hasOtherOwners) {
             $address->delete();
         }
     }

@@ -3,9 +3,9 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class SetLocale
@@ -21,11 +21,11 @@ class SetLocale
         $header = $request->header('Accept-Language');
         $locale = $this->parseHeaderLocale($header, $allowed);
 
-        if (!$locale) {
+        if (! $locale) {
             $locale = $this->resolveAuthenticatedLocale($request);
         }
 
-        if (!in_array($locale, $allowed, true)) {
+        if (! in_array($locale, $allowed, true)) {
             $locale = config('app.fallback_locale', config('localization.default_locale', 'en'));
         }
 
@@ -43,7 +43,7 @@ class SetLocale
 
     private function parseHeaderLocale(?string $header, array $allowed): ?string
     {
-        if (!$header) {
+        if (! $header) {
             return null;
         }
 
@@ -57,21 +57,21 @@ class SetLocale
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             $authorizationHeader = $request->header('Authorization');
             if (is_string($authorizationHeader) && preg_match('/Bearer\s+(.+)/i', $authorizationHeader, $matches)) {
                 $token = trim($matches[1]);
             }
         }
 
-        if (!$token) {
+        if (! $token) {
             $authorizationHeader = $request->server('HTTP_AUTHORIZATION');
             if (is_string($authorizationHeader) && preg_match('/Bearer\s+(.+)/i', $authorizationHeader, $matches)) {
                 $token = trim($matches[1]);
             }
         }
 
-        if (!$token) {
+        if (! $token) {
             return null;
         }
 

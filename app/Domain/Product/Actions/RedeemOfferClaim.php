@@ -7,6 +7,7 @@ use App\Domain\Points\Models\UserPointTransaction;
 use App\Domain\Points\Services\PointsService;
 use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Enums\OfferClaimStatus;
+use App\Domain\Product\Events\OfferClaimRedeemed;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
@@ -17,20 +18,18 @@ use Illuminate\Support\Facades\DB;
 
 class RedeemOfferClaim
 {
-    public function __construct(private readonly PointsService $points)
-    {
-    }
+    public function __construct(private readonly PointsService $points) {}
 
     public function execute(Store $store, string $qrCodeToken, User $redeemedBy): OfferClaim
     {
-        return DB::transaction(function () use ($store, $qrCodeToken, $redeemedBy) {
+        $result = DB::transaction(function () use ($store, $qrCodeToken, $redeemedBy) {
             /** @var OfferClaim|null $claim */
             $claim = OfferClaim::query()
                 ->where('qr_code_token', $qrCodeToken)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$claim || $claim->store_id !== $store->id) {
+            if (! $claim || $claim->store_id !== $store->id) {
                 throw new \DomainException('The scanned claim could not be found for this store.');
             }
 
@@ -68,7 +67,7 @@ class RedeemOfferClaim
                 /** @var ProductVariant|null $variant */
                 $variant = $variants->get($variantId);
 
-                if (!$variant || $variant->product_id !== $claim->product_id || !$variant->is_active) {
+                if (! $variant || $variant->product_id !== $claim->product_id || ! $variant->is_active) {
                     throw new \DomainException('One or more claimed variants are no longer redeemable.');
                 }
 
@@ -115,11 +114,14 @@ class RedeemOfferClaim
                 'product_id' => $claim->product_id,
                 'store_id' => $store->id,
             ];
+            $userPoints = (int) config('points.offer_redeemed_user', 20);
+            $storePoints = (int) config('points.offer_redeemed_store', 10);
+            $pointsAwarded = false;
 
-            if (!$this->hasRedeemPointsAward($claim)) {
+            if (! $this->hasRedeemPointsAward($claim)) {
                 $this->points->addUserPoints(
                     $claim->user,
-                    (int) config('points.offer_redeemed_user', 20),
+                    $userPoints,
                     'offer_redeemed',
                     null,
                     $store,
@@ -130,7 +132,7 @@ class RedeemOfferClaim
 
                 $this->points->addStorePoints(
                     $store,
-                    (int) config('points.offer_redeemed_store', 10),
+                    $storePoints,
                     'offer_redeemed',
                     null,
                     $claim->user,
@@ -138,10 +140,30 @@ class RedeemOfferClaim
                     null,
                     $meta
                 );
+
+                $pointsAwarded = true;
             }
 
-            return $claim->fresh();
+            return [
+                'claim' => $claim->fresh(),
+                'user_points_awarded' => $pointsAwarded,
+                'store_points_awarded' => $pointsAwarded,
+                'user_points' => $userPoints,
+                'store_points' => $storePoints,
+            ];
         });
+
+        OfferClaimRedeemed::dispatch(
+            $result['claim'],
+            $store,
+            $redeemedBy,
+            $result['user_points_awarded'],
+            $result['store_points_awarded'],
+            $result['user_points'],
+            $result['store_points'],
+        );
+
+        return $result['claim'];
     }
 
     private function hasRedeemPointsAward(OfferClaim $claim): bool

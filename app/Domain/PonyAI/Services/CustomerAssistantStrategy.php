@@ -3,7 +3,6 @@
 namespace App\Domain\PonyAI\Services;
 
 use App\Domain\PonyAI\DTOs\AssistantReply;
-use App\Domain\PonyAI\DTOs\ChatIntent;
 use App\Domain\PonyAI\Models\PonyConversation;
 use App\Domain\PonyAI\Models\PonyMessage;
 use App\Domain\PonyAI\Repositories\ConversationRepository;
@@ -67,8 +66,7 @@ class CustomerAssistantStrategy
         private readonly ProductRepository $products,
         private readonly PromptSanitizer $sanitizer,
         private readonly GroundingValidator $grounding,
-    ) {
-    }
+    ) {}
 
     public function handle(User $user, string $message, ?PonyConversation $conversation = null): AssistantReply
     {
@@ -118,7 +116,7 @@ class CustomerAssistantStrategy
             $stageStart = microtime(true);
             $fallback = $this->products->popularPublicProducts($topK, $user);
             $candidates = $fallback;
-            $rankedIds = $fallback->pluck('id')->map(static fn($id): string => (string) $id)->all();
+            $rankedIds = $fallback->pluck('id')->map(static fn ($id): string => (string) $id)->all();
             $fellBackToPopular = $fallback->isNotEmpty();
             $stages['db_hydration'] = $this->elapsedMs($stageStart);
         } else {
@@ -238,7 +236,7 @@ class CustomerAssistantStrategy
 
         $stageStart = microtime(true);
         $replyText = $this->genericCatalogReply($originalMessage);
-        $productIds = $candidates->pluck('id')->map(static fn($id): string => (string) $id)->all();
+        $productIds = $candidates->pluck('id')->map(static fn ($id): string => (string) $id)->all();
         $stages['grounding'] = $this->elapsedMs($stageStart);
 
         $stageStart = microtime(true);
@@ -361,7 +359,7 @@ class CustomerAssistantStrategy
 
         return [
             'message' => $message,
-            'product_ids' => $candidates->pluck('id')->map(static fn($id): string => (string) $id)->all(),
+            'product_ids' => $candidates->pluck('id')->map(static fn ($id): string => (string) $id)->all(),
             'offer_ids' => [],
         ];
     }

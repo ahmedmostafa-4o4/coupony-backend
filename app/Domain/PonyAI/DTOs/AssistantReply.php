@@ -21,6 +21,5 @@ final class AssistantReply
         public readonly Collection $groundedProducts,
         public readonly array $groundedOfferIds = [],
         public readonly array $droppedProductIds = [],
-    ) {
-    }
+    ) {}
 }

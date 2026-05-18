@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Notification\Models\Notification;
+use App\Domain\Notification\Services\NotificationService;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductOfferTargetRole;
 use App\Domain\Product\Enums\ProductOfferType;
@@ -10,8 +12,8 @@ use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductVariant;
-use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Store\Models\Store;
+use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -142,6 +144,116 @@ class OfferClaimTest extends TestCase
 
         $claim = OfferClaim::query()->firstOrFail();
         $this->assertSame('20.00', data_get($claim->offer_snapshot, 'offer.percentage_value'));
+    }
+
+    public function test_claim_creation_sends_notifications_to_customer_store_owner_and_employees(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $employee = $this->employeeFor($store);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'type' => ProductOfferType::FIXED,
+            'fixed_amount' => 25,
+            'claim_expiration_minutes' => 30,
+        ]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ]);
+
+        $response->assertCreated();
+
+        $claimId = $response->json('data.id');
+
+        $customerNotification = Notification::query()
+            ->where('user_id', $customer->id)
+            ->where('type', 'offer_claim_created')
+            ->firstOrFail();
+
+        $this->assertSame('Offer claimed successfully', $customerNotification->title);
+        $this->assertSame('Your offer claim has been created successfully.', $customerNotification->message);
+        $this->assertSame('in_app', $customerNotification->channel);
+        $this->assertSame('sent', $customerNotification->status);
+        $this->assertSame(OfferClaim::class, $customerNotification->reference_type);
+        $this->assertSame($claimId, $customerNotification->reference_id);
+        $this->assertSame($claimId, $customerNotification->data['claim_id']);
+        $this->assertSame($product->id, $customerNotification->data['product_id']);
+        $this->assertSame($store->id, $customerNotification->data['store_id']);
+        $this->assertNotNull($customerNotification->data['expires_at']);
+
+        foreach ([$seller, $employee] as $recipient) {
+            $storeNotification = Notification::query()
+                ->where('user_id', $recipient->id)
+                ->where('type', 'new_offer_claim')
+                ->firstOrFail();
+
+            $this->assertSame('New offer claim', $storeNotification->title);
+            $this->assertSame('A customer claimed an offer from your store.', $storeNotification->message);
+            $this->assertSame('in_app', $storeNotification->channel);
+            $this->assertSame('sent', $storeNotification->status);
+            $this->assertSame(OfferClaim::class, $storeNotification->reference_type);
+            $this->assertSame($claimId, $storeNotification->reference_id);
+            $this->assertSame($claimId, $storeNotification->data['claim_id']);
+            $this->assertSame($product->id, $storeNotification->data['product_id']);
+            $this->assertSame($store->id, $storeNotification->data['store_id']);
+            $this->assertSame($customer->id, $storeNotification->data['customer_id']);
+        }
+
+        $this->assertSame(2, Notification::query()->where('type', 'new_offer_claim')->count());
+    }
+
+    public function test_claim_creation_still_succeeds_when_notifications_fail(): void
+    {
+        $this->app->instance(NotificationService::class, new class extends NotificationService
+        {
+            public function send(
+                User $user,
+                string $type,
+                string $title,
+                string $message,
+                string $channel = 'in_app',
+                array $data = [],
+                ?string $referenceType = null,
+                ?string $referenceId = null
+            ): Notification {
+                throw new \RuntimeException('Notification transport unavailable.');
+            }
+        });
+
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'type' => ProductOfferType::FIXED,
+            'fixed_amount' => 25,
+        ]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ]);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('offer_claims', [
+            'id' => $response->json('data.id'),
+            'user_id' => $customer->id,
+            'store_id' => $store->id,
+            'product_id' => $product->id,
+            'status' => 'active',
+        ]);
     }
 
     public function test_buy_x_get_y_claim_snapshots_selected_buy_and_reward_variants_and_redeems_all_stock(): void

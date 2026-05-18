@@ -30,6 +30,7 @@ class ProductSeeder extends Seeder
 
         if ($stores->isEmpty()) {
             $this->command->warn('Please run StoreSeeder first!');
+
             return;
         }
 
@@ -37,6 +38,7 @@ class ProductSeeder extends Seeder
 
         if ($categoryIds->isEmpty()) {
             $this->command->warn('Please run ProductCategorySeeder first!');
+
             return;
         }
 
@@ -79,7 +81,7 @@ class ProductSeeder extends Seeder
 
                     $product->categories()->sync(
                         collect($template['category_slugs'])
-                            ->map(fn(string $slug) => $categoryIds->get($slug))
+                            ->map(fn (string $slug) => $categoryIds->get($slug))
                             ->filter()
                             ->values()
                             ->all()
@@ -493,7 +495,7 @@ class ProductSeeder extends Seeder
 
         $variantsBySku = $product->variants()
             ->get(['id', 'sku'])
-            ->keyBy(fn(ProductVariant $variant) => mb_strtolower((string) $variant->sku));
+            ->keyBy(fn (ProductVariant $variant) => mb_strtolower((string) $variant->sku));
 
         foreach ($offerData['buy_variant_skus'] ?? [] as $sku) {
             $variant = $variantsBySku->get(mb_strtolower((string) $sku));

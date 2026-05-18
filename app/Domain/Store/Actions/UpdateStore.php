@@ -9,7 +9,6 @@ use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\Storage;
 
-
 class UpdateStore
 {
     public function execute(Store $store, User $user, StoreData $data): Store
@@ -33,8 +32,6 @@ class UpdateStore
             'tax_id' => $data->tax_id ?? $store->tax_id,
             'subscription_tier' => $data->subscription_tier ?? $store->subscription_tier,
         ]);
-
-
 
         // Update logo if provided
         if ($data->logo_url) {
@@ -76,7 +73,7 @@ class UpdateStore
             }
         }
 
-        if (!is_null($data->socials)) {
+        if (! is_null($data->socials)) {
             $this->syncSocials($store, $data->socials);
         }
 

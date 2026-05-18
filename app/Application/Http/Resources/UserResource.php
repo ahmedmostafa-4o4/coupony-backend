@@ -5,6 +5,7 @@ namespace App\Application\Http\Resources;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+
 class UserResource extends JsonResource
 {
     /**
@@ -23,14 +24,14 @@ class UserResource extends JsonResource
             'phone_number' => $this->phone_number,
             'provider' => $this->provider,
             'provider_id' => $this->provider_id,
-            'roles' => $this->whenLoaded('roles', fn() => $this->roles->pluck('name')->values()),
+            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values()),
             'profile' => $this->whenLoaded('profile', [
                 'first_name' => $this->profile?->first_name,
                 'last_name' => $this->profile?->last_name,
                 'avatar' => $this->profile?->avatar_url,
                 'date_of_birth' => $this->profile?->date_of_birth?->toDateString(),
                 'bio' => $this->profile?->bio,
-                'gender' => $this->profile?->gender
+                'gender' => $this->profile?->gender,
             ]),
             'is_store_owner' => $this->stores()->exists(),
             'is_onboarding_completed' => $this->isOnboardingCompleted($this->id, $request->header('X-User-Role') ?? $request->input('role') ?? $this->roles?->first()?->name),

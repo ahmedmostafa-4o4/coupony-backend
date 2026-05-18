@@ -50,7 +50,7 @@ class SellerSuggestionEngine
             return [];
         }
 
-        return array_map(static fn(array $row): array => [
+        return array_map(static fn (array $row): array => [
             'topic' => SellerTopic::UNDERPERFORMING_PRODUCTS->value,
             'text' => sprintf(
                 '"%s" has %d views but 0 claims - consider an offer or promotion.',
@@ -67,7 +67,7 @@ class SellerSuggestionEngine
     private function offerSuggestions(StoreInsightsSnapshot $snapshot): array
     {
         // The same underperforming list is the strongest deterministic offer signal we have.
-        return array_map(static fn(array $row): array => [
+        return array_map(static fn (array $row): array => [
             'topic' => SellerTopic::OFFER_SUGGESTION->value,
             'text' => sprintf(
                 'Run a limited discount on "%s" - %d people viewed it without claiming.',
@@ -87,7 +87,7 @@ class SellerSuggestionEngine
             return [];
         }
 
-        return array_map(static fn(array $row): array => [
+        return array_map(static fn (array $row): array => [
             'topic' => SellerTopic::INVENTORY_WARNING->value,
             'text' => sprintf(
                 '"%s" has %d variant(s) at or below the low-stock threshold - restock soon.',
@@ -108,12 +108,12 @@ class SellerSuggestionEngine
         }
 
         $topIds = array_map(
-            static fn(array $row): string => (string) ($row['id'] ?? ''),
+            static fn (array $row): string => (string) ($row['id'] ?? ''),
             $snapshot->topProducts,
         );
 
         $titles = implode(', ', array_map(
-            static fn(array $row): string => sprintf('"%s"', (string) ($row['title'] ?? '')),
+            static fn (array $row): string => sprintf('"%s"', (string) ($row['title'] ?? '')),
             $snapshot->topProducts,
         ));
 

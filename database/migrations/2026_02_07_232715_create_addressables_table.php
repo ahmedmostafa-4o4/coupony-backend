@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -19,7 +20,6 @@ return new class extends Migration {
 
             $table->uuidMorphs('owner'); // owner_type (string) + owner_id (BIGINT)
 
-
             $table->string('label', 50)
                 ->default('home');
 
@@ -29,7 +29,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->unique(
-            ['owner_type', 'owner_id', 'address_id'],
+                ['owner_type', 'owner_id', 'address_id'],
                 'unique_owner_address'
             );
 

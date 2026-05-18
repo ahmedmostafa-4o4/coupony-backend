@@ -27,8 +27,7 @@ class ProductVariantController extends Controller
         private readonly DeleteProductVariant $deleteVariantAction,
         private readonly ReplaceVariantAttributes $replaceVariantAttributesAction,
         private readonly ProductRepository $products,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request, Store $store, Product $product): JsonResponse
     {

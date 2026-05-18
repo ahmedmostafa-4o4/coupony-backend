@@ -14,6 +14,5 @@ class VerificationDocumentUpdated
     public function __construct(
         public StoreVerification $verification,
         public User $user
-    ) {
-    }
+    ) {}
 }

@@ -12,6 +12,7 @@ abstract class TestCase extends BaseTestCase
     protected function authenticateUser($user = null): string
     {
         $user = $user ?? \App\Domain\User\Models\User::factory()->create();
+
         return $user->createToken('test-token')->plainTextToken;
     }
 
@@ -21,6 +22,7 @@ abstract class TestCase extends BaseTestCase
     protected function authenticatedJson(string $method, string $uri, array $data = [], $user = null)
     {
         $token = $this->authenticateUser($user);
+
         return $this->withHeader('Authorization', "Bearer {$token}")
             ->json($method, $uri, $data);
     }

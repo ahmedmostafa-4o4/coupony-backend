@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class ContactUsThrottle
@@ -20,9 +19,9 @@ class ContactUsThrottle
         $routeName = $request->route()?->getName();
 
         match ($routeName) {
-            'contactUs.seller' => $key = 'contact-us-seller:' . $request->ip(),
-            'contactUs.customer' => $key = 'contact-us-customer:' . $request->ip(),
-            'notifyMe.submit' => $key = 'notify-me:' . $request->ip(),
+            'contactUs.seller' => $key = 'contact-us-seller:'.$request->ip(),
+            'contactUs.customer' => $key = 'contact-us-customer:'.$request->ip(),
+            'notifyMe.submit' => $key = 'notify-me:'.$request->ip(),
             default => abort(400, __('api.contact.invalid_route')),
         };
 

@@ -4,11 +4,8 @@ namespace App\Domain\User\Events;
 
 use App\Domain\User\Models\Otp;
 use App\Domain\User\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -23,8 +20,7 @@ class OtpGenerated
         public Otp $otp,
         public User $user,
         public string $code
-    ) {
-    }
+    ) {}
 
     /**
      * Get the channels the event should broadcast on.

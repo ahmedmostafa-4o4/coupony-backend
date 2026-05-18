@@ -5,10 +5,9 @@ namespace App\Application\Http\Controllers\API\V1;
 use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Resources\FollowedStoreResource;
 use App\Application\Http\Resources\StoreFollowerResource;
-use App\Application\Http\Resources\PublicStoreResource;
 use App\Domain\Store\Actions\FollowStore;
-use App\Domain\Store\Actions\UnfollowStore;
 use App\Domain\Store\Actions\ToggleStoreFollowNotification;
+use App\Domain\Store\Actions\UnfollowStore;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Models\Store;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -22,8 +21,7 @@ class StoreFollowController extends Controller
         private readonly FollowStore $followStore,
         private readonly UnfollowStore $unfollowStore,
         private readonly ToggleStoreFollowNotification $toggleNotification,
-    ) {
-    }
+    ) {}
 
     /**
      * Follow a store.
@@ -77,7 +75,7 @@ class StoreFollowController extends Controller
         try {
             $deleted = $this->unfollowStore->execute($store, $request->user());
 
-            if (!$deleted) {
+            if (! $deleted) {
                 return $this->errorResponse(__('api.store_follow.not_following'), 422);
             }
 
@@ -111,7 +109,7 @@ class StoreFollowController extends Controller
         try {
             $follow = $this->toggleNotification->execute($store, $request->user());
 
-            if (!$follow) {
+            if (! $follow) {
                 return $this->errorResponse(__('api.store_follow.not_following'), 422);
             }
 
@@ -139,7 +137,7 @@ class StoreFollowController extends Controller
 
         $store = Store::query()->find($store);
 
-        if (!$store) {
+        if (! $store) {
             return $this->errorResponse(__('api.store_follow.store_not_found'), 404);
         }
 
@@ -164,6 +162,7 @@ class StoreFollowController extends Controller
             );
         } catch (\Throwable $e) {
             Log::error('Failed to retrieve store followers', ['store_id' => $store->id, 'error' => $e->getMessage()]);
+
             return $this->errorResponse(__('api.store_follow.followers_retrieve_failed'), 500);
         }
     }

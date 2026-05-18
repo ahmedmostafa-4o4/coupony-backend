@@ -6,9 +6,7 @@ use App\Domain\Product\Models\Product;
 
 class DeleteAdminProduct
 {
-    public function __construct(private readonly DeleteProduct $deleteProduct)
-    {
-    }
+    public function __construct(private readonly DeleteProduct $deleteProduct) {}
 
     public function execute(Product $product): bool
     {

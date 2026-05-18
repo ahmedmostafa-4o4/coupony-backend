@@ -17,9 +17,7 @@ class CreateProduct
         private readonly CreateOrUpdatePendingProductRevision $revisions,
         private readonly ResolveVariantOfferPricing $pricing,
         private readonly PrepareProductIdentifiers $identifiers,
-    )
-    {
-    }
+    ) {}
 
     public function execute(Store $store, ProductData $data, User $submittedBy): Product
     {

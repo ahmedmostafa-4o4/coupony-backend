@@ -9,8 +9,7 @@ class ProductSkuGenerator
 {
     public function __construct(
         private readonly IdentifierCodeResolver $codes,
-    ) {
-    }
+    ) {}
 
     public function generate(
         string $storeId,
@@ -44,7 +43,7 @@ class ProductSkuGenerator
             ->withTrashed()
             ->where('store_id', $storeId)
             ->where('sku', $sku)
-            ->when($ignoreProductId, fn($query) => $query->whereKeyNot($ignoreProductId))
+            ->when($ignoreProductId, fn ($query) => $query->whereKeyNot($ignoreProductId))
             ->exists();
     }
 }

@@ -30,7 +30,7 @@ class CreateProductRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('products', 'slug')->where(fn($query) => $query->where('store_id', $store->id)),
+                Rule::unique('products', 'slug')->where(fn ($query) => $query->where('store_id', $store->id)),
             ],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
@@ -39,7 +39,7 @@ class CreateProductRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('products', 'sku')->where(fn($query) => $query->where('store_id', $store->id)),
+                Rule::unique('products', 'sku')->where(fn ($query) => $query->where('store_id', $store->id)),
             ],
             'is_featured' => ['sometimes', 'boolean'],
             'category_ids' => ['nullable', 'array'],
@@ -94,7 +94,7 @@ class CreateProductRequest extends FormRequest
         $validator->after(function ($validator) {
             $variants = collect($this->input('variants', []) ?? []);
             $preparedVariantSkus = $this->preparedVariantSkuKeys();
-            $defaultCount = $variants->filter(fn(array $variant) => (bool) ($variant['is_default'] ?? false))->count();
+            $defaultCount = $variants->filter(fn (array $variant) => (bool) ($variant['is_default'] ?? false))->count();
 
             if ($defaultCount > 1) {
                 $validator->errors()->add('variants', __('validation.custom.variants.single_default'));
@@ -145,10 +145,10 @@ class CreateProductRequest extends FormRequest
                 }
 
                 $buySkus = collect($offer['buy_variant_skus'] ?? [])
-                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->map(fn ($sku) => mb_strtolower((string) $sku))
                     ->filter();
                 $rewardSkus = collect($offer['reward_variant_skus'] ?? [])
-                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->map(fn ($sku) => mb_strtolower((string) $sku))
                     ->filter();
 
                 if ($buySkus->isEmpty()) {

@@ -5,7 +5,6 @@ namespace App\Domain\User\Repositories;
 use App\Domain\User\Models\User;
 use Cache;
 use DB;
-use Log;
 
 class UserRepository implements UserRepositoryInterface
 {
@@ -28,6 +27,7 @@ class UserRepository implements UserRepositoryInterface
             $user = User::findOrFail($id);
             $user->update($data);
             Cache::forget("user.by_id.{$id}");
+
             return $user->fresh();
         });
 
@@ -39,6 +39,7 @@ class UserRepository implements UserRepositoryInterface
             $user = User::findOrFail($id);
             $deleted = $user->delete();
             Cache::forget("user.by_id.{$id}");
+
             return $deleted;
         });
     }

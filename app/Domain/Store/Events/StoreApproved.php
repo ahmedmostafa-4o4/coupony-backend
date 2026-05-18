@@ -14,6 +14,5 @@ class StoreApproved
     public function __construct(
         public Store $store,
         public User $admin
-    ) {
-    }
+    ) {}
 }

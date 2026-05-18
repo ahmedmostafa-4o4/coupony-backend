@@ -11,7 +11,7 @@ class SmsNotifier implements NotifierInterface
 {
     public function send(Notification $notification, User $user): void
     {
-        if (!$user->phone_number) {
+        if (! $user->phone_number) {
             throw new \Exception('User has no phone number');
         }
 
@@ -40,6 +40,7 @@ class SmsNotifier implements NotifierInterface
     private function formatSmsMessage(Notification $notification): string
     {
         $appName = config('app.name');
+
         return "{$appName}: {$notification->title}. {$notification->message}";
     }
 }

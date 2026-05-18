@@ -8,8 +8,8 @@ use App\Domain\User\Models\Session;
 use App\Domain\User\Models\User;
 use App\Domain\User\Services\AuthenticationService;
 use App\Domain\User\Services\OtpService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Mockery;
@@ -20,7 +20,9 @@ class AuthenticationServiceTest extends TestCase
     use RefreshDatabase;
 
     private AuthenticationService $authService;
+
     private Hasher $hasher;
+
     private OtpService $otpService;
 
     protected function setUp(): void
@@ -106,16 +108,16 @@ class AuthenticationServiceTest extends TestCase
             'email_verified_at' => null,
         ]);
 
-        $otp = new \App\Domain\User\Models\Otp();
+        $otp = new \App\Domain\User\Models\Otp;
         $otp->expires_at = now()->addMinutes(10);
 
         $this->otpService->shouldReceive('generateAndSend')
             ->once()
             ->with(
-            Mockery::on(fn($u) => $u->id === $user->id),
-            OtpPurposes::VERIFY_EMAIL->value,
-            OtpChannels::EMAIL->value
-        )
+                Mockery::on(fn ($u) => $u->id === $user->id),
+                OtpPurposes::VERIFY_EMAIL->value,
+                OtpChannels::EMAIL->value
+            )
             ->andReturn($otp);
 
         $this->expectException(ValidationException::class);

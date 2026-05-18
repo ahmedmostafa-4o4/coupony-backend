@@ -13,7 +13,7 @@ return new class extends Migration
     {
         $this->ensureCategoriesTableMatchesCatalogShape();
 
-        if (!Schema::hasTable('products')) {
+        if (! Schema::hasTable('products')) {
             Schema::create('products', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('store_id');
@@ -61,7 +61,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_variants')) {
+        if (! Schema::hasTable('product_variants')) {
             Schema::create('product_variants', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('product_id');
@@ -95,7 +95,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_variant_attributes')) {
+        if (! Schema::hasTable('product_variant_attributes')) {
             Schema::create('product_variant_attributes', function (Blueprint $table) {
                 $table->id();
                 $table->uuid('variant_id');
@@ -114,7 +114,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_images')) {
+        if (! Schema::hasTable('product_images')) {
             Schema::create('product_images', function (Blueprint $table) {
                 $table->id();
                 $table->uuid('product_id');
@@ -132,7 +132,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_offers')) {
+        if (! Schema::hasTable('product_offers')) {
             Schema::create('product_offers', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('product_id')->unique();
@@ -158,7 +158,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_offer_variant_targets')) {
+        if (! Schema::hasTable('product_offer_variant_targets')) {
             Schema::create('product_offer_variant_targets', function (Blueprint $table) {
                 $table->id();
                 $table->uuid('offer_id');
@@ -180,7 +180,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_revisions')) {
+        if (! Schema::hasTable('product_revisions')) {
             Schema::create('product_revisions', function (Blueprint $table) {
                 $table->id();
                 $table->uuid('product_id');
@@ -217,7 +217,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('offer_claims')) {
+        if (! Schema::hasTable('offer_claims')) {
             Schema::create('offer_claims', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->char('user_id', 36);
@@ -263,7 +263,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_categories')) {
+        if (! Schema::hasTable('product_categories')) {
             Schema::create('product_categories', function (Blueprint $table) {
                 $table->id();
                 $table->uuid('product_id');
@@ -303,7 +303,7 @@ return new class extends Migration
 
     private function ensureCategoriesTableMatchesCatalogShape(): void
     {
-        if (!Schema::hasTable('categories')) {
+        if (! Schema::hasTable('categories')) {
             Schema::create('categories', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -347,52 +347,52 @@ return new class extends Migration
             $hasSortOrder,
             $hasIsActive
         ) {
-            if (!$hasName) {
+            if (! $hasName) {
                 $table->string('name')->default('');
             }
 
-            if (!$hasNameAr) {
+            if (! $hasNameAr) {
                 $table->string('name_ar')->nullable()->after('name');
             }
 
-            if (!$hasNameEn) {
+            if (! $hasNameEn) {
                 $table->string('name_en')->nullable()->after('name_ar');
             }
 
-            if (!$hasSlug) {
+            if (! $hasSlug) {
                 $table->string('slug')->nullable();
             }
 
-            if (!$hasDescription) {
+            if (! $hasDescription) {
                 $table->text('description')->nullable();
             }
 
-            if (!$hasParentId) {
+            if (! $hasParentId) {
                 $table->unsignedBigInteger('parent_id')->nullable();
             }
 
-            if (!$hasSortOrder) {
+            if (! $hasSortOrder) {
                 $table->integer('sort_order')->default(0);
             }
 
-            if (!$hasIsActive) {
+            if (! $hasIsActive) {
                 $table->boolean('is_active')->default(true);
             }
         });
 
-        if (!Schema::hasIndex('categories', 'uq_categories_slug')) {
+        if (! Schema::hasIndex('categories', 'uq_categories_slug')) {
             Schema::table('categories', function (Blueprint $table) {
                 $table->unique('slug', 'uq_categories_slug');
             });
         }
 
-        if (!Schema::hasIndex('categories', 'idx_categories_parent')) {
+        if (! Schema::hasIndex('categories', 'idx_categories_parent')) {
             Schema::table('categories', function (Blueprint $table) {
                 $table->index('parent_id', 'idx_categories_parent');
             });
         }
 
-        if (!Schema::hasIndex('categories', 'idx_categories_active_sort')) {
+        if (! Schema::hasIndex('categories', 'idx_categories_active_sort')) {
             Schema::table('categories', function (Blueprint $table) {
                 $table->index(['is_active', 'sort_order'], 'idx_categories_active_sort');
             });
@@ -400,7 +400,7 @@ return new class extends Migration
 
         $foreignKeyNames = array_column(Schema::getForeignKeys('categories'), 'name');
 
-        if (!in_array('fk_categories_parent', $foreignKeyNames, true) && !in_array('categories_parent_id_foreign', $foreignKeyNames, true)) {
+        if (! in_array('fk_categories_parent', $foreignKeyNames, true) && ! in_array('categories_parent_id_foreign', $foreignKeyNames, true)) {
             Schema::table('categories', function (Blueprint $table) {
                 $table->foreign('parent_id', 'fk_categories_parent')
                     ->references('id')

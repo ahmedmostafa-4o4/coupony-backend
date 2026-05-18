@@ -13,14 +13,17 @@ class StaffAssignedToStore
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public Store $store;
+
     public User $staff;
+
     public User $assignedBy;
+
     public string $roleName;
 
     /**
      * Create a new class instance.
      */
-    public function __construct(Store $store, User $staff, string $roleName, User $assignedBy = null)
+    public function __construct(Store $store, User $staff, string $roleName, ?User $assignedBy = null)
     {
         $this->store = $store;
         $this->staff = $staff;

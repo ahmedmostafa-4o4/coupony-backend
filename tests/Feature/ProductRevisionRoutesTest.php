@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Notification\Models\Notification;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductRevisionStatus;
 use App\Domain\Product\Models\Product;
@@ -88,6 +89,21 @@ class ProductRevisionRoutesTest extends TestCase
             'id' => $revisionId,
             'status' => ProductRevisionStatus::APPROVED->value,
         ]);
+
+        $notification = Notification::query()
+            ->where('user_id', $seller->id)
+            ->where('type', 'product_approved')
+            ->firstOrFail();
+
+        $this->assertSame('Product approved', $notification->title);
+        $this->assertSame('Your product update has been approved.', $notification->message);
+        $this->assertSame('in_app', $notification->channel);
+        $this->assertSame('sent', $notification->status);
+        $this->assertSame(Product::class, $notification->reference_type);
+        $this->assertSame($productId, $notification->reference_id);
+        $this->assertSame($productId, $notification->data['product_id']);
+        $this->assertSame($store->id, $notification->data['store_id']);
+        $this->assertSame($revisionId, $notification->data['revision_id']);
     }
 
     public function test_admin_can_reject_pending_revision_with_variant_requested_change_without_changing_live_product(): void
@@ -149,6 +165,22 @@ class ProductRevisionRoutesTest extends TestCase
                 'message' => 'Fix this price',
             ],
         ], $revision->requested_changes);
+
+        $notification = Notification::query()
+            ->where('user_id', $seller->id)
+            ->where('type', 'product_rejected')
+            ->firstOrFail();
+
+        $this->assertSame('Product rejected', $notification->title);
+        $this->assertSame('Your product update was rejected.', $notification->message);
+        $this->assertSame('in_app', $notification->channel);
+        $this->assertSame('sent', $notification->status);
+        $this->assertSame(Product::class, $notification->reference_type);
+        $this->assertSame($productId, $notification->reference_id);
+        $this->assertSame($productId, $notification->data['product_id']);
+        $this->assertSame($store->id, $notification->data['store_id']);
+        $this->assertSame($revisionId, $notification->data['revision_id']);
+        $this->assertSame('Offer details need changes', $notification->data['rejection_reason']);
     }
 
     public function test_admin_can_reject_revision_with_variant_attribute_requested_change(): void

@@ -8,11 +8,10 @@ use App\Domain\PonyAI\Prompts\CustomerSystemPrompt;
 use App\Domain\Product\Models\Product;
 use Illuminate\Support\Collection;
 use Log;
+
 class AnswerComposer
 {
-    public function __construct(private readonly GeminiClient $gemini)
-    {
-    }
+    public function __construct(private readonly GeminiClient $gemini) {}
 
     /**
      * Ask Gemini to compose a final reply over the candidate products.
@@ -85,7 +84,7 @@ PROMPT;
                 $summary = (string) ($product->short_description ?? '');
 
                 return sprintf(
-                    "- product_id=%s | offer_id=%s | title=%s | price=%s | offer=%s | summary=%s",
+                    '- product_id=%s | offer_id=%s | title=%s | price=%s | offer=%s | summary=%s',
                     $product->id,
                     $offerId,
                     $title,
@@ -115,7 +114,7 @@ PROMPT;
 
         return [
             'message' => 'Here are some products that may match what you are looking for.',
-            'product_ids' => $candidates->pluck('id')->map(fn($id) => (string) $id)->all(),
+            'product_ids' => $candidates->pluck('id')->map(fn ($id) => (string) $id)->all(),
             'offer_ids' => [],
         ];
     }

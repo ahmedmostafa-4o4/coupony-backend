@@ -33,7 +33,7 @@ class CreateOfferClaimRequest extends FormRequest
             $product->loadMissing(['variants', 'offer.targets']);
 
             $offer = $product->offer;
-            if (!$offer) {
+            if (! $offer) {
                 return;
             }
 

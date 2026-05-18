@@ -21,7 +21,7 @@ class StoreCategoryFactory extends Factory
     public function definition(): array
     {
         $nameEn = fake()->unique()->words(2, true);
-        $nameAr = 'تصنيف ' . fake()->unique()->numberBetween(1000, 9999);
+        $nameAr = 'تصنيف '.fake()->unique()->numberBetween(1000, 9999);
 
         return [
             'name_ar' => $nameAr,
@@ -37,8 +37,8 @@ class StoreCategoryFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn(array $attributes) => [
-        'is_active' => false,
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
         ]);
     }
 }

@@ -16,11 +16,12 @@ class SellerRoleCheck
     public function handle(Request $request, Closure $next): Response
     {
 
-        if (!$request->user()?->hasRole('seller')) {
+        if (! $request->user()?->hasRole('seller')) {
             return response()->json([
-                'message' => __('api.middleware.seller_role_required')
+                'message' => __('api.middleware.seller_role_required'),
             ], 403);
         }
+
         return $next($request);
     }
 }

@@ -8,8 +8,7 @@ class VariantSkuGenerator
 {
     public function __construct(
         private readonly IdentifierCodeResolver $codes,
-    ) {
-    }
+    ) {}
 
     public function generateMany(array $variants, ?string $productTitle, array $categoryLabels = []): array
     {
@@ -67,22 +66,22 @@ class VariantSkuGenerator
     private function attributeCodes(array $attributes): array
     {
         $collection = collect($attributes)
-            ->filter(fn($attribute) => is_array($attribute))
+            ->filter(fn ($attribute) => is_array($attribute))
             ->map(function (array $attribute) {
                 return [
                     'name' => $this->codes->canonicalAttributeName((string) ($attribute['attribute_name'] ?? '')),
                     'value' => (string) ($attribute['attribute_value'] ?? ''),
                 ];
             })
-            ->filter(fn(array $attribute) => $attribute['value'] !== '');
+            ->filter(fn (array $attribute) => $attribute['value'] !== '');
 
         $prioritized = collect(['color', 'size'])
-            ->flatMap(fn(string $name) => $collection->filter(fn(array $attribute) => $attribute['name'] === $name)->take(1))
+            ->flatMap(fn (string $name) => $collection->filter(fn (array $attribute) => $attribute['name'] === $name)->take(1))
             ->values();
 
         $fallback = $collection
             ->reject(function (array $attribute) use ($prioritized) {
-                return $prioritized->contains(fn(array $selected) => $selected['name'] === $attribute['name'] && $selected['value'] === $attribute['value']);
+                return $prioritized->contains(fn (array $selected) => $selected['name'] === $attribute['name'] && $selected['value'] === $attribute['value']);
             })
             ->take(2 - $prioritized->count())
             ->values();
@@ -90,7 +89,7 @@ class VariantSkuGenerator
         return $prioritized
             ->concat($fallback)
             ->take(2)
-            ->map(fn(array $attribute) => $this->codes->resolveAttributeCode($attribute['value']))
+            ->map(fn (array $attribute) => $this->codes->resolveAttributeCode($attribute['value']))
             ->values()
             ->all();
     }
@@ -110,7 +109,7 @@ class VariantSkuGenerator
 
     private function normalizedSkuKey(mixed $sku): ?string
     {
-        if (!is_string($sku) || trim($sku) === '') {
+        if (! is_string($sku) || trim($sku) === '') {
             return null;
         }
 

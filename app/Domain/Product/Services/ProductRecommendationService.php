@@ -11,8 +11,7 @@ class ProductRecommendationService
     public function __construct(
         private readonly ProductRepository $products,
         private readonly RecommendationMlService $ml,
-    ) {
-    }
+    ) {}
 
     public function recommendFor(User $user, int $limit): Collection
     {

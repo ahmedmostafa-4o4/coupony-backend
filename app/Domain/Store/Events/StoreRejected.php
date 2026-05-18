@@ -15,6 +15,5 @@ class StoreRejected
         public Store $store,
         public User $admin,
         public string $reason
-    ) {
-    }
+    ) {}
 }

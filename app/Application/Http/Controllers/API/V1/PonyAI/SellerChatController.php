@@ -22,8 +22,7 @@ class SellerChatController extends Controller
     public function __construct(
         private readonly SellerAssistantStrategy $strategy,
         private readonly ConversationRepository $conversations,
-    ) {
-    }
+    ) {}
 
     public function store(SellerChatPromptRequest $request, Store $store): JsonResponse
     {

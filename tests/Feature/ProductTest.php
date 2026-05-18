@@ -1424,7 +1424,7 @@ class ProductTest extends TestCase
                         'low_stock_threshold' => 1,
                         'allow_backorder' => false,
                         'attributes' => [],
-                    ]
+                    ],
                 ],
                 'offer' => [
                     'type' => 'fixed',
@@ -1595,7 +1595,7 @@ class ProductTest extends TestCase
                         'low_stock_threshold' => 1,
                         'allow_backorder' => false,
                         'attributes' => [],
-                    ]
+                    ],
                 ],
             ]));
 
@@ -1714,7 +1714,7 @@ class ProductTest extends TestCase
                         'low_stock_threshold' => null,
                         'allow_backorder' => false,
                         'attributes' => [],
-                    ]
+                    ],
                 ],
             ]));
 
@@ -1748,7 +1748,7 @@ class ProductTest extends TestCase
                         'low_stock_threshold' => null,
                         'allow_backorder' => false,
                         'attributes' => [],
-                    ]
+                    ],
                 ],
             ]));
 
@@ -2312,8 +2312,8 @@ class ProductTest extends TestCase
             'product_id' => $product->id,
             'offer_id' => $product->offer->id,
             'status' => 'active',
-            'claim_token' => 'CLM-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(24)),
-            'qr_code_token' => 'QR-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(24)),
+            'claim_token' => 'CLM-'.\Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(24)),
+            'qr_code_token' => 'QR-'.\Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(24)),
             'offer_snapshot' => [
                 'product_title' => $product->title,
                 'store_name' => $product->store->name,

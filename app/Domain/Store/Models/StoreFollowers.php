@@ -2,7 +2,6 @@
 
 namespace App\Domain\Store\Models;
 
-use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,12 +25,10 @@ class StoreFollowers extends Model
         'notification_enabled' => 'boolean',
     ];
 
-
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
-
 
     public function user(): BelongsTo
     {

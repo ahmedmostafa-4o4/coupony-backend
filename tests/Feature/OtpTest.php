@@ -25,14 +25,14 @@ class OtpTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-            'message',
-            'data' => [
-                'expires_at',
-                'expires_in_minutes',
-                'channel',
-                'masked_recipient',
-            ],
-        ]);
+                'message',
+                'data' => [
+                    'expires_at',
+                    'expires_in_minutes',
+                    'channel',
+                    'masked_recipient',
+                ],
+            ]);
 
         $this->assertDatabaseHas('otps', [
             'user_id' => $user->id,
@@ -109,12 +109,12 @@ class OtpTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-            'message',
-            'data' => [
-                'verified',
-                'purpose',
-            ],
-        ]);
+                'message',
+                'data' => [
+                    'verified',
+                    'purpose',
+                ],
+            ]);
     }
 
     public function test_user_cannot_verify_otp_with_incorrect_code()
@@ -201,11 +201,11 @@ class OtpTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-            'message',
-            'data' => [
-                'expires_at',
-            ],
-        ]);
+                'message',
+                'data' => [
+                    'expires_at',
+                ],
+            ]);
     }
 
     public function test_otp_resend_enforces_rate_limiting()

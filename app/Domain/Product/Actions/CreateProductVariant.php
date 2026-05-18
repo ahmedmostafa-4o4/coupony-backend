@@ -12,9 +12,7 @@ class CreateProductVariant
     public function __construct(
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
-    )
-    {
-    }
+    ) {}
 
     public function execute(Product $product, array $attributes): ProductVariant
     {
@@ -31,7 +29,7 @@ class CreateProductVariant
     private function syncProductPricingSummary(Product $product): void
     {
         $variants = $product->fresh()->variants()->orderBy('sort_order')->orderBy('id')->get()
-            ->map(fn(ProductVariant $variant) => [
+            ->map(fn (ProductVariant $variant) => [
                 'is_default' => $variant->is_default,
                 'sort_order' => $variant->sort_order,
                 'sku' => $variant->sku,

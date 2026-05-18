@@ -24,7 +24,7 @@ class SocialController extends Controller
                 'data' => Social::query()
                     ->orderBy('name')
                     ->get()
-                    ->map(fn(Social $social) => $this->formatSocial($social)),
+                    ->map(fn (Social $social) => $this->formatSocial($social)),
             ]);
         } catch (\Throwable $e) {
             Log::error('Failed to retrieve socials', [

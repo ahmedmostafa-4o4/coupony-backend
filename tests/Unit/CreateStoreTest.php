@@ -19,12 +19,13 @@ class CreateStoreTest extends TestCase
     use RefreshDatabase;
 
     private CreateStore $createStore;
+
     private StoreRepository $storeRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->storeRepository = $this->app->make(StoreRepository::class);
         $this->createStore = new CreateStore($this->storeRepository);
 
@@ -36,7 +37,7 @@ class CreateStoreTest extends TestCase
 
     public function test_create_store_with_valid_data()
     {
-         $owner = User::factory()->create();
+        $owner = User::factory()->create();
         $category = StoreCategory::factory()->create();
 
         $storeData = new StoreData(

@@ -20,7 +20,7 @@ class UpdateStoreRequest extends FormRequest
             'email' => 'sometimes|required|email|max:255',
             'tax_id' => 'nullable|string|max:50',
             'subscription_tier' => 'nullable|string|in:free,basic,premium,enterprise',
-            
+
             // Address
             'address' => 'nullable|array',
             'address.address_line1' => 'sometimes|required|string|max:255',
@@ -31,11 +31,11 @@ class UpdateStoreRequest extends FormRequest
             'address.country' => 'nullable|string|max:100',
             'address.latitude' => 'sometimes|numeric|between:-90,90',
             'address.longitude' => 'sometimes|numeric|between:-180,180',
-            
+
             // Categories
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:store_categories,id',
-            
+
             // Files
             'logo' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
             'banner' => 'nullable|file|image|mimes:jpg,jpeg,png|max:5120',

@@ -101,7 +101,7 @@ class EmbeddingRepository
         }
 
         return PonyImageEmbedding::query()
-            ->whereHas('productImage', fn($query) => $query->whereIn('product_id', $productIds))
+            ->whereHas('productImage', fn ($query) => $query->whereIn('product_id', $productIds))
             ->with('productImage')
             ->get();
     }

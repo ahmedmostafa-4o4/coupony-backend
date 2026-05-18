@@ -35,7 +35,7 @@ class UpdateProductRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('products', 'slug')
-                    ->where(fn($query) => $query->where('store_id', $store->id))
+                    ->where(fn ($query) => $query->where('store_id', $store->id))
                     ->ignore($product->id),
             ],
             'short_description' => ['nullable', 'string', 'max:500'],
@@ -46,7 +46,7 @@ class UpdateProductRequest extends FormRequest
                 'string',
                 'max:100',
                 Rule::unique('products', 'sku')
-                    ->where(fn($query) => $query->where('store_id', $store->id))
+                    ->where(fn ($query) => $query->where('store_id', $store->id))
                     ->ignore($product->id),
             ],
             'is_featured' => ['sometimes', 'boolean'],
@@ -106,7 +106,7 @@ class UpdateProductRequest extends FormRequest
             $preparedVariantSkus = $this->preparedVariantSkuKeys();
 
             if ($variants->isNotEmpty()) {
-                $defaultCount = $variants->filter(fn(array $variant) => (bool) ($variant['is_default'] ?? false))->count();
+                $defaultCount = $variants->filter(fn (array $variant) => (bool) ($variant['is_default'] ?? false))->count();
 
                 if ($defaultCount > 1) {
                     $validator->errors()->add('variants', __('validation.custom.variants.single_default'));
@@ -136,11 +136,11 @@ class UpdateProductRequest extends FormRequest
                 }
             }
 
-            if ($this->exists('variants') && !$this->exists('offer')) {
+            if ($this->exists('variants') && ! $this->exists('offer')) {
                 $validator->errors()->add('offer', 'The offer field is required when variants are replaced.');
             }
 
-            if (!$this->exists('offer')) {
+            if (! $this->exists('offer')) {
                 return;
             }
 
@@ -150,8 +150,8 @@ class UpdateProductRequest extends FormRequest
                 ? $preparedVariantSkus
                 : $this->route('product')->variants()->get(['sku'])
                     ->pluck('sku')
-                    ->filter(fn($sku) => filled($sku))
-                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->filter(fn ($sku) => filled($sku))
+                    ->map(fn ($sku) => mb_strtolower((string) $sku))
                     ->values();
 
             if ($offerType === ProductOfferType::FIXED->value && empty($offer['fixed_amount'])) {
@@ -172,10 +172,10 @@ class UpdateProductRequest extends FormRequest
                 }
 
                 $buySkus = collect($offer['buy_variant_skus'] ?? [])
-                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->map(fn ($sku) => mb_strtolower((string) $sku))
                     ->filter();
                 $rewardSkus = collect($offer['reward_variant_skus'] ?? [])
-                    ->map(fn($sku) => mb_strtolower((string) $sku))
+                    ->map(fn ($sku) => mb_strtolower((string) $sku))
                     ->filter();
 
                 if ($buySkus->isEmpty()) {

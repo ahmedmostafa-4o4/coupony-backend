@@ -39,27 +39,27 @@ class StoreTest extends TestCase
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'name' => 'Test Store',
-            'description' => 'A test store description',
-            'phone' => '+1234567890',
-            'address_line1' => '123 Main St',
-            'city' => 'Test City',
-            'latitude' => '40.7128',
-            'longitude' => '-74.0060',
-            'categories' => [$category->id],
-            'verification_docs' => [
-                'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
-                'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
-                'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
-                'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
-            ],
-        ]);
+                'name' => 'Test Store',
+                'description' => 'A test store description',
+                'phone' => '+1234567890',
+                'address_line1' => '123 Main St',
+                'city' => 'Test City',
+                'latitude' => '40.7128',
+                'longitude' => '-74.0060',
+                'categories' => [$category->id],
+                'verification_docs' => [
+                    'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
+                    'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
+                    'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
+                    'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
+                ],
+            ]);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-            'message',
-            'data',
-        ]);
+                'message',
+                'data',
+            ]);
 
         $this->assertDatabaseHas('stores', [
             'name' => 'Test Store',
@@ -87,8 +87,8 @@ class StoreTest extends TestCase
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'phone' => '+1234567890',
-        ]);
+                'phone' => '+1234567890',
+            ]);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name']);
@@ -101,8 +101,8 @@ class StoreTest extends TestCase
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'name' => 'Test Store',
-        ]);
+                'name' => 'Test Store',
+            ]);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['phone']);
@@ -115,9 +115,9 @@ class StoreTest extends TestCase
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'name' => 'Test Store',
-            'phone' => '+1234567890',
-        ]);
+                'name' => 'Test Store',
+                'phone' => '+1234567890',
+            ]);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['categories']);
@@ -131,14 +131,14 @@ class StoreTest extends TestCase
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'name' => 'Test Store',
-            'phone' => '+1234567890',
-            'address_line1' => '123 Main St',
-            'city' => 'Test City',
-            'latitude' => '40.7128',
-            'longitude' => '-74.0060',
-            'categories' => [$category->id],
-        ]);
+                'name' => 'Test Store',
+                'phone' => '+1234567890',
+                'address_line1' => '123 Main St',
+                'city' => 'Test City',
+                'latitude' => '40.7128',
+                'longitude' => '-74.0060',
+                'categories' => [$category->id],
+            ]);
 
         $response->assertStatus(201);
     }
@@ -152,21 +152,21 @@ class StoreTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'name' => 'Test Store',
-            'description' => 'A test store',
-            'phone' => '+1234567890',
-            'address_line1' => '123 Main St',
-            'city' => 'Test City',
-            'latitude' => '40.7128',
-            'longitude' => '-74.0060',
-            'categories' => [$category->id],
-            'verification_docs' => [
-                'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
-                'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
-                'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
-                'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
-            ],
-        ]);
+                'name' => 'Test Store',
+                'description' => 'A test store',
+                'phone' => '+1234567890',
+                'address_line1' => '123 Main St',
+                'city' => 'Test City',
+                'latitude' => '40.7128',
+                'longitude' => '-74.0060',
+                'categories' => [$category->id],
+                'verification_docs' => [
+                    'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
+                    'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
+                    'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
+                    'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
+                ],
+            ]);
 
         $user->refresh();
         $this->assertTrue($user->hasRole('seller_pending'));
@@ -197,21 +197,21 @@ class StoreTest extends TestCase
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/stores', [
-            'name' => 'Test Store',
-            'description' => 'A test store',
-            'phone' => '+1234567890',
-            'address_line1' => '123 Main St',
-            'city' => 'Test City',
-            'latitude' => '40.7128',
-            'longitude' => '-74.0060',
-            'categories' => [$category->id],
-            'verification_docs' => [
-                'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
-                'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
-                'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
-                'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
-            ],
-        ]);
+                'name' => 'Test Store',
+                'description' => 'A test store',
+                'phone' => '+1234567890',
+                'address_line1' => '123 Main St',
+                'city' => 'Test City',
+                'latitude' => '40.7128',
+                'longitude' => '-74.0060',
+                'categories' => [$category->id],
+                'verification_docs' => [
+                    'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
+                    'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
+                    'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
+                    'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
+                ],
+            ]);
 
         $response->assertStatus(201);
         $this->assertDatabaseCount('store_hours', 7); // 7 days of the week
@@ -243,7 +243,7 @@ class StoreTest extends TestCase
         ]);
         $otherCategoryStore->categories()->attach($otherCategory->id);
 
-        $response = $this->getJson('/api/v1/stores?category_id=' . $category->id . '&search=Visible&is_verified=1&min_rating=4');
+        $response = $this->getJson('/api/v1/stores?category_id='.$category->id.'&search=Visible&is_verified=1&min_rating=4');
 
         $response->assertOk()
             ->assertJsonPath('data.0.id', $visibleStore->id)

@@ -43,13 +43,13 @@ class GroundingValidator
 
         $byId = $candidates->keyBy('id');
         $kept = collect($cleanIds)
-            ->map(fn(string $id) => $byId->get($id))
+            ->map(fn (string $id) => $byId->get($id))
             ->filter()
             ->values();
 
         $dropped = array_values(array_diff(
             $cleanIds,
-            $kept->pluck('id')->map(static fn($id): string => (string) $id)->all(),
+            $kept->pluck('id')->map(static fn ($id): string => (string) $id)->all(),
         ));
 
         return [$kept, $dropped];
@@ -63,7 +63,7 @@ class GroundingValidator
     public function groundOffers(Collection $candidates, array $modelOfferIds): array
     {
         $allowed = $candidates
-            ->map(fn(Product $product) => $product->relationLoaded('offer') ? (string) ($product->offer?->id ?? '') : '')
+            ->map(fn (Product $product) => $product->relationLoaded('offer') ? (string) ($product->offer?->id ?? '') : '')
             ->filter()
             ->unique()
             ->values()

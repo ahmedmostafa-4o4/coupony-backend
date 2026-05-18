@@ -15,7 +15,7 @@ class CloseStore
             throw new \Exception('Store is already closed.');
         }
 
-        return DB::transaction(function () use ($store, $admin, $reason) {
+        return DB::transaction(function () use ($store, $reason) {
             $store->update([
                 'status' => StoreStatus::CLOSED,
                 'admin_notes' => $reason,

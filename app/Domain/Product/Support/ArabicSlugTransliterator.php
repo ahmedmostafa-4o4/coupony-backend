@@ -6,7 +6,7 @@ class ArabicSlugTransliterator
 {
     public function transliterate(?string $value, string $separator = '-'): string
     {
-        if (!is_string($value) || trim($value) === '') {
+        if (! is_string($value) || trim($value) === '') {
             return '';
         }
 

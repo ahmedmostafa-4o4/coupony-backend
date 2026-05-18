@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 class IntentExtractor
 {
-    public function __construct(private readonly GeminiClient $gemini)
-    {
-    }
+    public function __construct(private readonly GeminiClient $gemini) {}
 
     public function extract(string $prompt): ChatIntent
     {
@@ -44,7 +42,7 @@ class IntentExtractor
             return $this->callGemini($trimmed);
         }
 
-        return Cache::remember($key, $ttl, fn(): array => $this->callGemini($trimmed));
+        return Cache::remember($key, $ttl, fn (): array => $this->callGemini($trimmed));
     }
 
     /**
@@ -140,7 +138,7 @@ PROMPT;
         }
 
         return $rows
-            ->map(fn(Category $category) => sprintf(
+            ->map(fn (Category $category) => sprintf(
                 '  %d -> %s%s',
                 $category->id,
                 (string) ($category->name_en ?? ''),

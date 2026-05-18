@@ -2,10 +2,10 @@
 
 namespace App\Application\Http\Controllers;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Sanctum\PersonalAccessToken;
 
 abstract class Controller
@@ -21,10 +21,10 @@ abstract class Controller
 
         $userLocale = $request->user()?->language;
 
-        if (!$userLocale) {
+        if (! $userLocale) {
             $token = $request->bearerToken();
 
-            if (!$token) {
+            if (! $token) {
                 $authorizationHeader = $request->header('Authorization', $request->server('HTTP_AUTHORIZATION'));
                 if (is_string($authorizationHeader) && preg_match('/Bearer\s+(.+)/i', $authorizationHeader, $matches)) {
                     $token = trim($matches[1]);
@@ -57,7 +57,7 @@ abstract class Controller
 
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             $authorizationHeader = $request->header('Authorization', $request->server('HTTP_AUTHORIZATION'));
 
             if (is_string($authorizationHeader) && preg_match('/Bearer\s+(.+)/i', $authorizationHeader, $matches)) {
@@ -70,7 +70,7 @@ abstract class Controller
 
     private function hasSupportedHeaderLocale(?string $header, array $allowed): bool
     {
-        if (!$header) {
+        if (! $header) {
             return false;
         }
 

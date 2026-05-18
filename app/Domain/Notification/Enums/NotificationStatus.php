@@ -9,4 +9,3 @@ enum NotificationStatus: string
     case FAILED = 'failed';
     case SENT = 'sent';
 }
-

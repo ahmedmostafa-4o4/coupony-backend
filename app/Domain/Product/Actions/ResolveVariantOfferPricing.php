@@ -49,9 +49,9 @@ class ResolveVariantOfferPricing
 
         $summaryVariant = collect($variants)
             ->sortBy([
-                fn(array $variant) => !($variant['is_default'] ?? false),
-                fn(array $variant) => (int) ($variant['sort_order'] ?? 0),
-                fn(array $variant) => (string) ($variant['sku'] ?? ''),
+                fn (array $variant) => ! ($variant['is_default'] ?? false),
+                fn (array $variant) => (int) ($variant['sort_order'] ?? 0),
+                fn (array $variant) => (string) ($variant['sku'] ?? ''),
             ])
             ->first();
 

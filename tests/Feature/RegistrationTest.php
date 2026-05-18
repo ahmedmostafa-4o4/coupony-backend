@@ -35,14 +35,14 @@ class RegistrationTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-            'message',
-            'data' => [
-                'expires_at',
-                'expires_in_minutes',
-                'channel',
-                'masked_recipient',
-            ],
-        ]);
+                'message',
+                'data' => [
+                    'expires_at',
+                    'expires_in_minutes',
+                    'channel',
+                    'masked_recipient',
+                ],
+            ]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',

@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         $this->command->newLine();
         $this->command->info('✅ Fresh demo database seeding completed successfully!');
         $this->command->newLine();
-        
+
         $this->command->table(
             ['Credential', 'Value'],
             [

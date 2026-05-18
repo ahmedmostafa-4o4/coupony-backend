@@ -119,7 +119,7 @@ class OnboardingController extends Controller
 
     private function decodeJsonArray(?string $value): array
     {
-        if (!$value) {
+        if (! $value) {
             return [];
         }
 

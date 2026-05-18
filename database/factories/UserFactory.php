@@ -50,9 +50,9 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn(array $attributes) => [
-        'email_verified_at' => null,
-        'phone_verified_at' => null,
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => null,
+            'phone_verified_at' => null,
         ]);
     }
 
@@ -61,8 +61,8 @@ class UserFactory extends Factory
      */
     public function suspended(): static
     {
-        return $this->state(fn(array $attributes) => [
-        'status' => 'suspended',
+        return $this->state(fn (array $attributes) => [
+            'status' => 'suspended',
         ]);
     }
 
@@ -71,8 +71,8 @@ class UserFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn(array $attributes) => [
-        'status' => 'inactive',
+        return $this->state(fn (array $attributes) => [
+            'status' => 'inactive',
         ]);
     }
 

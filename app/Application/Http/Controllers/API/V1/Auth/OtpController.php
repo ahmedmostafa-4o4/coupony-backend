@@ -6,8 +6,8 @@ use App\Application\Http\Controllers\Controller;
 use App\Domain\User\Enums\OtpChannels;
 use App\Domain\User\Enums\OtpPurposes;
 use App\Domain\User\Models\User;
-use App\Domain\User\Services\OtpService;
 use App\Domain\User\Services\AuthenticationService;
+use App\Domain\User\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,8 +18,7 @@ class OtpController extends Controller
     public function __construct(
         private OtpService $otpService,
         private AuthenticationService $authService
-    ) {
-    }
+    ) {}
 
     /**
      * Send OTP to user.
@@ -36,7 +35,7 @@ class OtpController extends Controller
         // Find user
         $user = $this->findUser($request);
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => __('api.otp.user_not_found'),
             ], 404);
@@ -91,7 +90,7 @@ class OtpController extends Controller
 
         $user = $this->findUser($request);
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => __('api.otp.user_not_found'),
             ], 404);
@@ -115,7 +114,7 @@ class OtpController extends Controller
 
             if (
                 $validated['purpose'] === OtpPurposes::VERIFY_EMAIL->value &&
-                !$wasEmailVerified
+                ! $wasEmailVerified
             ) {
                 $context = [
                     'ip_address' => $request->ip(),
@@ -175,7 +174,7 @@ class OtpController extends Controller
 
         $user = $this->findUser($request);
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => __('api.otp.user_not_found'),
             ], 404);
@@ -254,5 +253,4 @@ class OtpController extends Controller
             OtpChannels::cases()
         );
     }
-
 }

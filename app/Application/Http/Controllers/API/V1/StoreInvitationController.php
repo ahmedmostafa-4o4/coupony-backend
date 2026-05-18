@@ -11,17 +11,15 @@ use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Store\Models\StoreInvitation;
 use App\Domain\Store\Services\StoreInvitationService;
 use App\Domain\User\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class StoreInvitationController extends Controller
 {
     use AuthorizesRequests;
 
-    public function __construct(private StoreInvitationService $invitationService)
-    {
-    }
+    public function __construct(private StoreInvitationService $invitationService) {}
 
     public function store(SendInvitationRequest $request, Store $store): JsonResponse
     {
@@ -70,7 +68,7 @@ class StoreInvitationController extends Controller
         if ($invitation->store_id !== $store->id) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => __('api.common.unauthorized')
+                'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
@@ -90,7 +88,7 @@ class StoreInvitationController extends Controller
         if ($invitation->store_id !== $store->id) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => __('api.common.unauthorized')
+                'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
@@ -122,11 +120,11 @@ class StoreInvitationController extends Controller
         if ($request->has('search')) {
             $search = $request->query('search');
             $query->whereHas('user', function ($q) use ($search) {
-                $q->where('email', 'like', '%' . $search . '%')
-                  ->orWhereHas('profile', function ($q2) use ($search) {
-                      $q2->where('first_name', 'like', '%' . $search . '%')
-                         ->orWhere('last_name', 'like', '%' . $search . '%');
-                  });
+                $q->where('email', 'like', '%'.$search.'%')
+                    ->orWhereHas('profile', function ($q2) use ($search) {
+                        $q2->where('first_name', 'like', '%'.$search.'%')
+                            ->orWhere('last_name', 'like', '%'.$search.'%');
+                    });
             });
         }
 
@@ -152,7 +150,7 @@ class StoreInvitationController extends Controller
         if ($store->owner_user_id === $user->id) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => __('api.invitation.cannot_remove_owner')
+                'message' => __('api.invitation.cannot_remove_owner'),
             ], 422);
         }
 
@@ -192,10 +190,10 @@ class StoreInvitationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        // Keep 'status' as default pending if not present in request. 
+        // Keep 'status' as default pending if not present in request.
         // We use $request->all() combined with the default if status is missing.
         $filters = $request->only(['status', 'role', 'store_id']);
-        if (!$request->has('status')) {
+        if (! $request->has('status')) {
             $filters['status'] = 'pending';
         }
 

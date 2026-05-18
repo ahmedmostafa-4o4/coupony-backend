@@ -15,11 +15,12 @@ class isVerifiedCheck
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user()?->email_verified_at) {
+        if (! $request->user()?->email_verified_at) {
             return response()->json([
-                'message' => __('api.middleware.account_not_verified')
+                'message' => __('api.middleware.account_not_verified'),
             ], 403);
         }
+
         return $next($request);
     }
 }

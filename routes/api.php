@@ -1,9 +1,9 @@
 <?php
 
-use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\AdminPointController;
 use App\Application\Http\Controllers\API\V1\Admin\ProductManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\ProductRevisionManagementController;
+use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\UserManagementController;
 use App\Application\Http\Controllers\API\V1\Auth\AdminRegisterController;
 use App\Application\Http\Controllers\API\V1\Auth\GoogleLoginController;
@@ -12,41 +12,37 @@ use App\Application\Http\Controllers\API\V1\Auth\OtpController;
 use App\Application\Http\Controllers\API\V1\Auth\PasswordResetController;
 use App\Application\Http\Controllers\API\V1\Auth\RefreshTokenController;
 use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
+use App\Application\Http\Controllers\API\V1\CategoryController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\MeAddressController;
+use App\Application\Http\Controllers\API\V1\NotificationController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
+use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\OnboardingController;
+use App\Application\Http\Controllers\API\V1\PointController;
 use App\Application\Http\Controllers\API\V1\PonyAI\CustomerChatController;
 use App\Application\Http\Controllers\API\V1\PonyAI\PonyImageController;
 use App\Application\Http\Controllers\API\V1\PonyAI\SellerChatController;
-use App\Application\Http\Controllers\API\V1\OfferClaimController;
-use App\Application\Http\Controllers\API\V1\CategoryController;
-use App\Application\Http\Controllers\API\V1\PointController;
-use App\Application\Http\Controllers\API\V1\ProductFavoriteController;
-use App\Application\Http\Controllers\API\V1\ProductImageController;
-use App\Application\Http\Controllers\API\V1\ProductLikeController;
 use App\Application\Http\Controllers\API\V1\ProductCommentController;
 use App\Application\Http\Controllers\API\V1\ProductCommentLikeController;
 use App\Application\Http\Controllers\API\V1\ProductController;
+use App\Application\Http\Controllers\API\V1\ProductFavoriteController;
+use App\Application\Http\Controllers\API\V1\ProductImageController;
+use App\Application\Http\Controllers\API\V1\ProductLikeController;
 use App\Application\Http\Controllers\API\V1\ProductRecommendationController;
 use App\Application\Http\Controllers\API\V1\ProductRevisionController;
 use App\Application\Http\Controllers\API\V1\ProductVariantController;
 use App\Application\Http\Controllers\API\V1\SocialController;
-use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
 use App\Application\Http\Controllers\API\V1\StoreAddressController;
 use App\Application\Http\Controllers\API\V1\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\StoreCommentController;
 use App\Application\Http\Controllers\API\V1\StoreCommentLikeController;
 use App\Application\Http\Controllers\API\V1\StoreController;
 use App\Application\Http\Controllers\API\V1\StoreFollowController;
+use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Domain\Notification\Models\Notification;
-use App\Domain\User\Enums\BudgetCategory;
-use App\Domain\User\Enums\InterestingOfferCategory;
-use App\Domain\User\Enums\OffersTypeCategory;
-use App\Domain\User\Enums\ShoppingStyleCategory;
-use App\Domain\User\Enums\TargetAudienceCategory;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
 use App\Http\Middleware\UseAuthenticatedUserLocale;
@@ -146,6 +142,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
         Route::get('/me/points', [PointController::class, 'showMyPoints'])->name('me.points.show');
         Route::get('/me/points/transactions', [PointController::class, 'myTransactions'])->name('me.points.transactions');
+        Route::prefix('/me/notifications')->name('me.notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/unread', [NotificationController::class, 'unread'])->name('unread');
+            Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::patch('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
+            Route::delete('/read', [NotificationController::class, 'deleteAllRead'])->name('delete-read');
+            Route::get('/{notification}', [NotificationController::class, 'show'])->name('show');
+            Route::patch('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+            Route::patch('/{notification}/unread', [NotificationController::class, 'markAsUnread'])->name('unread-mark');
+            Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+        });
         Route::get('/stores/{store}/points', [PointController::class, 'showStorePoints'])->name('stores.points.show');
         Route::get('/stores/{store}/points/transactions', [PointController::class, 'storeTransactions'])->name('stores.points.transactions');
         Route::scopeBindings()->group(function () {
@@ -378,6 +385,7 @@ Route::prefix('v1')->group(function () {
                     User::first()
                 )
             );
+
             return 'sent';
         })->name('test.mail');
 
@@ -386,10 +394,9 @@ Route::prefix('v1')->group(function () {
         })->name('test.mailCheck');
     }
 
-
-
     Route::get('/log-test', function () {
         Log::info('test from hostinger');
+
         return 'done';
     });
 });

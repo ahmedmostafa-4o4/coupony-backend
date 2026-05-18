@@ -3,7 +3,6 @@
 namespace App\Domain\Product\Models;
 
 use App\Domain\Product\Enums\InventoryMode;
-use App\Domain\Product\Models\ProductOfferVariantTarget;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

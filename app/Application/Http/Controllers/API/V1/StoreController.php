@@ -11,8 +11,8 @@ use App\Application\Http\Resources\PublicStoreResource;
 use App\Application\Http\Resources\StoreCollection;
 use App\Application\Http\Resources\StoreResource;
 use App\Domain\Store\Actions\CreateStore;
-use App\Domain\Store\Actions\UpdateStoreProfile;
 use App\Domain\Store\Actions\UpdateStore;
+use App\Domain\Store\Actions\UpdateStoreProfile;
 use App\Domain\Store\Actions\UpdateVerificationDocument;
 use App\Domain\Store\DTOs\StoreData;
 use App\Domain\Store\Enums\StoreStatus;
@@ -36,8 +36,7 @@ class StoreController extends Controller
         private readonly UpdateStore $updateStoreAction,
         private readonly UpdateStoreProfile $updateStoreProfileAction,
         private readonly UpdateVerificationDocument $updateVerificationDocumentAction
-    ) {
-    }
+    ) {}
 
     /**
      * Create a new store.
@@ -138,7 +137,7 @@ class StoreController extends Controller
         $user = $request->user();
 
         try {
-            return DB::transaction(function () use ($request, $store, $user) {
+            return DB::transaction(function () use ($request, $store) {
                 $updatedStore = $this->updateStoreProfileAction->execute(
                     $store,
                     $request->validated(),
@@ -225,18 +224,18 @@ class StoreController extends Controller
             if (filled($validated['search'] ?? null)) {
                 $query->where(function ($builder) use ($validated) {
                     $builder
-                        ->where('name', 'like', '%' . $validated['search'] . '%')
-                        ->orWhere('description', 'like', '%' . $validated['search'] . '%');
+                        ->where('name', 'like', '%'.$validated['search'].'%')
+                        ->orWhere('description', 'like', '%'.$validated['search'].'%');
                 });
             }
 
             if (filled($validated['category_id'] ?? null)) {
-                $query->whereHas('categories', fn($builder) => $builder->whereKey($validated['category_id']));
+                $query->whereHas('categories', fn ($builder) => $builder->whereKey($validated['category_id']));
             }
 
             if (filled($validated['city'] ?? null)) {
                 $query->whereHas('addresses', function ($builder) use ($validated) {
-                    $builder->where('city', 'like', '%' . $validated['city'] . '%');
+                    $builder->where('city', 'like', '%'.$validated['city'].'%');
                 });
             }
 

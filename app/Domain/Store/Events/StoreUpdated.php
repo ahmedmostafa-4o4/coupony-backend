@@ -14,6 +14,5 @@ class StoreUpdated
     public function __construct(
         public Store $store,
         public User $user
-    ) {
-    }
+    ) {}
 }

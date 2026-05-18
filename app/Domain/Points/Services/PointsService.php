@@ -16,7 +16,7 @@ class PointsService
 {
     public function getOrCreateUserPoints(User $user): UserPoints
     {
-        return DB::transaction(fn() => $this->lockUserPoints($user)->fresh());
+        return DB::transaction(fn () => $this->lockUserPoints($user)->fresh());
     }
 
     public function addUserPoints(
@@ -152,7 +152,7 @@ class PointsService
 
     public function getOrCreateStorePoints(Store $store): StorePoints
     {
-        return DB::transaction(fn() => $this->lockStorePoints($store)->fresh());
+        return DB::transaction(fn () => $this->lockStorePoints($store)->fresh());
     }
 
     public function addStorePoints(

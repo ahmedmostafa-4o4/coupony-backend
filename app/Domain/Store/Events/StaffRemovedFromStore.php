@@ -13,6 +13,7 @@ class StaffRemovedFromStore
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public Store $store;
+
     public User $staff;
 
     /**

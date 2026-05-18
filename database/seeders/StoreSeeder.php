@@ -21,6 +21,7 @@ class StoreSeeder extends Seeder
 
         if ($sellers->isEmpty() || $categories->isEmpty()) {
             $this->command->warn('Please run UserSeeder and StoreCategorySeeder first!');
+
             return;
         }
 
@@ -28,7 +29,7 @@ class StoreSeeder extends Seeder
         foreach ($sellers as $seller) {
             $store = Store::create([
                 'owner_user_id' => $seller->id,
-                'name' => fake()->company() . ' Store',
+                'name' => fake()->company().' Store',
                 'description' => fake()->paragraph(3),
                 'email' => fake()->companyEmail(),
                 'phone' => fake()->phoneNumber(),
@@ -72,7 +73,7 @@ class StoreSeeder extends Seeder
         foreach ($sellersPending as $seller) {
             $store = Store::create([
                 'owner_user_id' => $seller->id,
-                'name' => fake()->company() . ' Store',
+                'name' => fake()->company().' Store',
                 'description' => fake()->paragraph(3),
                 'email' => fake()->companyEmail(),
                 'phone' => fake()->phoneNumber(),
@@ -107,7 +108,7 @@ class StoreSeeder extends Seeder
         foreach ($rejectedSellers as $seller) {
             $store = Store::create([
                 'owner_user_id' => $seller->id,
-                'name' => fake()->company() . ' Store',
+                'name' => fake()->company().' Store',
                 'description' => fake()->paragraph(3),
                 'email' => fake()->companyEmail(),
                 'phone' => fake()->phoneNumber(),
@@ -159,7 +160,7 @@ class StoreSeeder extends Seeder
     private function createVerifications(Store $store, string $status): void
     {
         $documents = ['commercial_register', 'tax_card', 'id_card_front', 'id_card_back'];
-        
+
         foreach ($documents as $docType) {
             $verification = [
                 'store_id' => $store->id,
@@ -171,7 +172,7 @@ class StoreSeeder extends Seeder
             if ($status !== 'pending') {
                 $verification['verified_by'] = User::role('admin')->first()->id;
                 $verification['verified_at'] = now();
-                
+
                 if ($status === 'rejected') {
                     $verification['rejection_reason'] = 'Document is not clear or invalid';
                 }
@@ -181,4 +182,3 @@ class StoreSeeder extends Seeder
         }
     }
 }
-

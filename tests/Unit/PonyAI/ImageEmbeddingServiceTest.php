@@ -165,7 +165,7 @@ class ImageEmbeddingServiceTest extends TestCase
         $this->assertSame('image/jpeg', $describeCall['mime']);
         $this->assertSame(strlen("\xFF\xD8\xFF\xE0remote-jpeg-bytes"), $describeCall['bytes_length']);
 
-        Http::assertSent(fn($request) => $request->url() === 'https://images.unsplash.com/photo-123?fm=jpg');
+        Http::assertSent(fn ($request) => $request->url() === 'https://images.unsplash.com/photo-123?fm=jpg');
     }
 
     public function test_embed_throws_when_external_url_returns_404(): void

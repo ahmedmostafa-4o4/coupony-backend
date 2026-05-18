@@ -23,8 +23,7 @@ final class StoreInsightsSnapshot
         public readonly array $underperformingProducts,
         public readonly array $inventoryWarnings,
         public readonly array $productIds,
-    ) {
-    }
+    ) {}
 
     /**
      * Compact representation for embedding into Gemini prompts. No raw FK columns,

@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            if (!Schema::hasColumn('categories', 'icon_url')) {
+            if (! Schema::hasColumn('categories', 'icon_url')) {
                 $table->string('icon_url')->nullable()->after('description');
             }
         });
 
         Schema::table('store_categories', function (Blueprint $table) {
-            if (!Schema::hasColumn('store_categories', 'icon_url')) {
+            if (! Schema::hasColumn('store_categories', 'icon_url')) {
                 $table->string('icon_url')->nullable()->after('slug');
             }
         });

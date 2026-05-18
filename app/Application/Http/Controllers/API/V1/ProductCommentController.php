@@ -19,7 +19,7 @@ class ProductCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicProduct($product)) {
+        if (! $this->isPublicProduct($product)) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 
@@ -49,7 +49,7 @@ class ProductCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicProduct($product)) {
+        if (! $this->isPublicProduct($product)) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 
@@ -83,7 +83,7 @@ class ProductCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicProduct($product) || $comment->product_id !== $product->id || !$comment->isVisible()) {
+        if (! $this->isPublicProduct($product) || $comment->product_id !== $product->id || ! $comment->isVisible()) {
             return $this->errorResponse(__('api.product.comment_not_found'), 404);
         }
 
@@ -114,7 +114,7 @@ class ProductCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($request->user()?->id !== $comment->user_id || !$comment->isVisible()) {
+        if ($request->user()?->id !== $comment->user_id || ! $comment->isVisible()) {
             return $this->errorResponse(__('api.product.comment_not_found'), 404);
         }
 
@@ -142,7 +142,7 @@ class ProductCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->canManageComment($request, $comment)) {
+        if (! $this->canManageComment($request, $comment)) {
             return $this->errorResponse(__('api.product.comment_not_found'), 404);
         }
 
@@ -162,7 +162,7 @@ class ProductCommentController extends Controller
         $comment->loadMissing('product.store');
         $isOwner = $comment->product?->store?->owner_user_id === $user->id;
 
-        if (!$isAdmin && !$isOwner) {
+        if (! $isAdmin && ! $isOwner) {
             return $this->errorResponse(__('api.common.unauthorized'), 403);
         }
 

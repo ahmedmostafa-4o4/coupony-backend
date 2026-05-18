@@ -12,9 +12,9 @@ interface StoreRepositoryInterface
 
     public function delete(string $id): bool;
 
-    public function find(string $id): null|Store;
+    public function find(string $id): ?Store;
 
-    public function findByName(string $name): null|Store;
+    public function findByName(string $name): ?Store;
 
     public function all(): array;
 }

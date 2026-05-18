@@ -9,6 +9,7 @@ use Illuminate\Queue\SerializesModels;
 class StoreStatusChanged
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
+
     /**
      * Create a new class instance.
      */

@@ -13,8 +13,7 @@ final class SellerIntent
         public readonly string $freeText,
         public readonly SellerTopic $topic = SellerTopic::FREE_FORM,
         public readonly array $filters = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Build from a Gemini JSON payload. Anything we don't recognise is dropped.

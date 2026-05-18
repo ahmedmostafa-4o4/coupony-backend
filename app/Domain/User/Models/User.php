@@ -3,6 +3,7 @@
 namespace App\Domain\User\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Notification\Models\Notification;
 use App\Domain\Points\Models\UserPointTransaction;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
@@ -232,6 +233,16 @@ class User extends Authenticatable
     public function preferences()
     {
         return $this->hasOne(UserPreference::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'user_id');
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->whereNull('read_at');
     }
 
     public function offerClaims()

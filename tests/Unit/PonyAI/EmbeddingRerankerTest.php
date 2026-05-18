@@ -72,23 +72,28 @@ class EmbeddingRerankerTest extends TestCase
         $a = $this->activeProduct();
         $b = $this->activeProduct();
 
-        $throwing = new class implements GeminiClient {
+        $throwing = new class implements GeminiClient
+        {
             public function generateText(string $prompt, array $options = []): \App\Domain\PonyAI\DTOs\GeminiResult
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
             }
+
             public function generateJson(string $prompt, array $options = []): \App\Domain\PonyAI\DTOs\GeminiResult
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
             }
+
             public function embedText(string $text, array $options = []): array
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
             }
+
             public function embedImage(string $imageBytes, string $mimeType, array $options = []): array
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
             }
+
             public function describeImage(string $imageBytes, string $mimeType, string $instruction = '', array $options = []): \App\Domain\PonyAI\DTOs\GeminiResult
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');

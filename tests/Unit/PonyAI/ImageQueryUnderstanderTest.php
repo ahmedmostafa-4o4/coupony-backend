@@ -63,12 +63,32 @@ class ImageQueryUnderstanderTest extends TestCase
 
     public function test_gemini_failure_returns_empty_understanding(): void
     {
-        $throwing = new class implements GeminiClient {
-            public function generateText(string $p, array $o = []): GeminiResult { throw new GeminiException('x'); }
-            public function generateJson(string $p, array $o = []): GeminiResult { throw new GeminiException('x'); }
-            public function embedText(string $t, array $o = []): array { throw new GeminiException('x'); }
-            public function embedImage(string $b, string $m, array $o = []): array { throw new GeminiException('x'); }
-            public function describeImage(string $b, string $m, string $i = '', array $o = []): GeminiResult { throw new GeminiException('x'); }
+        $throwing = new class implements GeminiClient
+        {
+            public function generateText(string $p, array $o = []): GeminiResult
+            {
+                throw new GeminiException('x');
+            }
+
+            public function generateJson(string $p, array $o = []): GeminiResult
+            {
+                throw new GeminiException('x');
+            }
+
+            public function embedText(string $t, array $o = []): array
+            {
+                throw new GeminiException('x');
+            }
+
+            public function embedImage(string $b, string $m, array $o = []): array
+            {
+                throw new GeminiException('x');
+            }
+
+            public function describeImage(string $b, string $m, string $i = '', array $o = []): GeminiResult
+            {
+                throw new GeminiException('x');
+            }
         };
 
         $this->app->instance(GeminiClient::class, $throwing);

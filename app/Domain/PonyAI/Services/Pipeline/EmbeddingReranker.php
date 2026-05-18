@@ -13,8 +13,7 @@ class EmbeddingReranker
     public function __construct(
         private readonly GeminiClient $gemini,
         private readonly EmbeddingRepository $embeddings,
-    ) {
-    }
+    ) {}
 
     /**
      * Rerank candidate product IDs by cosine similarity to the query embedding.
@@ -56,7 +55,7 @@ class EmbeddingReranker
         }
 
         $ranked = VectorMath::topK($queryVector, $withVector, $topK);
-        $rerankedIds = array_map(static fn(array $row): string => (string) $row['id'], $ranked);
+        $rerankedIds = array_map(static fn (array $row): string => (string) $row['id'], $ranked);
 
         if (count($rerankedIds) >= $topK) {
             return $rerankedIds;
@@ -87,7 +86,7 @@ class EmbeddingReranker
         $ttl = max(1, (int) config('pony.cache.query_embedding_ttl_seconds', 6 * 3600));
         $key = 'pony:query_embedding:'.sha1($trimmed);
 
-        $vector = Cache::remember($key, $ttl, fn(): array => $this->computeEmbedding($trimmed) ?? []);
+        $vector = Cache::remember($key, $ttl, fn (): array => $this->computeEmbedding($trimmed) ?? []);
 
         return is_array($vector) && $vector !== [] ? $vector : null;
     }

@@ -11,9 +11,7 @@ use Illuminate\Http\JsonResponse;
 
 class OfferClaimController extends Controller
 {
-    public function __construct(private readonly CreateOfferClaim $createOfferClaim)
-    {
-    }
+    public function __construct(private readonly CreateOfferClaim $createOfferClaim) {}
 
     public function store(CreateOfferClaimRequest $request, Product $product): JsonResponse
     {

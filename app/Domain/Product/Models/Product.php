@@ -4,13 +4,6 @@ namespace App\Domain\Product\Models;
 
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
-use App\Domain\Product\Models\OfferClaim;
-use App\Domain\Product\Models\ProductFavorite;
-use App\Domain\Product\Models\ProductLike;
-use App\Domain\Product\Models\ProductComment;
-use App\Domain\Product\Models\ProductOffer;
-use App\Domain\Product\Models\ProductRevision;
-use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

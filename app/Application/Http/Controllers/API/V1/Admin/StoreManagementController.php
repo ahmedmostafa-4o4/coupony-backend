@@ -19,16 +19,8 @@ use Illuminate\Support\Facades\Log;
 
 class StoreManagementController extends Controller
 {
-    public function __construct(private
-        ApproveStore $approveStore, private
-        RejectStore $rejectStore, private
-        SuspendStore $suspendStore, private
-        CloseStore $closeStore, private
-        ApproveVerificationDocument $approveVerificationDocument, private
-        RejectVerificationDocument $rejectVerificationDocument
-        )
-    {
-    }
+    public function __construct(private ApproveStore $approveStore, private RejectStore $rejectStore, private SuspendStore $suspendStore, private CloseStore $closeStore, private ApproveVerificationDocument $approveVerificationDocument, private RejectVerificationDocument $rejectVerificationDocument
+    ) {}
 
     /**
      * Get all pending store registrations
@@ -55,7 +47,7 @@ class StoreManagementController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve pending stores', ['error' => $e->getMessage()]);
-            
+
             return $this->localizedJson([
                 'message' => __('api.admin.stores.pending_failed'),
             ], 500);
@@ -103,7 +95,7 @@ class StoreManagementController extends Controller
 
             // Search by name
             if ($request->filled('search')) {
-                $query->where('name', 'like', '%' . $request->input('search') . '%');
+                $query->where('name', 'like', '%'.$request->input('search').'%');
             }
 
             // Filter by date range
@@ -129,7 +121,7 @@ class StoreManagementController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve stores', ['error' => $e->getMessage()]);
-            
+
             return $this->localizedJson([
                 'message' => __('api.admin.stores.retrieve_failed'),
             ], 500);
@@ -153,9 +145,9 @@ class StoreManagementController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to retrieve store details', [
                 'store_id' => $store->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return $this->localizedJson([
                 'message' => __('api.admin.stores.details_failed'),
             ], 500);
@@ -188,11 +180,11 @@ class StoreManagementController extends Controller
         }
 
         try {
-            $this->approveStore->execute($store, $request->user(), $validated['notes'] ?? null);
+            $approvedStore = $this->approveStore->execute($store, $request->user(), $validated['notes'] ?? null);
 
             return $this->localizedJson([
                 'message' => __('api.admin.stores.approved'),
-                'data' => new StoreResource($store->fresh()),
+                'data' => new StoreResource($approvedStore),
             ]);
         } catch (\Exception $e) {
             Log::error('Store approval failed', [
@@ -233,11 +225,11 @@ class StoreManagementController extends Controller
         }
 
         try {
-            $this->rejectStore->execute($store, $request->user(), $validated['reason']);
+            $rejectedStore = $this->rejectStore->execute($store, $request->user(), $validated['reason']);
 
             return $this->localizedJson([
                 'message' => __('api.admin.stores.rejected'),
-                'data' => new StoreResource($store->fresh()),
+                'data' => new StoreResource($rejectedStore),
             ]);
         } catch (\Exception $e) {
             Log::error('Store rejection failed', [
@@ -352,7 +344,7 @@ class StoreManagementController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve store statistics', ['error' => $e->getMessage()]);
-            
+
             return $this->localizedJson([
                 'message' => __('api.admin.stores.statistics_failed'),
             ], 500);
@@ -376,9 +368,9 @@ class StoreManagementController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to retrieve verification documents', [
                 'store_id' => $store->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return $this->localizedJson([
                 'message' => __('api.admin.stores.documents_failed'),
             ], 500);

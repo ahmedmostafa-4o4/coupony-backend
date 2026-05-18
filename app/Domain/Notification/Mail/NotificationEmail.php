@@ -18,8 +18,7 @@ class NotificationEmail extends Mailable implements ShouldQueue
     public function __construct(
         public Notification $notification,
         public User $user
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
@@ -43,7 +42,7 @@ class NotificationEmail extends Mailable implements ShouldQueue
 
     public function getActionUrl(): ?string
     {
-        if (!$this->notification->reference_type || !$this->notification->reference_id) {
+        if (! $this->notification->reference_type || ! $this->notification->reference_id) {
             return null;
         }
 

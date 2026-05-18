@@ -13,8 +13,11 @@ class StoreOwnershipTransferred
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public Store $store;
+
     public User $currentOwner;
+
     public User $newOwner;
+
     /**
      * Create a new class instance.
      */

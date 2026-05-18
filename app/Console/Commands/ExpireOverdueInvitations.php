@@ -27,9 +27,9 @@ class ExpireOverdueInvitations extends Command
     public function handle(StoreInvitationService $service)
     {
         $this->info('Starting to expire overdue invitations...');
-        
+
         $count = $service->expireOverdueInvitations();
-        
+
         $this->info("Successfully expired {$count} overdue invitations.");
     }
 }

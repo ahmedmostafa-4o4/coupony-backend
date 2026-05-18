@@ -4,12 +4,9 @@ namespace App\Domain\Store\DTOs;
 
 use App\Application\Http\Requests\createStoreRequest;
 use App\Application\Http\Requests\updateStoreRequest;
-use Illuminate\Support\Str;
-use Log;
 
 class StoreData
 {
-
     /**
      * Create a new class instance.
      */
@@ -39,8 +36,7 @@ class StoreData
         public readonly ?array $category_ids = [],
         public readonly ?array $address = null,
         public readonly ?array $socials = []
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(createStoreRequest $request): self
     {
@@ -112,6 +108,7 @@ class StoreData
         if ($request->hasFile('banner') && $storeId) {
             $bannerPath = $request->file('banner')->store("stores/{$storeId}/banner", 'public');
         }
+
         return new self(
             name: $request->input('name', ''),
             description: $request->input('description', ''),

@@ -10,7 +10,6 @@ use Spatie\Permission\Models\Role;
 
 class TransferStoreOwnership
 {
-
     public function execute(Store $store, User $currentOwner, User $newOwner): void
     {
         return DB::transaction(function () use ($store, $currentOwner, $newOwner) {
@@ -20,7 +19,7 @@ class TransferStoreOwnership
             ]);
 
             // Assign seller role to new owner
-            if (!$newOwner->hasRole('seller')) {
+            if (! $newOwner->hasRole('seller')) {
                 $newOwner->assignRole('seller');
             }
 

@@ -20,8 +20,7 @@ class PasswordResetController extends Controller
 {
     public function __construct(
         private readonly OtpService $otpService
-    ) {
-    }
+    ) {}
 
     /**
      * Send password reset OTP.
@@ -31,7 +30,7 @@ class PasswordResetController extends Controller
         try {
             $user = User::where('email', $request->input('email'))->first();
 
-            if (!$user) {
+            if (! $user) {
                 // Don't reveal if user exists for security
                 return response()->json([
                     'success' => true,
@@ -77,7 +76,7 @@ class PasswordResetController extends Controller
         try {
             $user = User::where('email', $request->input('email'))->first();
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
                     'message' => __('api.password_reset.invalid_email_or_code'),
@@ -101,6 +100,7 @@ class PasswordResetController extends Controller
                     ['user_id' => $user->id, 'email' => $user->email],
                     now()->addMinutes(15)
                 );
+
                 return response()->json([
                     'success' => true,
                     'message' => __('api.password_reset.code_verified'),
@@ -151,7 +151,7 @@ class PasswordResetController extends Controller
                 // Retrieve reset data from cache
                 $resetData = cache()->get("password_reset:{$resetToken}");
 
-                if (!$resetData) {
+                if (! $resetData) {
                     return response()->json([
                         'success' => false,
                         'message' => __('api.password_reset.invalid_or_expired_token'),
@@ -160,7 +160,7 @@ class PasswordResetController extends Controller
 
                 $user = User::find($resetData['user_id']);
 
-                if (!$user || $user->email !== $resetData['email']) {
+                if (! $user || $user->email !== $resetData['email']) {
                     return response()->json([
                         'success' => false,
                         'message' => __('api.password_reset.invalid_token'),
@@ -205,7 +205,7 @@ class PasswordResetController extends Controller
         try {
             $user = User::where('email', $request->input('email'))->first();
 
-            if (!$user) {
+            if (! $user) {
                 // Don't reveal if user exists for security
                 return response()->json([
                     'success' => true,

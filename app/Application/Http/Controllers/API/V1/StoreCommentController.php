@@ -18,7 +18,7 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicStore($store)) {
+        if (! $this->isPublicStore($store)) {
             return $this->errorResponse(__('api.store_comment.store_not_found'), 404);
         }
 
@@ -48,7 +48,7 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicStore($store)) {
+        if (! $this->isPublicStore($store)) {
             return $this->errorResponse(__('api.store_comment.store_not_found'), 404);
         }
 
@@ -91,7 +91,7 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicStore($store)) {
+        if (! $this->isPublicStore($store)) {
             return $this->errorResponse(__('api.store_comment.store_not_found'), 404);
         }
 
@@ -125,7 +125,7 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPublicStore($store) || $comment->store_id !== $store->id || !$comment->isVisible()) {
+        if (! $this->isPublicStore($store) || $comment->store_id !== $store->id || ! $comment->isVisible()) {
             return $this->errorResponse(__('api.store_comment.comment_not_found'), 404);
         }
 
@@ -156,7 +156,7 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($request->user()?->id !== $comment->user_id || !$comment->isVisible()) {
+        if ($request->user()?->id !== $comment->user_id || ! $comment->isVisible()) {
             return $this->errorResponse(__('api.store_comment.comment_not_found'), 404);
         }
 
@@ -184,7 +184,7 @@ class StoreCommentController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->canManageComment($request, $comment)) {
+        if (! $this->canManageComment($request, $comment)) {
             return $this->errorResponse(__('api.store_comment.comment_not_found'), 404);
         }
 
@@ -204,7 +204,7 @@ class StoreCommentController extends Controller
         $comment->loadMissing('store');
         $isOwner = $comment->store?->owner_user_id === $user->id;
 
-        if (!$isAdmin && !$isOwner) {
+        if (! $isAdmin && ! $isOwner) {
             return $this->errorResponse(__('api.common.unauthorized'), 403);
         }
 

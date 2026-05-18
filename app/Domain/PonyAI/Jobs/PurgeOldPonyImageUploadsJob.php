@@ -28,9 +28,7 @@ class PurgeOldPonyImageUploadsJob implements ShouldQueue
 
     public int $timeout = 300;
 
-    public function __construct(public readonly ?int $retentionDays = null)
-    {
-    }
+    public function __construct(public readonly ?int $retentionDays = null) {}
 
     public function handle(): int
     {
@@ -51,6 +49,7 @@ class PurgeOldPonyImageUploadsJob implements ShouldQueue
 
             if ($modifiedAt > $cutoff) {
                 $kept++;
+
                 continue;
             }
 

@@ -32,8 +32,7 @@ class SellerAssistantStrategy
         private readonly ProductRepository $products,
         private readonly PromptSanitizer $sanitizer,
         private readonly GroundingValidator $grounding,
-    ) {
-    }
+    ) {}
 
     public function handle(
         User $user,
@@ -121,7 +120,7 @@ class SellerAssistantStrategy
         $suggestionBlock = $suggestions === []
             ? '(no deterministic suggestions for this snapshot)'
             : implode("\n", array_map(
-                static fn(array $row): string => sprintf(
+                static fn (array $row): string => sprintf(
                     '- [%s] %s (product_ids=%s)',
                     (string) $row['topic'],
                     (string) $row['text'],
@@ -177,7 +176,7 @@ PROMPT;
      */
     private function fallback(StoreInsightsSnapshot $snapshot, array $suggestions): array
     {
-        $suggestionTexts = array_map(static fn(array $row): string => (string) $row['text'], $suggestions);
+        $suggestionTexts = array_map(static fn (array $row): string => (string) $row['text'], $suggestions);
 
         if ($suggestionTexts === [] && $snapshot->activeProductCount === 0) {
             return [
@@ -192,7 +191,7 @@ PROMPT;
             'message' => $suggestionTexts !== []
                 ? 'Here are some suggestions based on your store activity.'
                 : 'Your store is healthy - no urgent suggestions right now.',
-            'product_ids' => collect($suggestions)->flatMap(fn(array $row) => $row['product_ids'])->unique()->values()->all(),
+            'product_ids' => collect($suggestions)->flatMap(fn (array $row) => $row['product_ids'])->unique()->values()->all(),
             'offer_ids' => [],
             'suggestions' => $suggestionTexts,
         ];

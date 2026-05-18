@@ -10,7 +10,7 @@ class ProductOfferResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $targets = $this->whenLoaded('targets', fn() => $this->targets);
+        $targets = $this->whenLoaded('targets', fn () => $this->targets);
 
         return [
             'id' => $this->id,
@@ -29,14 +29,14 @@ class ProductOfferResource extends JsonResource
             'allow_mix_reward_variants' => $this->allow_mix_reward_variants,
             'buy_variant_ids' => $this->whenLoaded('targets', function () use ($targets) {
                 return $targets
-                    ->filter(fn($target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::BUY->value)
+                    ->filter(fn ($target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::BUY->value)
                     ->pluck('variant_id')
                     ->values()
                     ->all();
             }, []),
             'reward_variant_ids' => $this->whenLoaded('targets', function () use ($targets) {
                 return $targets
-                    ->filter(fn($target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::REWARD->value)
+                    ->filter(fn ($target) => ($target->role?->value ?? $target->role) === ProductOfferTargetRole::REWARD->value)
                     ->pluck('variant_id')
                     ->values()
                     ->all();

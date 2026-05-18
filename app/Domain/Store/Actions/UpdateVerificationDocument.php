@@ -28,7 +28,7 @@ class UpdateVerificationDocument
             ->where('document_type', $documentType)
             ->first();
 
-        if (!$verification) {
+        if (! $verification) {
             // Create new verification document
             $verification = $store->verifications()->create([
                 'document_type' => $documentType,

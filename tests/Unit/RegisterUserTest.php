@@ -17,7 +17,9 @@ class RegisterUserTest extends TestCase
     use RefreshDatabase;
 
     private RegisterUser $registerUser;
+
     private UserRepository $userRepository;
+
     private Hasher $hasher;
 
     protected function setUp(): void

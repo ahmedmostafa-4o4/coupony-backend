@@ -44,7 +44,7 @@ class RecommendationMlService
         return array_values(
             array_filter(
                 $payload['recommended_ids'],
-                static fn($id) => is_string($id) && $id !== ''
+                static fn ($id) => is_string($id) && $id !== ''
             )
         );
     }

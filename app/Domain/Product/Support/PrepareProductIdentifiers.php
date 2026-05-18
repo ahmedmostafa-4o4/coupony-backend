@@ -13,8 +13,7 @@ class PrepareProductIdentifiers
         private readonly ProductSlugGenerator $slugs,
         private readonly ProductSkuGenerator $productSkus,
         private readonly VariantSkuGenerator $variantSkus,
-    ) {
-    }
+    ) {}
 
     public function forCreate(Store $store, ProductData $data): ProductData
     {
@@ -52,7 +51,7 @@ class PrepareProductIdentifiers
         $shouldGenerate = false;
 
         if ($product === null) {
-            $shouldGenerate = !$slugExistsInPayload || blank($attributes['slug']);
+            $shouldGenerate = ! $slugExistsInPayload || blank($attributes['slug']);
         } elseif ($slugExistsInPayload) {
             $shouldGenerate = blank($attributes['slug']);
         } elseif (blank($product->slug) && array_key_exists('title', $attributes) && filled($title)) {
@@ -77,7 +76,7 @@ class PrepareProductIdentifiers
         $shouldGenerate = false;
 
         if ($product === null) {
-            $shouldGenerate = !$skuExistsInPayload || blank($attributes['sku']);
+            $shouldGenerate = ! $skuExistsInPayload || blank($attributes['sku']);
         } elseif ($skuExistsInPayload) {
             $shouldGenerate = blank($attributes['sku']);
         } elseif (blank($product->sku) && array_key_exists('title', $attributes) && filled($title)) {
@@ -109,11 +108,11 @@ class PrepareProductIdentifiers
             : ($product?->categories ?? collect());
 
         return $categories
-            ->flatMap(fn($category) => [
+            ->flatMap(fn ($category) => [
                 $category->name_en ?: $category->name,
                 $category->slug,
             ])
-            ->filter(fn($value) => is_string($value) && trim($value) !== '')
+            ->filter(fn ($value) => is_string($value) && trim($value) !== '')
             ->values()
             ->all();
     }

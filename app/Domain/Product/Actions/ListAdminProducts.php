@@ -7,9 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListAdminProducts
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function execute(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {

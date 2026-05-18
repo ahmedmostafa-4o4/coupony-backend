@@ -15,7 +15,7 @@ class SuspendStore
             throw new \Exception('Store is already suspended.');
         }
 
-        return DB::transaction(function () use ($store, $admin, $reason) {
+        return DB::transaction(function () use ($store, $reason) {
             $store->update([
                 'status' => StoreStatus::SUSPENDED,
                 'admin_notes' => $reason,

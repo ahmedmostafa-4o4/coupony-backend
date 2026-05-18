@@ -82,7 +82,7 @@ class ProductManagementTest extends TestCase
         $category = Category::factory()->create();
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->post("/api/v1/admin/products", $this->payload([
+            ->post('/api/v1/admin/products', $this->payload([
                 'store_id' => $store->id,
                 'category_ids' => [$category->id],
             ]));

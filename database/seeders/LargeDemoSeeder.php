@@ -73,15 +73,15 @@ class LargeDemoSeeder extends Seeder
         $this->admin = $this->createUser('admin@coupony.com', 'Admin', 'User', 'admin', 1);
 
         $this->sellers = collect(range(1, 12))->map(
-            fn(int $index) => $this->createUser("seller{$index}@example.com", 'Seller', "User {$index}", $index <= 10 ? 'seller' : 'seller_pending', $index + 10)
+            fn (int $index) => $this->createUser("seller{$index}@example.com", 'Seller', "User {$index}", $index <= 10 ? 'seller' : 'seller_pending', $index + 10)
         );
 
         $this->staff = collect(range(1, 5))->map(
-            fn(int $index) => $this->createUser("staff{$index}@example.com", 'Store', "Staff {$index}", 'store_employee', $index + 30)
+            fn (int $index) => $this->createUser("staff{$index}@example.com", 'Store', "Staff {$index}", 'store_employee', $index + 30)
         );
 
         $this->customers = collect(range(1, 80))->map(
-            fn(int $index) => $this->createUser("customer{$index}@example.com", 'Customer', "User {$index}", 'customer', $index + 100)
+            fn (int $index) => $this->createUser("customer{$index}@example.com", 'Customer', "User {$index}", 'customer', $index + 100)
         );
 
         $this->seedCustomerInterestTables();
@@ -103,7 +103,7 @@ class LargeDemoSeeder extends Seeder
     {
         $user = User::create([
             'email' => $email,
-            'phone_number' => '+2010' . str_pad((string) $phoneSeed, 8, '0', STR_PAD_LEFT),
+            'phone_number' => '+2010'.str_pad((string) $phoneSeed, 8, '0', STR_PAD_LEFT),
             'password_hash' => Hash::make('password'),
             'email_verified_at' => now(),
             'phone_verified_at' => now(),
@@ -214,8 +214,8 @@ class LargeDemoSeeder extends Seeder
 
         for ($i = 0; $i < 2; $i++) {
             $profile = [
-                'name' => 'Pending Bazaar ' . ($i + 1),
-                'slug' => 'pending-bazaar-' . ($i + 1),
+                'name' => 'Pending Bazaar '.($i + 1),
+                'slug' => 'pending-bazaar-'.($i + 1),
                 'city' => ['Cairo', 'Giza'][$i],
                 'category' => 'fashion',
             ];
@@ -263,11 +263,11 @@ class LargeDemoSeeder extends Seeder
             'owner_user_id' => $owner->id,
             'name' => $profile['name'],
             'description' => "A curated {$profile['category']} store in {$profile['city']} with realistic seeded offers and products.",
-            'logo_url' => "https://placehold.co/320x320/png?text=" . urlencode((string) Str::of($profile['name'])->substr(0, 12)),
+            'logo_url' => 'https://placehold.co/320x320/png?text='.urlencode((string) Str::of($profile['name'])->substr(0, 12)),
             'banner_url' => $this->bannerFor($profile['category'], $index),
-            'email' => Str::slug($profile['name']) . '@demo.coupony.test',
-            'phone' => '+202' . str_pad((string) (10000000 + $index), 8, '0', STR_PAD_LEFT),
-            'tax_id' => 'TAX-' . str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT),
+            'email' => Str::slug($profile['name']).'@demo.coupony.test',
+            'phone' => '+202'.str_pad((string) (10000000 + $index), 8, '0', STR_PAD_LEFT),
+            'tax_id' => 'TAX-'.str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT),
             'commission_rate' => 0.1200 + (($index % 4) * 0.01),
             'status' => $status,
             'subscription_tier' => ['basic', 'premium', 'enterprise'][$index % 3],
@@ -291,13 +291,13 @@ class LargeDemoSeeder extends Seeder
             'first_name' => 'Branch',
             'last_name' => 'Manager',
             'company' => $company,
-            'address_line1' => (10 + $index) . ' Demo Street',
-            'address_line2' => 'Floor ' . (($index % 5) + 1),
+            'address_line1' => (10 + $index).' Demo Street',
+            'address_line2' => 'Floor '.(($index % 5) + 1),
             'city' => $city,
             'state_province' => $city,
-            'postal_code' => '11' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'postal_code' => '11'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
             'country_code' => 'EG',
-            'phone_number' => '+202' . str_pad((string) (20000000 + $index), 8, '0', STR_PAD_LEFT),
+            'phone_number' => '+202'.str_pad((string) (20000000 + $index), 8, '0', STR_PAD_LEFT),
             'latitude' => 30.0444 + ($index / 1000),
             'longitude' => 31.2357 + ($index / 1000),
             'delivery_instructions' => 'Seeded demo branch address.',
@@ -338,7 +338,7 @@ class LargeDemoSeeder extends Seeder
             StoreSocial::create([
                 'store_id' => $store->id,
                 'social_id' => $social->id,
-                'link' => 'https://example.com/' . Str::slug($social->name) . '/' . $slug,
+                'link' => 'https://example.com/'.Str::slug($social->name).'/'.$slug,
             ]);
         }
     }
@@ -421,13 +421,13 @@ class LargeDemoSeeder extends Seeder
             $product = Product::create([
                 'store_id' => $store->id,
                 'title' => $title,
-                'slug' => Str::slug($title) . '-' . ($index + 1),
-                'short_description' => $template['short'] . ' Demo item #' . ($index + 1) . '.',
-                'description' => $template['description'] . ' Includes realistic seeded pricing, variants, images, reviews, and offer metadata.',
+                'slug' => Str::slug($title).'-'.($index + 1),
+                'short_description' => $template['short'].' Demo item #'.($index + 1).'.',
+                'description' => $template['description'].' Includes realistic seeded pricing, variants, images, reviews, and offer metadata.',
                 'base_price' => $basePrice,
                 'compare_at_price' => round($basePrice * (1.12 + (($index % 5) / 100)), 2),
                 'currency' => 'EGP',
-                'sku' => 'PRD-' . strtoupper($template['code']) . '-' . str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
+                'sku' => 'PRD-'.strtoupper($template['code']).'-'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
                 'status' => $approval === ProductApprovalStatus::APPROVED && $index % 11 !== 0 ? ProductStatus::ACTIVE : ProductStatus::INACTIVE,
                 'approval_status' => $approval,
                 'published_revision_no' => $approval === ProductApprovalStatus::APPROVED ? 1 : 0,
@@ -445,7 +445,7 @@ class LargeDemoSeeder extends Seeder
             ]);
 
             $categoryIds = collect($template['category_slugs'])
-                ->map(fn(string $slug) => $categories->get($slug))
+                ->map(fn (string $slug) => $categories->get($slug))
                 ->filter()
                 ->values()
                 ->all();
@@ -492,8 +492,8 @@ class LargeDemoSeeder extends Seeder
                 'product_id' => $product->id,
                 'title' => $option['title'],
                 'option_summary' => $option['summary'],
-                'sku' => 'VAR-' . strtoupper($template['code']) . '-' . str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT) . '-' . ($i + 1),
-                'barcode' => '62' . str_pad((string) (($index + 1) * 10 + $i), 10, '0', STR_PAD_LEFT),
+                'sku' => 'VAR-'.strtoupper($template['code']).'-'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT).'-'.($i + 1),
+                'barcode' => '62'.str_pad((string) (($index + 1) * 10 + $i), 10, '0', STR_PAD_LEFT),
                 'original_price' => $price,
                 'price' => $price,
                 'compare_at_price' => round($price * 1.12, 2),
@@ -533,8 +533,8 @@ class LargeDemoSeeder extends Seeder
             'type' => $type,
             'status' => $product->approval_status === ProductApprovalStatus::APPROVED ? ProductOfferStatus::ACTIVE : ProductOfferStatus::INACTIVE,
             'label' => match ($type) {
-                ProductOfferType::PERCENTAGE => (10 + ($index % 20)) . '% off',
-                ProductOfferType::FIXED => 'EGP ' . (50 + (($index % 6) * 25)) . ' off',
+                ProductOfferType::PERCENTAGE => (10 + ($index % 20)).'% off',
+                ProductOfferType::FIXED => 'EGP '.(50 + (($index % 6) * 25)).' off',
                 ProductOfferType::BUY_X_GET_Y => 'Buy 2 get 1',
             },
             'starts_at' => now()->subDays($index % 10),
@@ -550,7 +550,7 @@ class LargeDemoSeeder extends Seeder
         ]);
 
         if ($type === ProductOfferType::BUY_X_GET_Y) {
-            $variants->take(2)->each(fn(ProductVariant $variant) => $offer->targets()->create([
+            $variants->take(2)->each(fn (ProductVariant $variant) => $offer->targets()->create([
                 'variant_id' => $variant->id,
                 'role' => ProductOfferTargetRole::BUY,
             ]));
@@ -601,7 +601,7 @@ class LargeDemoSeeder extends Seeder
     private function seedEngagement(Collection $products): void
     {
         foreach ($this->activeStores as $storeIndex => $store) {
-            $followers = $this->customers->reject(fn(User $customer) => $customer->id === $store->owner_user_id)->slice($storeIndex * 5, 24);
+            $followers = $this->customers->reject(fn (User $customer) => $customer->id === $store->owner_user_id)->slice($storeIndex * 5, 24);
 
             foreach ($followers as $index => $customer) {
                 StoreFollowers::create([
@@ -620,7 +620,7 @@ class LargeDemoSeeder extends Seeder
         }
 
         foreach ($products as $index => $product) {
-            $reviewers = $this->customers->reject(fn(User $customer) => $customer->id === $product->store->owner_user_id)->slice($index % 60, 3)->values();
+            $reviewers = $this->customers->reject(fn (User $customer) => $customer->id === $product->store->owner_user_id)->slice($index % 60, 3)->values();
 
             foreach ($reviewers as $offset => $customer) {
                 $comment = ProductComment::create([
@@ -639,13 +639,13 @@ class LargeDemoSeeder extends Seeder
                     'status' => ProductComment::STATUS_VISIBLE,
                 ]);
 
-                $this->customers->slice(($index + $offset) % 70, 2)->each(fn(User $liker) => ProductCommentLike::firstOrCreate([
+                $this->customers->slice(($index + $offset) % 70, 2)->each(fn (User $liker) => ProductCommentLike::firstOrCreate([
                     'comment_id' => $comment->id,
                     'user_id' => $liker->id,
                 ]));
             }
 
-            $this->customers->slice($index % 70, 8)->each(fn(User $liker) => ProductLike::firstOrCreate([
+            $this->customers->slice($index % 70, 8)->each(fn (User $liker) => ProductLike::firstOrCreate([
                 'product_id' => $product->id,
                 'user_id' => $liker->id,
             ]));
@@ -655,7 +655,7 @@ class LargeDemoSeeder extends Seeder
                     ProductView::create([
                         'product_id' => $product->id,
                         'user_id' => $viewIndex % 4 === 0 ? null : $this->customers[($index + $viewIndex) % $this->customers->count()]->id,
-                        'ip_address' => '10.10.' . ($index % 255) . '.' . ($viewIndex + 10),
+                        'ip_address' => '10.10.'.($index % 255).'.'.($viewIndex + 10),
                         'user_agent' => 'CouponyDemoSeeder/1.0',
                         'created_at' => now()->subHours($viewIndex),
                     ]);
@@ -689,7 +689,7 @@ class LargeDemoSeeder extends Seeder
                 'status' => StoreComment::STATUS_VISIBLE,
             ]);
 
-            $this->customers->slice(($storeIndex + $offset) % 70, 2)->each(fn(User $liker) => StoreCommentLike::firstOrCreate([
+            $this->customers->slice(($storeIndex + $offset) % 70, 2)->each(fn (User $liker) => StoreCommentLike::firstOrCreate([
                 'comment_id' => $comment->id,
                 'user_id' => $liker->id,
             ]));
@@ -707,8 +707,8 @@ class LargeDemoSeeder extends Seeder
                 'product_id' => $product->id,
                 'offer_id' => $product->offer->id,
                 'status' => $status,
-                'claim_token' => 'CLM-' . Str::upper(Str::random(24)) . '-' . $index . '-' . $offset,
-                'qr_code_token' => 'QR-' . Str::upper(Str::random(24)) . '-' . $index . '-' . $offset,
+                'claim_token' => 'CLM-'.Str::upper(Str::random(24)).'-'.$index.'-'.$offset,
+                'qr_code_token' => 'QR-'.Str::upper(Str::random(24)).'-'.$index.'-'.$offset,
                 'offer_snapshot' => [
                     'product_title' => $product->title,
                     'store_name' => $product->store->name,
@@ -770,7 +770,7 @@ class LargeDemoSeeder extends Seeder
             foreach (range(1, 8) as $index) {
                 DB::table('contact_us_seller')->insert([
                     'store_name' => "Prospective Seller {$index}",
-                    'phone_number' => '+2011' . str_pad((string) $index, 8, '0', STR_PAD_LEFT),
+                    'phone_number' => '+2011'.str_pad((string) $index, 8, '0', STR_PAD_LEFT),
                     'created_at' => now()->subDays($index),
                     'updated_at' => now()->subDays($index),
                 ]);
@@ -928,12 +928,13 @@ class LargeDemoSeeder extends Seeder
 
     private function productTitle(array $template, int $index): string
     {
-        return $template['names'][$index % count($template['names'])] . ' ' . ['Lite', 'Plus', 'Max', 'Select', 'Core'][$index % 5];
+        return $template['names'][$index % count($template['names'])].' '.['Lite', 'Plus', 'Max', 'Select', 'Core'][$index % 5];
     }
 
     private function priceFor(array $template, int $index): float
     {
         $range = $template['price_max'] - $template['price_min'];
+
         return round($template['price_min'] + (($index * 137) % max(1, $range)), 2);
     }
 
@@ -966,8 +967,8 @@ class LargeDemoSeeder extends Seeder
     {
         return [
             "{$productTitle} matched the seeded photos and worked well for testing checkout flows.",
-            "Good value and clear offer terms. The variants make the product detail page feel realistic.",
-            "Useful demo product with enough data to test reviews, likes, and claims.",
+            'Good value and clear offer terms. The variants make the product detail page feel realistic.',
+            'Useful demo product with enough data to test reviews, likes, and claims.',
         ][$offset % 3];
     }
 
@@ -1004,7 +1005,7 @@ class LargeDemoSeeder extends Seeder
 
     private function colorVariants(array $colors): array
     {
-        return array_map(fn(string $color) => [
+        return array_map(fn (string $color) => [
             'title' => $color,
             'summary' => "Color: {$color}",
             'attributes' => [['color', Str::lower($color)]],
@@ -1023,7 +1024,7 @@ class LargeDemoSeeder extends Seeder
 
     private function packageVariants(array $packages): array
     {
-        return array_map(fn(string $package) => [
+        return array_map(fn (string $package) => [
             'title' => $package,
             'summary' => "Package: {$package}",
             'attributes' => [['package', Str::lower($package)]],

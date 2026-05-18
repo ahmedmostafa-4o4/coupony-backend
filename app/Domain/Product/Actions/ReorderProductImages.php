@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReorderProductImages
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function execute(Product $product, array $images): Collection
     {

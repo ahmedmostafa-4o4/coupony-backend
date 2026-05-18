@@ -12,9 +12,9 @@ interface UserRepositoryInterface
 
     public function delete(string $id): bool;
 
-    public function find(string $id): null|User;
+    public function find(string $id): ?User;
 
-    public function findByEmail(string $email): null|User;
+    public function findByEmail(string $email): ?User;
 
     public function all(): array;
 }

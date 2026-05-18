@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('products')) {
+        if (! Schema::hasTable('products')) {
             return;
         }
 
@@ -33,44 +33,44 @@ return new class extends Migration
             $hasRejectionReason,
             $hasAdminNotes
         ) {
-            if (!$hadApprovalStatusBefore) {
+            if (! $hadApprovalStatusBefore) {
                 $table->enum('approval_status', ['pending', 'approved', 'rejected'])
                     ->default('pending')
                     ->after('status');
             }
 
-            if (!$hasPublishedRevisionNo) {
+            if (! $hasPublishedRevisionNo) {
                 $table->unsignedInteger('published_revision_no')
                     ->default(0)
                     ->after('approval_status');
             }
 
-            if (!$hasApprovedAt) {
+            if (! $hasApprovedAt) {
                 $table->timestamp('approved_at')->nullable()->after('published_revision_no');
             }
 
-            if (!$hasApprovedBy) {
+            if (! $hasApprovedBy) {
                 $table->char('approved_by', 36)->nullable()->after('approved_at');
             }
 
-            if (!$hasRejectedAt) {
+            if (! $hasRejectedAt) {
                 $table->timestamp('rejected_at')->nullable()->after('approved_by');
             }
 
-            if (!$hasRejectedBy) {
+            if (! $hasRejectedBy) {
                 $table->char('rejected_by', 36)->nullable()->after('rejected_at');
             }
 
-            if (!$hasRejectionReason) {
+            if (! $hasRejectionReason) {
                 $table->text('rejection_reason')->nullable()->after('rejected_by');
             }
 
-            if (!$hasAdminNotes) {
+            if (! $hasAdminNotes) {
                 $table->text('admin_notes')->nullable()->after('rejection_reason');
             }
         });
 
-        if (!$hadApprovalStatusBefore) {
+        if (! $hadApprovalStatusBefore) {
             DB::table('products')->update([
                 'approval_status' => DB::raw("
                     CASE
@@ -107,7 +107,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('products')) {
+        if (! Schema::hasTable('products')) {
             return;
         }
 
@@ -117,7 +117,7 @@ return new class extends Migration
             $table->dropForeign(['approved_by']);
             $table->dropForeign(['rejected_by']);
 
-            if (!$hasProductType) {
+            if (! $hasProductType) {
                 $table->enum('product_type', ['standard', 'service', 'couponable_item'])
                     ->default('standard')
                     ->after('description');

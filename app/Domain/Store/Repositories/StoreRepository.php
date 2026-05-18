@@ -27,6 +27,7 @@ class StoreRepository implements StoreRepositoryInterface
             $store = Store::findOrFail($id);
             $store->update($data);
             Cache::forget("store.by_id.{$id}");
+
             return $store->fresh();
         });
     }

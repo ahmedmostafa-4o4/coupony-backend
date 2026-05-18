@@ -35,14 +35,15 @@ class Profile extends Model
             $profile->gender = in_array(strtolower($profile->gender), ['male', 'female']) ? strtolower($profile->gender) : 'male';
 
             // Ensure that date of birth is a valid date
-            if ($profile->date_of_birth && !checkdate($profile->date_of_birth->month, $profile->date_of_birth->day, $profile->date_of_birth->year)) {
+            if ($profile->date_of_birth && ! checkdate($profile->date_of_birth->month, $profile->date_of_birth->day, $profile->date_of_birth->year)) {
                 $profile->date_of_birth = null;
             }
 
             // Ensure that avatar URL is a valid URL
-            $profile->avatar_url ??= config('app.url') . '/users/avatars/default.svg';
+            $profile->avatar_url ??= config('app.url').'/users/avatars/default.svg';
         });
     }
+
     /**
      * Get the user that owns the profile.
      */

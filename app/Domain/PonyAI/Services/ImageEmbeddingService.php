@@ -31,8 +31,7 @@ class ImageEmbeddingService
     public function __construct(
         private readonly GeminiClient $gemini,
         private readonly EmbeddingRepository $embeddings,
-    ) {
-    }
+    ) {}
 
     public function embed(ProductImage $image): PonyImageEmbedding
     {

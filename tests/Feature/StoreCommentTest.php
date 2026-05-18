@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreComment;
 use App\Domain\Store\Models\StoreCommentLike;

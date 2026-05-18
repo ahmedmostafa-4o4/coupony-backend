@@ -39,6 +39,6 @@ class ProductCategorySeeder extends Seeder
             );
         }
 
-        $this->command->info(count($categories) . ' product categories seeded from export');
+        $this->command->info(count($categories).' product categories seeded from export');
     }
 }

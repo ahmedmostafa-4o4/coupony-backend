@@ -20,7 +20,7 @@ class RoleAndPermissionSeeder extends Seeder
             'create users',
             'edit users',
             'delete users',
-            
+
             // Store permissions
             'view stores',
             'create stores',
@@ -28,13 +28,13 @@ class RoleAndPermissionSeeder extends Seeder
             'delete stores',
             'approve stores',
             'reject stores',
-            
+
             // Category permissions
             'view categories',
             'create categories',
             'edit categories',
             'delete categories',
-            
+
             // Order permissions
             'view orders',
             'create orders',
@@ -44,7 +44,7 @@ class RoleAndPermissionSeeder extends Seeder
             // Claim permissions
             'view claims',
             'redeem claims',
-            
+
             // Report permissions
             'view reports',
             'generate reports',
@@ -55,7 +55,7 @@ class RoleAndPermissionSeeder extends Seeder
         }
 
         // Create roles and assign permissions
-        
+
         // Admin role
         $admin = Role::create(['name' => 'admin', 'guard_name' => 'sanctum']);
         $admin->givePermissionTo(Permission::all());

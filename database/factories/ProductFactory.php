@@ -64,14 +64,14 @@ class ProductFactory extends Factory
 
     public function active(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => ProductStatus::ACTIVE,
         ]);
     }
 
     public function approved(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'approval_status' => ProductApprovalStatus::APPROVED,
             'published_revision_no' => 1,
             'approved_at' => now(),
@@ -83,7 +83,7 @@ class ProductFactory extends Factory
 
     public function featured(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'is_featured' => true,
         ]);
     }

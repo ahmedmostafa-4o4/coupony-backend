@@ -19,8 +19,7 @@ class UpdateAdminProduct
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
         private readonly PrepareProductIdentifiers $identifiers,
-    ) {
-    }
+    ) {}
 
     public function execute(Product $product, ProductData $data, User $admin): Product
     {
@@ -81,7 +80,7 @@ class UpdateAdminProduct
 
     private function resolvePricingState(Product $product, ProductData $data): array
     {
-        if (!$data->hasVariants() && !$data->hasOffer()) {
+        if (! $data->hasVariants() && ! $data->hasOffer()) {
             return [[], []];
         }
 
@@ -90,7 +89,7 @@ class UpdateAdminProduct
         $variants = $data->hasVariants()
             ? $data->variants()
             : $product->variants
-                ->map(fn(ProductVariant $variant) => [
+                ->map(fn (ProductVariant $variant) => [
                     'title' => $variant->title,
                     'option_summary' => $variant->option_summary,
                     'sku' => $variant->sku,
@@ -105,7 +104,7 @@ class UpdateAdminProduct
                     'low_stock_threshold' => $variant->low_stock_threshold,
                     'allow_backorder' => $variant->allow_backorder,
                     'attributes' => $variant->attributes
-                        ->map(fn($attribute) => [
+                        ->map(fn ($attribute) => [
                             'attribute_name' => $attribute->attribute_name,
                             'attribute_value' => $attribute->attribute_value,
                             'sort_order' => $attribute->sort_order,

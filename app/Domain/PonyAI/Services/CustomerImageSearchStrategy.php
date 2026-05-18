@@ -29,8 +29,7 @@ class CustomerImageSearchStrategy
         private readonly ProductRepository $products,
         private readonly PromptSanitizer $sanitizer,
         private readonly GroundingValidator $grounding,
-    ) {
-    }
+    ) {}
 
     public function handle(
         User $user,

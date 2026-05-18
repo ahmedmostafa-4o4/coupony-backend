@@ -14,6 +14,7 @@ class notifyMe extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public string $title;
+
     public string $message;
 
     /**

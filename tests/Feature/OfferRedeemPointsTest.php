@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Notification\Models\Notification;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Enums\ProductStatus;
@@ -78,6 +79,98 @@ class OfferRedeemPointsTest extends TestCase
         ]);
     }
 
+    public function test_redeem_sends_customer_offer_redeemed_notification(): void
+    {
+        [$customer, $store, $employee, $claim, $product] = $this->createRedeemableClaim();
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk();
+
+        $notification = Notification::query()
+            ->where('user_id', $customer->id)
+            ->where('type', 'offer_redeemed')
+            ->firstOrFail();
+
+        $this->assertSame('Offer redeemed', $notification->title);
+        $this->assertSame('Your offer was redeemed successfully.', $notification->message);
+        $this->assertSame('in_app', $notification->channel);
+        $this->assertSame('sent', $notification->status);
+        $this->assertSame(OfferClaim::class, $notification->reference_type);
+        $this->assertSame($claim->id, $notification->reference_id);
+        $this->assertSame($claim->id, $notification->data['claim_id']);
+        $this->assertSame($product->id, $notification->data['product_id']);
+        $this->assertSame($store->id, $notification->data['store_id']);
+        $this->assertNotNull($notification->data['redeemed_at']);
+    }
+
+    public function test_redeem_sends_store_owner_notification(): void
+    {
+        [$customer, $store, $employee, $claim, $product] = $this->createRedeemableClaim();
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk();
+
+        $notification = Notification::query()
+            ->where('user_id', $store->owner_user_id)
+            ->where('type', 'offer_redeemed_by_employee')
+            ->firstOrFail();
+
+        $this->assertSame('Offer redeemed', $notification->title);
+        $this->assertSame('An offer claim was redeemed at your store.', $notification->message);
+        $this->assertSame('in_app', $notification->channel);
+        $this->assertSame('sent', $notification->status);
+        $this->assertSame(OfferClaim::class, $notification->reference_type);
+        $this->assertSame($claim->id, $notification->reference_id);
+        $this->assertSame($claim->id, $notification->data['claim_id']);
+        $this->assertSame($product->id, $notification->data['product_id']);
+        $this->assertSame($store->id, $notification->data['store_id']);
+        $this->assertSame($customer->id, $notification->data['customer_id']);
+        $this->assertSame($employee->id, $notification->data['redeemed_by']);
+    }
+
+    public function test_redeem_sends_points_earned_notifications(): void
+    {
+        [$customer, $store, $employee, $claim, $product] = $this->createRedeemableClaim();
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk();
+
+        $customerNotification = Notification::query()
+            ->where('user_id', $customer->id)
+            ->where('type', 'points_earned')
+            ->firstOrFail();
+
+        $this->assertSame('Points earned', $customerNotification->title);
+        $this->assertSame('You earned points for redeeming an offer.', $customerNotification->message);
+        $this->assertSame(20, $customerNotification->data['points']);
+        $this->assertSame('offer_redeemed', $customerNotification->data['reason']);
+        $this->assertSame($claim->id, $customerNotification->data['claim_id']);
+        $this->assertSame($product->id, $customerNotification->data['product_id']);
+        $this->assertSame($store->id, $customerNotification->data['store_id']);
+
+        $storeNotification = Notification::query()
+            ->where('user_id', $store->owner_user_id)
+            ->where('type', 'seller_points_earned')
+            ->firstOrFail();
+
+        $this->assertSame('Store points earned', $storeNotification->title);
+        $this->assertSame('Your store earned points from an offer redemption.', $storeNotification->message);
+        $this->assertSame(10, $storeNotification->data['points']);
+        $this->assertSame('offer_redeemed', $storeNotification->data['reason']);
+        $this->assertSame($claim->id, $storeNotification->data['claim_id']);
+        $this->assertSame($product->id, $storeNotification->data['product_id']);
+        $this->assertSame($store->id, $storeNotification->data['store_id']);
+    }
+
     public function test_duplicate_redeemed_claim_does_not_award_points_twice(): void
     {
         [$customer, $store, $employee, $claim] = $this->createRedeemableClaim();
@@ -107,6 +200,41 @@ class OfferRedeemPointsTest extends TestCase
         ]);
         $this->assertSame(1, $customer->pointTransactions()->where('offer_claim_id', $claim->id)->count());
         $this->assertSame(1, $store->pointTransactions()->where('offer_claim_id', $claim->id)->count());
+    }
+
+    public function test_duplicate_redeem_does_not_duplicate_notifications(): void
+    {
+        [, $store, $employee, $claim] = $this->createRedeemableClaim();
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk();
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This claim has already been redeemed.');
+
+        foreach ([
+            'offer_redeemed',
+            'offer_redeemed_by_employee',
+            'points_earned',
+            'seller_points_earned',
+        ] as $type) {
+            $this->assertSame(
+                1,
+                Notification::query()
+                    ->where('type', $type)
+                    ->where('reference_type', OfferClaim::class)
+                    ->where('reference_id', $claim->id)
+                    ->count(),
+                "Expected exactly one {$type} notification."
+            );
+        }
     }
 
     private function createRedeemableClaim(): array

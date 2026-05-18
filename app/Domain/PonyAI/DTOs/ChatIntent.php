@@ -18,8 +18,7 @@ final class ChatIntent
         public readonly ?string $arabicQuery = null,
         public readonly array $keywords = [],
         public readonly bool $isGenericCatalogRequest = false,
-    ) {
-    }
+    ) {}
 
     /**
      * Build a ChatIntent from a Gemini JSON payload, ignoring fields that
@@ -73,7 +72,7 @@ final class ChatIntent
             $this->arabicQuery,
             $this->freeText,
             $this->keywords === [] ? null : implode(' ', $this->keywords),
-        ], static fn($value) => is_string($value) && trim($value) !== '');
+        ], static fn ($value) => is_string($value) && trim($value) !== '');
 
         return trim(implode(' ', $parts));
     }

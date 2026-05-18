@@ -23,8 +23,7 @@ class CustomerChatController extends Controller
         private readonly CustomerAssistantStrategy $strategy,
         private readonly CustomerImageSearchStrategy $imageStrategy,
         private readonly ConversationRepository $conversations,
-    ) {
-    }
+    ) {}
 
     public function store(ChatPromptRequest $request): JsonResponse
     {

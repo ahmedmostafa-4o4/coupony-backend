@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReplaceVariantAttributes
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function execute(ProductVariant $variant, array $attributes): ProductVariant
     {

@@ -30,7 +30,7 @@ class UpdateProductVariantRequest extends FormRequest
                 'string',
                 'max:100',
                 Rule::unique('product_variants', 'sku')
-                    ->where(fn($query) => $query->where('product_id', $product->id))
+                    ->where(fn ($query) => $query->where('product_id', $product->id))
                     ->ignore($variant->id),
             ],
             'barcode' => ['nullable', 'string', 'max:100'],

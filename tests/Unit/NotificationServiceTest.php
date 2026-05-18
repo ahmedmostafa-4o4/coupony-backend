@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Domain\Notification\Contracts\NotifierInterface;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\Notification\Services\NotificationService;
 use App\Domain\User\Models\User;
@@ -19,8 +18,8 @@ class NotificationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->notificationService = new NotificationService();
+
+        $this->notificationService = new NotificationService;
     }
 
     public function test_send_creates_notification_record()

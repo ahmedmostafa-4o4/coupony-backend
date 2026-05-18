@@ -21,9 +21,7 @@ class RegenerateProductEmbeddingsJob implements ShouldQueue
 
     public int $timeout = 60;
 
-    public function __construct(public string $productId)
-    {
-    }
+    public function __construct(public string $productId) {}
 
     public function handle(ProductEmbeddingService $service): void
     {

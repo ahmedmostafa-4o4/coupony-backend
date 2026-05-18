@@ -24,8 +24,7 @@ class StoreAddressController extends Controller
         private readonly CreateStoreAddress $createStoreAddress,
         private readonly UpdateStoreAddress $updateStoreAddress,
         private readonly DeleteStoreAddress $deleteStoreAddress,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request, Store $store): JsonResponse
     {

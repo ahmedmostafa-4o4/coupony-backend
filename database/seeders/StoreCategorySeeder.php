@@ -34,6 +34,6 @@ class StoreCategorySeeder extends Seeder
             );
         }
 
-        $this->command->info(count($categories) . ' store categories seeded from export');
+        $this->command->info(count($categories).' store categories seeded from export');
     }
 }

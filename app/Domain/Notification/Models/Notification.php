@@ -62,7 +62,7 @@ class Notification extends Model
 
     public function getIsReadAttribute(): bool
     {
-        return !is_null($this->read_at);
+        return ! is_null($this->read_at);
     }
 
     public function getIsSentAttribute(): bool
@@ -101,7 +101,7 @@ class Notification extends Model
         ]);
     }
 
-    public function markAsFailed(string $reason = null): bool
+    public function markAsFailed(?string $reason = null): bool
     {
         return $this->update([
             'status' => 'failed',

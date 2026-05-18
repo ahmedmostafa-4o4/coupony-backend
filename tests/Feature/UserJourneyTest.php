@@ -51,11 +51,11 @@ class UserJourneyTest extends TestCase
 
         $verifyResponse->assertStatus(200)
             ->assertJsonStructure([
-            'data' => [
-                'access_token',
-                'refresh_token',
-            ],
-        ]);
+                'data' => [
+                    'access_token',
+                    'refresh_token',
+                ],
+            ]);
 
         $accessToken = $verifyResponse->json('data.access_token');
 
@@ -82,11 +82,11 @@ class UserJourneyTest extends TestCase
 
         $loginResponse->assertStatus(200)
             ->assertJsonStructure([
-            'data' => [
-                'access_token',
-                'refresh_token',
-            ],
-        ]);
+                'data' => [
+                    'access_token',
+                    'refresh_token',
+                ],
+            ]);
     }
 
     public function test_complete_seller_registration_and_store_creation_journey()
@@ -132,21 +132,21 @@ class UserJourneyTest extends TestCase
 
         $storeResponse = $this->withHeader('Authorization', "Bearer {$accessToken}")
             ->postJson('/api/v1/stores', [
-            'name' => 'John\'s Store',
-            'description' => 'A great store',
-            'phone' => '+1234567890',
-            'address_line1' => '123 Business St',
-            'city' => 'Commerce City',
-            'latitude' => '40.7128',
-            'longitude' => '-74.0060',
-            'categories' => [$category->id],
-            'verification_docs' => [
-                'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
-                'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
-                'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
-                'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
-            ],
-        ]);
+                'name' => 'John\'s Store',
+                'description' => 'A great store',
+                'phone' => '+1234567890',
+                'address_line1' => '123 Business St',
+                'city' => 'Commerce City',
+                'latitude' => '40.7128',
+                'longitude' => '-74.0060',
+                'categories' => [$category->id],
+                'verification_docs' => [
+                    'commercial_register' => UploadedFile::fake()->create('commercial.pdf', 1000),
+                    'tax_card' => UploadedFile::fake()->create('tax.pdf', 1000),
+                    'id_card_front' => UploadedFile::fake()->create('id_front.pdf', 1000),
+                    'id_card_back' => UploadedFile::fake()->create('id_back.pdf', 1000),
+                ],
+            ]);
 
         $storeResponse->assertStatus(201)
             ->assertJsonPath('message', 'Store created successfully. Pending approval.');
@@ -228,11 +228,11 @@ class UserJourneyTest extends TestCase
 
         $refreshResponse->assertStatus(200)
             ->assertJsonStructure([
-            'data' => [
-                'access_token',
-                'refresh_token',
-            ],
-        ]);
+                'data' => [
+                    'access_token',
+                    'refresh_token',
+                ],
+            ]);
 
         // Step 3: Verify new token works
         $newAccessToken = $refreshResponse->json('data.access_token');
@@ -243,4 +243,3 @@ class UserJourneyTest extends TestCase
         $profileResponse->assertStatus(200);
     }
 }
-

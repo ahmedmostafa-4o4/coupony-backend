@@ -2,7 +2,6 @@
 
 namespace App\Domain\Store\Models;
 
-use App\Domain\Store\Models\Store;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +35,4 @@ class StoreHours extends Model
     {
         return $this->belongsTo(Store::class);
     }
-
-
 }

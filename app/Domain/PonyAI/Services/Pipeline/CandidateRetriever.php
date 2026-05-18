@@ -37,12 +37,12 @@ class CandidateRetriever
         $query = Product::query()
             ->where('status', ProductStatus::ACTIVE->value)
             ->where('approval_status', ProductApprovalStatus::APPROVED->value)
-            ->when($intent->categoryId !== null, fn(Builder $q) => $q->whereHas(
+            ->when($intent->categoryId !== null, fn (Builder $q) => $q->whereHas(
                 'categories',
-                fn(Builder $categoryQuery) => $categoryQuery->whereKey($intent->categoryId),
+                fn (Builder $categoryQuery) => $categoryQuery->whereKey($intent->categoryId),
             ))
-            ->when($intent->priceMin !== null, fn(Builder $q) => $q->where('base_price', '>=', $intent->priceMin))
-            ->when($intent->priceMax !== null, fn(Builder $q) => $q->where('base_price', '<=', $intent->priceMax));
+            ->when($intent->priceMin !== null, fn (Builder $q) => $q->where('base_price', '>=', $intent->priceMin))
+            ->when($intent->priceMax !== null, fn (Builder $q) => $q->where('base_price', '<=', $intent->priceMax));
 
         if (! $intent->isGenericCatalogRequest) {
             $tokens = $this->collectSoftRankingTokens($intent);

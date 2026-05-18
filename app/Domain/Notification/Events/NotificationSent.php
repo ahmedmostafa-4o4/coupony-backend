@@ -4,9 +4,7 @@ namespace App\Domain\Notification\Events;
 
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -19,13 +17,12 @@ class NotificationSent implements ShouldBroadcast
     public function __construct(
         public Notification $notification,
         public User $user
-    ) {
-    }
+    ) {}
 
     public function broadcastOn(): array
     {
         return [
-            new Channel('user.' . $this->user->id),
+            new PrivateChannel('users.'.$this->user->id),
         ];
     }
 
@@ -42,8 +39,15 @@ class NotificationSent implements ShouldBroadcast
                 'type' => $this->notification->type,
                 'title' => $this->notification->title,
                 'message' => $this->notification->message,
+                'data' => $this->notification->data,
+                'channel' => $this->notification->channel,
+                'status' => $this->notification->status,
+                'reference_type' => $this->notification->reference_type,
+                'reference_id' => $this->notification->reference_id,
+                'read_at' => $this->notification->read_at?->toIso8601String(),
                 'created_at' => $this->notification->created_at->toIso8601String(),
             ],
+            'unread_count' => $this->user->unreadNotifications()->count(),
         ];
     }
 

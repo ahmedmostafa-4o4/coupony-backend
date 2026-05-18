@@ -2,7 +2,6 @@
 
 namespace App\Domain\Store\Models;
 
-use App\Domain\Store\Models\Store;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -34,16 +33,16 @@ class StoreCategory extends Model
     {
         return $query->where('is_active', true);
     }
+
     public function scopeInActive($query)
     {
         return $query->where('is_active', false);
     }
 
-
     public function stores()
     {
         return $this->belongsToMany(
-            Store::class ,
+            Store::class,
             'store_store_category'
         );
     }
@@ -71,6 +70,6 @@ class StoreCategory extends Model
      */
     protected static function newFactory()
     {
-        return \Database\Factories\StoreCategoryFactory::new ();
+        return \Database\Factories\StoreCategoryFactory::new();
     }
 }

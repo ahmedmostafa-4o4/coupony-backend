@@ -16,6 +16,5 @@ class ProductRevisionApproved
         public Product $product,
         public ProductRevision $revision,
         public User $admin,
-    ) {
-    }
+    ) {}
 }

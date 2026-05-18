@@ -14,6 +14,7 @@ class ContactUs extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public array $data;
+
     /**
      * Create a new message instance.
      */
@@ -28,7 +29,7 @@ class ContactUs extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Contact us from ' . $this->data['name'],
+            subject: 'Contact us from '.$this->data['name'],
         );
     }
 

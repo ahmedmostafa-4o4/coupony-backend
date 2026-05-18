@@ -19,9 +19,7 @@ class StoreOfferClaimController extends Controller
     public function __construct(
         private readonly RedeemOfferClaim $redeemOfferClaim,
         private readonly ProductRepository $products,
-    )
-    {
-    }
+    ) {}
 
     public function index(Request $request, Store $store): JsonResponse
     {
@@ -29,7 +27,7 @@ class StoreOfferClaimController extends Controller
         Gate::authorize('accessClaims', $store);
 
         $validated = $request->validate([
-            'status' => ['nullable', 'in:' . implode(',', OfferClaimStatus::values())],
+            'status' => ['nullable', 'in:'.implode(',', OfferClaimStatus::values())],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -37,7 +35,7 @@ class StoreOfferClaimController extends Controller
             ->where('store_id', $store->id)
             ->when(
                 filled($validated['status'] ?? null),
-                fn($query) => $query->where('status', $validated['status'])
+                fn ($query) => $query->where('status', $validated['status'])
             )
             ->latest('redeemed_at')
             ->latest('created_at')

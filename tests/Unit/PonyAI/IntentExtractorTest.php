@@ -76,23 +76,28 @@ class IntentExtractorTest extends TestCase
     public function test_gemini_failure_degrades_to_free_text_intent(): void
     {
         // No queued response and we replace the fake with a throwing stub via the container.
-        $throwing = new class implements GeminiClient {
+        $throwing = new class implements GeminiClient
+        {
             public function generateText(string $prompt, array $options = []): \App\Domain\PonyAI\DTOs\GeminiResult
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('boom');
             }
+
             public function generateJson(string $prompt, array $options = []): \App\Domain\PonyAI\DTOs\GeminiResult
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('boom');
             }
+
             public function embedText(string $text, array $options = []): array
             {
                 return [];
             }
+
             public function embedImage(string $imageBytes, string $mimeType, array $options = []): array
             {
                 return [];
             }
+
             public function describeImage(string $imageBytes, string $mimeType, string $instruction = '', array $options = []): \App\Domain\PonyAI\DTOs\GeminiResult
             {
                 throw new \App\Domain\PonyAI\Exceptions\GeminiException('boom');

@@ -7,8 +7,8 @@ use App\Domain\Store\Models\Store;
 use App\Policies\PonyAISellerPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\StorePolicy;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {

@@ -12,8 +12,7 @@ class ProductEmbeddingService
     public function __construct(
         private readonly GeminiClient $gemini,
         private readonly EmbeddingRepository $embeddings,
-    ) {
-    }
+    ) {}
 
     public function embed(Product $product): PonyProductEmbedding
     {
@@ -44,7 +43,7 @@ class ProductEmbeddingService
         }
 
         $categoryNames = $product->categories
-            ->flatMap(fn($category) => [
+            ->flatMap(fn ($category) => [
                 (string) ($category->name_en ?? ''),
                 (string) ($category->name_ar ?? ''),
             ])
@@ -61,7 +60,7 @@ class ProductEmbeddingService
         }
 
         $variantTitles = $product->variants
-            ->map(fn($variant) => trim(implode(' ', array_filter([
+            ->map(fn ($variant) => trim(implode(' ', array_filter([
                 (string) ($variant->title ?? ''),
                 (string) ($variant->option_summary ?? ''),
             ]))))
@@ -75,12 +74,12 @@ class ProductEmbeddingService
         }
 
         $variantAttributes = $product->variants
-            ->flatMap(fn($variant) => collect($variant->attributes ?? [])
-                ->map(fn($attribute) => trim(
+            ->flatMap(fn ($variant) => collect($variant->attributes ?? [])
+                ->map(fn ($attribute) => trim(
                     ((string) ($attribute->attribute_name ?? ''))
                     .'='.((string) ($attribute->attribute_value ?? ''))
                 )))
-            ->filter(fn(string $pair) => $pair !== '' && $pair !== '=')
+            ->filter(fn (string $pair) => $pair !== '' && $pair !== '=')
             ->unique()
             ->values()
             ->all();

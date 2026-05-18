@@ -26,8 +26,8 @@ class ReplaceVariantAttributesRequest extends FormRequest
         $validator->after(function ($validator) {
             $duplicates = collect($this->input('attributes', []))
                 ->pluck('attribute_name')
-                ->filter(fn($value) => filled($value))
-                ->map(fn($value) => mb_strtolower((string) $value))
+                ->filter(fn ($value) => filled($value))
+                ->map(fn ($value) => mb_strtolower((string) $value))
                 ->duplicates();
 
             if ($duplicates->isNotEmpty()) {

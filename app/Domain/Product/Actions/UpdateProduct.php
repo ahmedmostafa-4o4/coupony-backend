@@ -7,8 +7,8 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Product\Repositories\ProductRepository;
-use App\Domain\Product\Support\ProductDirectUpdateFields;
 use App\Domain\Product\Support\PrepareProductIdentifiers;
+use App\Domain\Product\Support\ProductDirectUpdateFields;
 use App\Domain\Product\Support\ProductReviewFields;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -88,11 +88,13 @@ class UpdateProduct
         foreach ($data->attributes() as $field => $value) {
             if (ProductDirectUpdateFields::isTopLevelDirect($field)) {
                 $directAttributes[$field] = $value;
+
                 continue;
             }
 
             if (ProductReviewFields::requiresReview($field)) {
                 $reviewAttributes[$field] = $value;
+
                 continue;
             }
         }
@@ -227,6 +229,7 @@ class UpdateProduct
 
             if (! $currentVariant) {
                 $requiresReview = true;
+
                 continue;
             }
 
@@ -273,6 +276,7 @@ class UpdateProduct
             if (! $target) {
                 $requiresReview = true;
                 $hasDirectChanges = true;
+
                 continue;
             }
 

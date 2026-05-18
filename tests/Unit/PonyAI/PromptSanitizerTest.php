@@ -58,7 +58,7 @@ class PromptSanitizerTest extends TestCase
 
     public function test_trims_whitespace(): void
     {
-        $this->assertSame('hello', $this->sanitize("   hello   "));
+        $this->assertSame('hello', $this->sanitize('   hello   '));
     }
 
     public function test_collapses_repeated_spaces_left_by_redaction(): void

@@ -14,7 +14,7 @@ trait PreparesProductVariantValidation
     {
         $data = ProductData::fromRequest($this);
 
-        if (!$data->hasVariants()) {
+        if (! $data->hasVariants()) {
             return collect();
         }
 
@@ -29,7 +29,7 @@ trait PreparesProductVariantValidation
 
         $store = $this->validationStore();
 
-        if (!$store) {
+        if (! $store) {
             return collect($data->variants());
         }
 
@@ -42,8 +42,8 @@ trait PreparesProductVariantValidation
     {
         return $this->previewPreparedVariants()
             ->pluck('sku')
-            ->filter(fn($sku) => filled($sku))
-            ->map(fn($sku) => mb_strtolower((string) $sku))
+            ->filter(fn ($sku) => filled($sku))
+            ->map(fn ($sku) => mb_strtolower((string) $sku))
             ->values();
     }
 
@@ -57,7 +57,7 @@ trait PreparesProductVariantValidation
 
         $storeId = $this->input('store_id');
 
-        if (!is_string($storeId) || trim($storeId) === '') {
+        if (! is_string($storeId) || trim($storeId) === '') {
             return null;
         }
 

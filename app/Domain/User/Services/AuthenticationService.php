@@ -35,7 +35,7 @@ class AuthenticationService
         $requestedRole = $context['role'] ?? null;
         $user = User::where('email', $email)->first();
 
-        if (!$user || !$this->hasher->check($password, $user->password_hash)) {
+        if (! $user || ! $this->hasher->check($password, $user->password_hash)) {
             Log::warning('Login failed: invalid credentials', [
                 'email' => $email,
                 'user_id' => $user?->id,
@@ -52,7 +52,7 @@ class AuthenticationService
             ]);
         }
 
-        if (!$user->getIsVerifiedAttribute()) {
+        if (! $user->getIsVerifiedAttribute()) {
             $otp = $this->otpService->generateAndSend(
                 user: $user,
                 purpose: OtpPurposes::VERIFY_EMAIL->value,
@@ -65,7 +65,6 @@ class AuthenticationService
         }
 
         $this->assertUserCanLoginWithRole($user, $requestedRole);
-
 
         // Generate tokens
         $accessToken = $this->generateAccessToken($user, $context);
@@ -87,7 +86,7 @@ class AuthenticationService
             'last_activity' => now()->timestamp,
         ]);
 
-        if ($requestedRole === 'customer' && !$user->hasRole($requestedRole)) {
+        if ($requestedRole === 'customer' && ! $user->hasRole($requestedRole)) {
             $user->assignRole($requestedRole);
             $user->userRoles()->updateOrCreate([
                 'role_id' => Role::where('name', $requestedRole)->first()->id,
@@ -119,7 +118,7 @@ class AuthenticationService
     {
         $requestedRole = $context['role'] ?? null;
 
-        if ($requestedRole === 'customer' && !$user->hasRole($requestedRole)) {
+        if ($requestedRole === 'customer' && ! $user->hasRole($requestedRole)) {
             $user->assignRole($requestedRole);
             $user->userRoles()->updateOrCreate([
                 'role_id' => Role::where('name', $requestedRole)->first()->id,
@@ -192,15 +191,15 @@ class AuthenticationService
             ->where('refresh_token', $hashedToken)
             ->first();
 
-        if (!$session || !$session->user) {
-            throw (new ModelNotFoundException())->setModel(Session::class);
+        if (! $session || ! $session->user) {
+            throw (new ModelNotFoundException)->setModel(Session::class);
         }
 
         if ($session->isExpired()) {
             $session->user->tokens()->where('token', $session->token)->delete();
             $session->delete();
 
-            throw (new ModelNotFoundException())->setModel(Session::class);
+            throw (new ModelNotFoundException)->setModel(Session::class);
         }
 
         $user = $session->user;
@@ -283,6 +282,7 @@ class AuthenticationService
         if (preg_match('/tablet|ipad/i', $userAgent)) {
             return 'tablet';
         }
+
         return 'desktop';
     }
 
@@ -316,6 +316,7 @@ class AuthenticationService
                 ->delete();
         } else {
             $this->logoutAll($user);
+
             return;
         }
 
@@ -340,13 +341,13 @@ class AuthenticationService
 
     private function assertUserCanLoginWithRole(User $user, ?string $requestedRole): void
     {
-        if ($requestedRole === 'admin' && !$user->hasRole('admin')) {
+        if ($requestedRole === 'admin' && ! $user->hasRole('admin')) {
             throw ValidationException::withMessages([
                 'role' => [__('api.common.unauthorized')],
             ]);
         }
 
-        if ($requestedRole === 'seller' && !$user->hasAnyRole(['seller', 'seller_pending'])) {
+        if ($requestedRole === 'seller' && ! $user->hasAnyRole(['seller', 'seller_pending'])) {
             throw ValidationException::withMessages([
                 'role' => [__('api.common.unauthorized')],
             ]);

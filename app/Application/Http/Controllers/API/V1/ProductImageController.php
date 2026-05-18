@@ -24,8 +24,7 @@ class ProductImageController extends Controller
         private readonly DeleteProductImage $deleteProductImageAction,
         private readonly ReorderProductImages $reorderProductImagesAction,
         private readonly SetPrimaryProductImage $setPrimaryProductImageAction,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request, Store $store, Product $product): JsonResponse
     {

@@ -14,12 +14,12 @@ class ToggleStoreFollowNotification
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$follow) {
+        if (! $follow) {
             return null;
         }
 
         $follow->update([
-            'notification_enabled' => !$follow->notification_enabled,
+            'notification_enabled' => ! $follow->notification_enabled,
         ]);
 
         return $follow->fresh();

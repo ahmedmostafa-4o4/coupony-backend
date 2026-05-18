@@ -25,7 +25,7 @@ class CreateProductImageRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $primaryCount = collect($this->input('images', []))
-                ->filter(fn(array $image) => (bool) ($image['is_primary'] ?? false))
+                ->filter(fn (array $image) => (bool) ($image['is_primary'] ?? false))
                 ->count();
 
             if ($primaryCount > 1) {

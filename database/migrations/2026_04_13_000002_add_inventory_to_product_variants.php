@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('product_variants')) {
+        if (! Schema::hasTable('product_variants')) {
             return;
         }
 
@@ -23,21 +23,21 @@ return new class extends Migration
             $hasLowStockThreshold,
             $hasAllowBackorder
         ) {
-            if (!$hasInventoryMode) {
+            if (! $hasInventoryMode) {
                 $table->enum('inventory_mode', ['tracked', 'unlimited'])
                     ->default('unlimited')
                     ->after('is_active');
             }
 
-            if (!$hasStockQty) {
+            if (! $hasStockQty) {
                 $table->unsignedInteger('stock_qty')->nullable()->after('inventory_mode');
             }
 
-            if (!$hasLowStockThreshold) {
+            if (! $hasLowStockThreshold) {
                 $table->unsignedInteger('low_stock_threshold')->nullable()->after('stock_qty');
             }
 
-            if (!$hasAllowBackorder) {
+            if (! $hasAllowBackorder) {
                 $table->boolean('allow_backorder')->default(false)->after('low_stock_threshold');
             }
         });
@@ -45,7 +45,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('product_variants')) {
+        if (! Schema::hasTable('product_variants')) {
             return;
         }
 

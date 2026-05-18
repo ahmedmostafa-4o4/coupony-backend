@@ -8,4 +8,3 @@ enum OtpChannels: string
     case SMS = 'sms';
     case WHATSAPP = 'whatsapp';
 }
-

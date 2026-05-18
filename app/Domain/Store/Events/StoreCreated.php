@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 class StoreCreated
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
+
     /**
      * Create a new class instance.
      */

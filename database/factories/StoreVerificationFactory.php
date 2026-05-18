@@ -16,7 +16,7 @@ class StoreVerificationFactory extends Factory
         return [
             'store_id' => Store::factory(),
             'document_type' => fake()->randomElement(['commercial_register', 'tax_card', 'id_card_front', 'id_card_back']),
-            'document_path' => 'documents/' . fake()->uuid() . '.pdf',
+            'document_path' => 'documents/'.fake()->uuid().'.pdf',
             'status' => 'pending',
             'verified_by' => null,
             'verified_at' => null,

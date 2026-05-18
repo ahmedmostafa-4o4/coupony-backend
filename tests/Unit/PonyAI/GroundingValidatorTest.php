@@ -4,7 +4,6 @@ namespace Tests\Unit\PonyAI;
 
 use App\Domain\PonyAI\Support\GroundingValidator;
 use App\Domain\Product\Models\Product;
-use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

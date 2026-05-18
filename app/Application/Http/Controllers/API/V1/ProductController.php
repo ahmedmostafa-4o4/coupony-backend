@@ -37,8 +37,7 @@ class ProductController extends Controller
         private readonly DeleteProduct $deleteProductAction,
         private readonly UpdateProductStatus $updateProductStatusAction,
         private readonly ProductRepository $products,
-    ) {
-    }
+    ) {}
 
     public function store(CreateProductRequest $request, Store $store): JsonResponse
     {
@@ -53,7 +52,7 @@ class ProductController extends Controller
                 __('api.product.created'),
                 201
             );
-        } catch (\InvalidArgumentException | \DomainException $throwable) {
+        } catch (\InvalidArgumentException|\DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.product.create_failed'), 500);
@@ -110,11 +109,12 @@ class ProductController extends Controller
         Gate::authorize('update', $product);
         try {
             $updatedProduct = $this->updateProductAction->execute($product, ProductData::fromRequest($request), $request->user());
+
             return $this->successResponse(
                 new ProductResource($updatedProduct),
                 __('api.product.updated')
             );
-        } catch (\InvalidArgumentException | \DomainException $throwable) {
+        } catch (\InvalidArgumentException|\DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse(__('api.product.update_failed'), 500);
@@ -185,6 +185,7 @@ class ProductController extends Controller
             );
         } catch (\Throwable $throwable) {
             Log::error($throwable);
+
             return $this->errorResponse(__('api.product.public_retrieve_failed'), 500);
         }
     }
@@ -263,7 +264,7 @@ class ProductController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$category->is_active) {
+        if (! $category->is_active) {
             return $this->errorResponse(__('api.categories.not_found'), 404);
         }
 

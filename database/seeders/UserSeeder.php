@@ -13,10 +13,8 @@ class UserSeeder extends Seeder
 {
     public function __construct(
         private Hasher $hasher
-    )
-    {
-        
-    }
+    ) {}
+
     public function run(): void
     {
         // Create Admin User
@@ -29,7 +27,7 @@ class UserSeeder extends Seeder
             'status' => 'active',
         ]);
         $admin->assignRole('admin');
-        
+
         Profile::create([
             'user_id' => $admin->id,
             'first_name' => 'Admin',
@@ -61,10 +59,10 @@ class UserSeeder extends Seeder
                 'status' => 'active',
             ]);
             $seller->assignRole($i <= 3 ? 'seller' : 'seller_pending');
-            
+
             Profile::create([
                 'user_id' => $seller->id,
-                'first_name' => "Seller",
+                'first_name' => 'Seller',
                 'last_name' => "User {$i}",
                 'date_of_birth' => '1985-05-15',
                 'gender' => fake()->randomElement(['male', 'female']),

@@ -38,7 +38,7 @@ class ProductResource extends JsonResource
             'primary_image_url' => $this->whenLoaded('images', function () {
                 $primaryImage = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
 
-                if (!$primaryImage) {
+                if (! $primaryImage) {
                     return null;
                 }
 
@@ -66,7 +66,7 @@ class ProductResource extends JsonResource
             }),
             'recent_viewers' => $this->when(
                 $this->resource->offsetExists('recent_viewers'),
-                fn() => $this->recent_viewers ?? []
+                fn () => $this->recent_viewers ?? []
             ),
         ];
     }

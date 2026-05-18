@@ -2,9 +2,9 @@
 
 namespace App\Application\Http\Resources;
 
-use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 class StoreFollowerResource extends JsonResource
 {

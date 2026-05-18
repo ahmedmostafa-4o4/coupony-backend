@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('store_categories', function (Blueprint $table) {
-            if (!Schema::hasColumn('store_categories', 'image_category')) {
+            if (! Schema::hasColumn('store_categories', 'image_category')) {
                 $table->string('image_category')->nullable()->after('icon_url');
             }
         });

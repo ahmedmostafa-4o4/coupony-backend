@@ -10,12 +10,11 @@ use Spatie\Permission\Models\Role;
 
 class AssignStaffToStore
 {
-
     public function execute(Store $store, User $staff, string $roleName = 'store_employee', ?User $assignedBy = null): void
     {
         Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'sanctum']);
 
-        if (!$staff->hasRole($roleName)) {
+        if (! $staff->hasRole($roleName)) {
             $staff->assignRole($roleName);
         }
 

@@ -2,19 +2,18 @@
 
 namespace App\Domain\User\Services;
 
+use App\Domain\Notification\Services\NotificationService;
 use App\Domain\User\Enums\OtpChannels;
+use App\Domain\User\Events\OtpGenerated;
 use App\Domain\User\Models\Otp;
 use App\Domain\User\Models\User;
-use App\Domain\User\Events\OtpGenerated;
-use App\Domain\Notification\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 
 class OtpService
 {
     public function __construct(
         private NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     /**
      * Generate and send OTP to user.
@@ -73,7 +72,7 @@ class OtpService
             ->latest()
             ->first();
 
-        if (!$otp) {
+        if (! $otp) {
             return [
                 'success' => false,
                 'message' => __('api.otp.not_found'),
@@ -83,6 +82,7 @@ class OtpService
 
         if ($otp->isExpired()) {
             $otp->markAsExpired();
+
             return [
                 'success' => false,
                 'message' => __('api.otp.expired'),
@@ -137,6 +137,7 @@ class OtpService
 
         if ($recentOtp) {
             $retryAfter = 60 - $recentOtp->created_at->diffInSeconds(now());
+
             return [
                 'success' => false,
                 'message' => __('api.otp.rate_limited', ['seconds' => $retryAfter]),
@@ -163,7 +164,7 @@ class OtpService
             $visibleCharacters = min(2, strlen($name));
             $maskedCharacters = max(strlen($name) - $visibleCharacters, 1);
 
-            return substr($name, 0, $visibleCharacters) . str_repeat('*', $maskedCharacters) . '@' . $domain;
+            return substr($name, 0, $visibleCharacters).str_repeat('*', $maskedCharacters).'@'.$domain;
         }
 
         return $this->maskPhoneRecipient($recipient);
@@ -326,6 +327,7 @@ class OtpService
     private function getSmsMessage(string $code, string $purpose): string
     {
         $appName = config('app.name');
+
         return __('api.notification.messages.sms_verification_code', [
             'app' => $appName,
             'code' => $code,
@@ -354,14 +356,12 @@ class OtpService
             $maskedCharacters = max($length - ($visiblePrefix + 2), 1);
 
             return substr($recipient, 0, $visiblePrefix)
-                . str_repeat('*', $maskedCharacters)
-                . substr($recipient, -2);
+                .str_repeat('*', $maskedCharacters)
+                .substr($recipient, -2);
         }
 
         return substr($recipient, 0, 4)
-            . str_repeat('*', max($length - 6, 1))
-            . substr($recipient, -2);
+            .str_repeat('*', max($length - 6, 1))
+            .substr($recipient, -2);
     }
-
-
 }

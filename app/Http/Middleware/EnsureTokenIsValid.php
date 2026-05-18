@@ -17,7 +17,7 @@ class EnsureTokenIsValid
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => __('api.common.unauthenticated'),
             ], 401);

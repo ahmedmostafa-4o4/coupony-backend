@@ -13,8 +13,7 @@ final class GeminiResult
         public readonly ?int $promptTokens = null,
         public readonly ?int $completionTokens = null,
         public readonly array $raw = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

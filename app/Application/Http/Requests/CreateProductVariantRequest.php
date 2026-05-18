@@ -27,7 +27,7 @@ class CreateProductVariantRequest extends FormRequest
                 'string',
                 'max:100',
                 Rule::unique('product_variants', 'sku')->where(
-                    fn($query) => $query->where('product_id', $product->id)
+                    fn ($query) => $query->where('product_id', $product->id)
                 ),
             ],
             'barcode' => ['nullable', 'string', 'max:100'],
@@ -54,8 +54,8 @@ class CreateProductVariantRequest extends FormRequest
         $validator->after(function ($validator) {
             $attributeNames = collect($this->input('attributes', []))
                 ->pluck('attribute_name')
-                ->filter(fn($value) => filled($value))
-                ->map(fn($value) => mb_strtolower((string) $value))
+                ->filter(fn ($value) => filled($value))
+                ->map(fn ($value) => mb_strtolower((string) $value))
                 ->duplicates();
 
             if ($attributeNames->isNotEmpty()) {

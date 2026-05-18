@@ -23,9 +23,8 @@ class NotifyMeController extends Controller implements HasMiddleware
 
     public function __construct(
         private NotificationService $notificationService
-    ) {
+    ) {}
 
-    }
     public function submit(Request $request)
     {
         try {
@@ -55,7 +54,7 @@ class NotifyMeController extends Controller implements HasMiddleware
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to submit notify me request', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.notify_me.submit_failed'),
             ], 500);
@@ -75,7 +74,7 @@ class NotifyMeController extends Controller implements HasMiddleware
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve notify me requests', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.notify_me.list_failed'),
             ], 500);
@@ -91,9 +90,9 @@ class NotifyMeController extends Controller implements HasMiddleware
                 'subject' => 'required|string|max:255',
                 'message' => 'required|string',
             ]);
-            
+
             $result = $this->notificationService->notifyAll($data);
-            
+
             return response()->json([
                 'message' => __('api.notify_me.notifications_sent'),
                 'data' => $result,
@@ -105,7 +104,7 @@ class NotifyMeController extends Controller implements HasMiddleware
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to send notifications', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.notify_me.notifications_failed'),
             ], 500);

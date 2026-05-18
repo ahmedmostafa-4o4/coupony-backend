@@ -9,4 +9,3 @@ enum OtpPurposes: string
     case VERIFY_EMAIL = 'verify_email';
     case VERIFY_PHONE = 'verify_phone';
 }
-

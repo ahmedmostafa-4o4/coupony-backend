@@ -40,7 +40,7 @@ class StoreCategoryTest extends TestCase
             ->assertJsonPath('data.name_ar', 'إلكترونيات')
             ->assertJsonPath('data.name_en', 'Electronics')
             ->assertJsonPath('data.name', 'Electronics')
-            ->assertJsonPath('data.icon_url', fn($value) => is_string($value) && str_contains($value, '/storage/store-categories/'));
+            ->assertJsonPath('data.icon_url', fn ($value) => is_string($value) && str_contains($value, '/storage/store-categories/'));
 
         $this->assertDatabaseHas('store_categories', [
             'name_ar' => 'إلكترونيات',
@@ -70,7 +70,7 @@ class StoreCategoryTest extends TestCase
             ->assertJsonPath('data.name_ar', 'مطاعم وكافيهات')
             ->assertJsonPath('data.name_en', 'Restaurants & Cafes')
             ->assertJsonPath('data.is_active', false)
-            ->assertJsonPath('data.icon_url', fn($value) => is_string($value) && str_contains($value, '/storage/store-categories/'));
+            ->assertJsonPath('data.icon_url', fn ($value) => is_string($value) && str_contains($value, '/storage/store-categories/'));
 
         $this->assertDatabaseHas('store_categories', [
             'id' => $category->id,

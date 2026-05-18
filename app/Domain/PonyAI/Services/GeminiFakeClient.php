@@ -56,7 +56,7 @@ class GeminiFakeClient implements GeminiClient
      */
     public function queueEmbedding(array $vector): self
     {
-        $this->embedQueue[] = array_map(static fn($value) => (float) $value, $vector);
+        $this->embedQueue[] = array_map(static fn ($value) => (float) $value, $vector);
 
         return $this;
     }

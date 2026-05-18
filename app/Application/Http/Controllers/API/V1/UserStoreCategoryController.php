@@ -7,7 +7,6 @@ use App\Application\Http\Resources\StoreCategoryResource;
 use App\Domain\Store\Models\StoreCategory;
 use Illuminate\Http\Request;
 
-
 class UserStoreCategoryController extends Controller
 {
     public function index(Request $request)

@@ -41,7 +41,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to retrieve store categories', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.store_categories.retrieve_failed'),
             ], 500);
@@ -69,14 +69,14 @@ class StoreCategoryController extends Controller implements HasMiddleware
                     'image_category' => $request->file('image_category')->store("store-categories/{$category->id}/image", 'public'),
                 ]);
             }
-            
+
             return response()->json([
                 'message' => __('api.store_categories.created'),
                 'data' => new StoreCategoryResource($category->fresh()),
             ], 201);
         } catch (\Exception $e) {
             Log::error('Failed to create store category', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.store_categories.create_failed'),
             ], 500);
@@ -106,7 +106,7 @@ class StoreCategoryController extends Controller implements HasMiddleware
                 $category->update(['image_category' => $newImageCategoryPath]);
                 $this->deleteStoredIconIfExists($oldImageCategoryPath);
             }
-            
+
             return response()->json([
                 'message' => __('api.store_categories.updated'),
                 'data' => new StoreCategoryResource($category->fresh()),
@@ -114,9 +114,9 @@ class StoreCategoryController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             Log::error('Failed to update store category', [
                 'category_id' => $category->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'message' => __('api.store_categories.update_failed'),
             ], 500);
@@ -136,16 +136,16 @@ class StoreCategoryController extends Controller implements HasMiddleware
             $this->deleteStoredIconIfExists($category->icon_url);
             $this->deleteStoredIconIfExists($category->image_category);
             $category->delete();
-            
+
             return response()->json([
                 'message' => __('api.store_categories.deleted'),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to delete store category', [
                 'category_id' => $category->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'message' => __('api.store_categories.delete_failed'),
             ], 500);

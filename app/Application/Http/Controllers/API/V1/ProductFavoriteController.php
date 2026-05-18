@@ -20,14 +20,13 @@ class ProductFavoriteController extends Controller
         private readonly FavoriteProduct $favoriteProduct,
         private readonly UnfavoriteProduct $unfavoriteProduct,
         private readonly ProductRepository $products,
-    ) {
-    }
+    ) {}
 
     public function store(Request $request, Product $product): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPubliclyFavoritable($product)) {
+        if (! $this->isPubliclyFavoritable($product)) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 
@@ -49,7 +48,7 @@ class ProductFavoriteController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPubliclyFavoritable($product)) {
+        if (! $this->isPubliclyFavoritable($product)) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 

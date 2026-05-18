@@ -14,9 +14,7 @@ use Illuminate\Support\Facades\Gate;
 
 class ProductRevisionController extends Controller
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function index(Request $request, Store $store, Product $product): JsonResponse
     {

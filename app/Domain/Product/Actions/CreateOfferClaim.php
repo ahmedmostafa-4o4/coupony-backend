@@ -8,6 +8,7 @@ use App\Domain\Product\Enums\ProductOfferStatus;
 use App\Domain\Product\Enums\ProductOfferTargetRole;
 use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Enums\ProductStatus;
+use App\Domain\Product\Events\OfferClaimCreated;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductOffer;
@@ -36,7 +37,7 @@ class CreateOfferClaim
         /** @var ProductOffer|null $offer */
         $offer = $product->offer;
 
-        if (!$offer) {
+        if (! $offer) {
             throw new \DomainException('This product does not have an offer available for claiming.');
         }
 
@@ -102,7 +103,7 @@ class CreateOfferClaim
             ? $now->copy()->addMinutes($offer->claim_expiration_minutes)
             : null;
 
-        return OfferClaim::create([
+        $claim = OfferClaim::create([
             'user_id' => $user->id,
             'store_id' => $product->store_id,
             'product_id' => $product->id,
@@ -113,12 +114,16 @@ class CreateOfferClaim
             'offer_snapshot' => $snapshot,
             'expires_at' => $expiresAt,
         ])->fresh();
+
+        OfferClaimCreated::dispatch($claim, $product, $user);
+
+        return $claim;
     }
 
     private function resolveStandardSelections(Product $product, array $selectedVariantIds): array
     {
         $variants = $product->variants
-            ->filter(fn(ProductVariant $variant) => $variant->is_active)
+            ->filter(fn (ProductVariant $variant) => $variant->is_active)
             ->keyBy('id');
 
         if ($variants->isEmpty()) {
@@ -128,12 +133,13 @@ class CreateOfferClaim
         if ($selectedVariantIds === []) {
             throw new \DomainException('At least one active variant must be selected for this claim.');
         }
+
         return collect($selectedVariantIds)
             ->map(function (string $variantId) use ($variants) {
                 /** @var ProductVariant|null $variant */
                 $variant = $variants->get($variantId);
 
-                if (!$variant) {
+                if (! $variant) {
                     throw new \DomainException('The selected claim variant is invalid.');
                 }
 
@@ -151,8 +157,8 @@ class CreateOfferClaim
     ): array {
         $selectedIds = collect($selectedVariantIds)->values();
         $allowedTargets = $offer->targets
-            ->filter(fn(ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === $role->value)
-            ->filter(fn(ProductOfferVariantTarget $target) => $target->variant && $target->variant->is_active)
+            ->filter(fn (ProductOfferVariantTarget $target) => ($target->role?->value ?? $target->role) === $role->value)
+            ->filter(fn (ProductOfferVariantTarget $target) => $target->variant && $target->variant->is_active)
             ->keyBy('variant_id');
 
         if ($selectedIds->isEmpty()) {
@@ -163,7 +169,7 @@ class CreateOfferClaim
             ? $offer->allow_mix_buy_variants
             : $offer->allow_mix_reward_variants;
 
-        if (!$allowMix && $selectedIds->unique()->count() > 1) {
+        if (! $allowMix && $selectedIds->unique()->count() > 1) {
             throw new \DomainException("This offer does not allow mixing {$role->value} variants.");
         }
 
@@ -172,7 +178,7 @@ class CreateOfferClaim
                 /** @var ProductOfferVariantTarget|null $target */
                 $target = $allowedTargets->get($variantId);
 
-                if (!$target || !$target->variant || $target->variant->product_id !== $product->id) {
+                if (! $target || ! $target->variant || $target->variant->product_id !== $product->id) {
                     throw new \DomainException("The selected {$role->value} variant is not allowed for this offer.");
                 }
 

@@ -12,8 +12,7 @@ class ProductRecommendationController extends Controller
 {
     public function __construct(
         private readonly ProductRecommendationService $recommendations,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {

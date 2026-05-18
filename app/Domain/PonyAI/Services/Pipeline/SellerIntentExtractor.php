@@ -9,9 +9,7 @@ use App\Domain\PonyAI\Exceptions\GeminiException;
 
 class SellerIntentExtractor
 {
-    public function __construct(private readonly GeminiClient $gemini)
-    {
-    }
+    public function __construct(private readonly GeminiClient $gemini) {}
 
     public function extract(string $prompt): SellerIntent
     {

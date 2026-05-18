@@ -31,8 +31,8 @@ class PonyEmbedProducts extends Command
         $query = Product::query()
             ->where('status', ProductStatus::ACTIVE->value)
             ->where('approval_status', ProductApprovalStatus::APPROVED->value)
-            ->when(filled($store), fn(Builder $q) => $q->where('store_id', $store))
-            ->when(filled($since), fn(Builder $q) => $q->where('updated_at', '>=', $since))
+            ->when(filled($store), fn (Builder $q) => $q->where('store_id', $store))
+            ->when(filled($since), fn (Builder $q) => $q->where('updated_at', '>=', $since))
             ->when(! $force, function (Builder $q): void {
                 $q->whereNotIn('id', function ($subQuery): void {
                     $subQuery->select('product_id')->from('pony_product_embeddings');

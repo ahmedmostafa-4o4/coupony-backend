@@ -33,11 +33,11 @@ class CategoryController extends Controller implements HasMiddleware
             $categories = Category::query()
                 ->when(
                     $request->query('active') === '1',
-                    fn($query) => $query->where('is_active', true)
+                    fn ($query) => $query->where('is_active', true)
                 )
                 ->when(
                     $request->query('active') === '0',
-                    fn($query) => $query->where('is_active', false)
+                    fn ($query) => $query->where('is_active', false)
                 )
                 ->with('parent')
                 ->orderBy('sort_order')
@@ -111,7 +111,7 @@ class CategoryController extends Controller implements HasMiddleware
                 $data['name'] = $data['name_ar'];
             }
 
-            if (!array_key_exists('slug', $data) && blank($category->slug)) {
+            if (! array_key_exists('slug', $data) && blank($category->slug)) {
                 $slugSource = $data['name_en'] ?? $data['name_ar'] ?? null;
 
                 if (filled($slugSource)) {

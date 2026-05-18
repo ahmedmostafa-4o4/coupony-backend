@@ -99,12 +99,32 @@ class ImageRankerTest extends TestCase
         $a = $this->activeProduct();
         $b = $this->activeProduct();
 
-        $throwing = new class implements GeminiClient {
-            public function generateText(string $p, array $o = []): \App\Domain\PonyAI\DTOs\GeminiResult { throw new \App\Domain\PonyAI\Exceptions\GeminiException('x'); }
-            public function generateJson(string $p, array $o = []): \App\Domain\PonyAI\DTOs\GeminiResult { throw new \App\Domain\PonyAI\Exceptions\GeminiException('x'); }
-            public function embedText(string $t, array $o = []): array { throw new \App\Domain\PonyAI\Exceptions\GeminiException('x'); }
-            public function embedImage(string $b, string $m, array $o = []): array { throw new \App\Domain\PonyAI\Exceptions\GeminiException('x'); }
-            public function describeImage(string $b, string $m, string $i = '', array $o = []): \App\Domain\PonyAI\DTOs\GeminiResult { throw new \App\Domain\PonyAI\Exceptions\GeminiException('x'); }
+        $throwing = new class implements GeminiClient
+        {
+            public function generateText(string $p, array $o = []): \App\Domain\PonyAI\DTOs\GeminiResult
+            {
+                throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
+            }
+
+            public function generateJson(string $p, array $o = []): \App\Domain\PonyAI\DTOs\GeminiResult
+            {
+                throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
+            }
+
+            public function embedText(string $t, array $o = []): array
+            {
+                throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
+            }
+
+            public function embedImage(string $b, string $m, array $o = []): array
+            {
+                throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
+            }
+
+            public function describeImage(string $b, string $m, string $i = '', array $o = []): \App\Domain\PonyAI\DTOs\GeminiResult
+            {
+                throw new \App\Domain\PonyAI\Exceptions\GeminiException('x');
+            }
         };
         $this->app->instance(GeminiClient::class, $throwing);
 

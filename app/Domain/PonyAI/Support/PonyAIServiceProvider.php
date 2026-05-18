@@ -24,7 +24,7 @@ class PonyAIServiceProvider extends ServiceProvider
             $shouldFake = $app->environment('testing') || (bool) ($config['fake'] ?? false);
 
             if ($shouldFake) {
-                return new GeminiFakeClient();
+                return new GeminiFakeClient;
             }
 
             return new GeminiHttpClient($config);

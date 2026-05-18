@@ -4,10 +4,11 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if (!Schema::hasTable('store_comments')) {
+        if (! Schema::hasTable('store_comments')) {
             Schema::create('store_comments', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('store_id');
@@ -53,7 +54,7 @@ return new class extends Migration {
             });
         }
 
-        if (!Schema::hasTable('store_comment_likes')) {
+        if (! Schema::hasTable('store_comment_likes')) {
             Schema::create('store_comment_likes', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('comment_id');

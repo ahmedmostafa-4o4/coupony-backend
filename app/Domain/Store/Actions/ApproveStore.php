@@ -38,7 +38,7 @@ class ApproveStore
                 $owner->removeRole('seller_pending');
             }
 
-            if (!$owner->hasRole('seller')) {
+            if (! $owner->hasRole('seller')) {
                 $owner->assignRole('seller');
             }
 

@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domain\User\Models\Address;
-use App\Domain\User\Models\User;
 use App\Domain\User\Models\Session;
+use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;

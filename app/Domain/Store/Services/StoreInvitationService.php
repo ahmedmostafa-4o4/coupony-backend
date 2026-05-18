@@ -12,22 +12,19 @@ use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreEmployee;
 use App\Domain\Store\Models\StoreInvitation;
 use App\Domain\User\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class StoreInvitationService
 {
-    public function __construct(private NotificationService $notificationService)
-    {
-    }
+    public function __construct(private NotificationService $notificationService) {}
 
     public function sendInvitation(Store $store, User $sender, array $data): StoreInvitation
     {
         $invitee = User::where('email', $data['email'])->first();
 
-        if (!$invitee) {
+        if (! $invitee) {
             throw ValidationException::withMessages([
                 'email' => [__('api.invitation.user_not_found')],
             ]);
@@ -63,9 +60,9 @@ class StoreInvitationService
             ]);
         }
 
-        if (!empty($data['address_id'])) {
+        if (! empty($data['address_id'])) {
             $addressExists = $store->addresses()->where('addresses.id', $data['address_id'])->exists();
-            if (!$addressExists) {
+            if (! $addressExists) {
                 throw ValidationException::withMessages([
                     'address_id' => [__('api.common.validation_failed')],
                 ]);
@@ -74,7 +71,7 @@ class StoreInvitationService
 
         return DB::transaction(function () use ($store, $sender, $invitee, $data) {
             $expiryHours = config('store.invitation_expiry_hours', 48);
-            
+
             $invitation = $store->invitations()->create([
                 'invited_by_user_id' => $sender->id,
                 'invitee_user_id' => $invitee->id,
@@ -112,7 +109,7 @@ class StoreInvitationService
             ]);
         }
 
-        if (!$invitation->isPending()) {
+        if (! $invitation->isPending()) {
             throw ValidationException::withMessages([
                 'invitation' => [__('api.invitation.not_pending')],
             ]);
@@ -152,7 +149,7 @@ class StoreInvitationService
             ]);
         }
 
-        if (!$invitation->isPending() || $invitation->isExpired()) {
+        if (! $invitation->isPending() || $invitation->isExpired()) {
             throw ValidationException::withMessages([
                 'invitation' => [__('api.invitation.cannot_decline')],
             ]);
@@ -165,7 +162,7 @@ class StoreInvitationService
 
     public function cancelInvitation(StoreInvitation $invitation): void
     {
-        if (!$invitation->isPending() || $invitation->isExpired()) {
+        if (! $invitation->isPending() || $invitation->isExpired()) {
             throw ValidationException::withMessages([
                 'invitation' => [__('api.invitation.cannot_cancel')],
             ]);
@@ -178,7 +175,7 @@ class StoreInvitationService
 
     public function resendInvitation(StoreInvitation $invitation): StoreInvitation
     {
-        if (!$invitation->isPending() && !$invitation->isExpired()) {
+        if (! $invitation->isPending() && ! $invitation->isExpired()) {
             throw ValidationException::withMessages([
                 'invitation' => [__('api.invitation.cannot_resend')],
             ]);
@@ -186,7 +183,7 @@ class StoreInvitationService
 
         return DB::transaction(function () use ($invitation) {
             $expiryHours = config('store.invitation_expiry_hours', 48);
-            
+
             $invitation->update([
                 'status' => InvitationStatus::PENDING,
                 'expires_at' => now()->addHours($expiryHours),
@@ -214,21 +211,21 @@ class StoreInvitationService
     {
         $query = $store->invitations()->with('invitee.profile');
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['role'])) {
+        if (! empty($filters['role'])) {
             $query->where('role', $filters['role']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->whereHas('invitee', function ($q) use ($filters) {
-                $q->where('email', 'like', '%' . $filters['search'] . '%')
-                  ->orWhereHas('profile', function ($q2) use ($filters) {
-                      $q2->where('first_name', 'like', '%' . $filters['search'] . '%')
-                         ->orWhere('last_name', 'like', '%' . $filters['search'] . '%');
-                  });
+                $q->where('email', 'like', '%'.$filters['search'].'%')
+                    ->orWhereHas('profile', function ($q2) use ($filters) {
+                        $q2->where('first_name', 'like', '%'.$filters['search'].'%')
+                            ->orWhere('last_name', 'like', '%'.$filters['search'].'%');
+                    });
             });
         }
 
@@ -239,21 +236,21 @@ class StoreInvitationService
     {
         $query = $user->receivedInvitations()->with('store');
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         } else {
-            // Default to pending if not specified, or allow fetching all if explicitly asked? 
+            // Default to pending if not specified, or allow fetching all if explicitly asked?
             // The previous default was pending. We will keep it but allow overriding.
-            if (!isset($filters['status'])) {
+            if (! isset($filters['status'])) {
                 $query->where('status', 'pending');
             }
         }
 
-        if (!empty($filters['role'])) {
+        if (! empty($filters['role'])) {
             $query->where('role', $filters['role']);
         }
 
-        if (!empty($filters['store_id'])) {
+        if (! empty($filters['store_id'])) {
             $query->where('store_id', $filters['store_id']);
         }
 

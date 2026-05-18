@@ -6,7 +6,6 @@
 
 namespace App\Domain\User\Models;
 
-use App\Domain\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,7 +72,7 @@ class Otp extends Model
     public function isValid(): bool
     {
         return $this->status === 'pending' &&
-            !$this->isExpired() &&
+            ! $this->isExpired() &&
             $this->attempts < $this->max_attempts;
     }
 
@@ -122,7 +121,7 @@ class Otp extends Model
      */
     public function verify(string $code): bool
     {
-        if (!$this->isValid()) {
+        if (! $this->isValid()) {
             return false;
         }
 
@@ -133,10 +132,12 @@ class Otp extends Model
 
         if ($isCorrect) {
             $this->markAsVerified();
+
             return true;
         }
 
         $this->incrementAttempts();
+
         return false;
     }
 

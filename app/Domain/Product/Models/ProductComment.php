@@ -15,6 +15,7 @@ class ProductComment extends Model
     use HasFactory, SoftDeletes;
 
     public const STATUS_VISIBLE = 'visible';
+
     public const STATUS_HIDDEN = 'hidden';
 
     protected $table = 'product_comments';
@@ -69,9 +70,9 @@ class ProductComment extends Model
             }
         });
 
-        static::saved(fn(ProductComment $comment) => $comment->refreshProductRating());
-        static::deleted(fn(ProductComment $comment) => $comment->refreshProductRating());
-        static::restored(fn(ProductComment $comment) => $comment->refreshProductRating());
+        static::saved(fn (ProductComment $comment) => $comment->refreshProductRating());
+        static::deleted(fn (ProductComment $comment) => $comment->refreshProductRating());
+        static::restored(fn (ProductComment $comment) => $comment->refreshProductRating());
     }
 
     public function product()

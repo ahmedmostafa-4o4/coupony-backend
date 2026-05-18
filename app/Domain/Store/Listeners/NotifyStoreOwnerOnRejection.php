@@ -11,8 +11,7 @@ class NotifyStoreOwnerOnRejection implements ShouldQueue
 {
     public function __construct(
         private NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     public function handle(StoreRejected $event): void
     {

@@ -52,7 +52,7 @@ class VectorMath
      *
      * @param  array<int, float|int>  $query
      * @param  array<int|string, array<int, float|int>>  $candidates  keyed by id, value = vector
-     * @return array<int, array{id: int|string, score: float}>  sorted descending, length <= $topK
+     * @return array<int, array{id: int|string, score: float}> sorted descending, length <= $topK
      */
     public static function topK(array $query, array $candidates, int $topK): array
     {
@@ -72,7 +72,7 @@ class VectorMath
             ];
         }
 
-        usort($scored, static fn(array $a, array $b): int => $b['score'] <=> $a['score']);
+        usort($scored, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
 
         return array_slice($scored, 0, $topK);
     }

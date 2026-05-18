@@ -22,6 +22,7 @@ class ContactUsController extends Controller implements HasMiddleware
             new Middleware('auth:sanctum', except: ['submit_customer', 'submit_seller']),
         ];
     }
+
     public function index_customer(Request $request)
     {
         $this->applyAuthenticatedLocale($request);
@@ -61,11 +62,12 @@ class ContactUsController extends Controller implements HasMiddleware
             ], 500);
         }
     }
+
     public function submit_customer(Request $request)
     {
         try {
             $ip = $request->ip();
-            $key = 'contact-us-customer:' . $ip;
+            $key = 'contact-us-customer:'.$ip;
             $attempts = RateLimiter::attempts($key);
 
             $validatedData = $request->validate([
@@ -93,7 +95,7 @@ class ContactUsController extends Controller implements HasMiddleware
                     'ip_address' => $ip,
                     'attempts' => $attempts,
                     'remaining_attempts' => max(0, 3 - $attempts),
-                ]
+                ],
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -113,7 +115,7 @@ class ContactUsController extends Controller implements HasMiddleware
     {
         try {
             $ip = $request->ip();
-            $key = 'contact-us-seller:' . $ip;
+            $key = 'contact-us-seller:'.$ip;
             $attempts = RateLimiter::attempts($key);
 
             $validatedData = $request->validate([
@@ -133,7 +135,7 @@ class ContactUsController extends Controller implements HasMiddleware
                     'ip_address' => $ip,
                     'attempts' => $attempts,
                     'remaining_attempts' => max(0, 3 - $attempts),
-                ]
+                ],
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

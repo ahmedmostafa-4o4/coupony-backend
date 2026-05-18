@@ -17,7 +17,7 @@ class UpdateStoreProfileRequest extends FormRequest
         'banner_url',
         'socials',
         'hours',
-        '_method'
+        '_method',
     ];
 
     public function authorize(): bool
@@ -56,7 +56,7 @@ class UpdateStoreProfileRequest extends FormRequest
             }
 
             foreach ($this->input('socials', []) as $index => $social) {
-                if (!is_array($social)) {
+                if (! is_array($social)) {
                     continue;
                 }
 
@@ -71,7 +71,7 @@ class UpdateStoreProfileRequest extends FormRequest
             $hours = $this->input('hours', []);
 
             foreach ($hours as $index => $hour) {
-                if (!is_array($hour)) {
+                if (! is_array($hour)) {
                     continue;
                 }
 
@@ -96,15 +96,15 @@ class UpdateStoreProfileRequest extends FormRequest
                     }
                 }
 
-                if (!blank($openTime) && !blank($closeTime) && $closeTime <= $openTime) {
+                if (! blank($openTime) && ! blank($closeTime) && $closeTime <= $openTime) {
                     $validator->errors()->add("hours.{$index}.close_time", 'The close time must be after the open time.');
                 }
             }
 
-            if (!empty($hours)) {
+            if (! empty($hours)) {
                 $dayOfWeeks = collect($hours)->pluck('day_of_week');
 
-                if ($dayOfWeeks->filter(fn($value) => !is_null($value))->unique()->count() !== 7) {
+                if ($dayOfWeeks->filter(fn ($value) => ! is_null($value))->unique()->count() !== 7) {
                     $validator->errors()->add('hours', 'The hours field must include exactly one entry for each day of the week.');
                 }
             }

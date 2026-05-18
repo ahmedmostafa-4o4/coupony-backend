@@ -27,7 +27,7 @@ class PerformanceMonitoring
                 'url' => $request->fullUrl(),
                 'method' => $request->method(),
                 'duration' => $duration,
-                'memory' => memory_get_peak_usage(true) / 1024 / 1024 . 'MB'
+                'memory' => memory_get_peak_usage(true) / 1024 / 1024 .'MB',
             ]);
         }
 

@@ -4,6 +4,7 @@ namespace App\Domain\Product\Actions;
 
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductRevisionStatus;
+use App\Domain\Product\Events\ProductRevisionRejected;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Repositories\ProductRepository;
@@ -50,7 +51,11 @@ class RejectProductRevision
                 'requested_changes' => $requestedChanges,
             ]);
 
-            return $revision->fresh();
+            $fresh = $revision->fresh();
+
+            ProductRevisionRejected::dispatch($fresh, $admin, $reason);
+
+            return $fresh;
         });
     }
 }

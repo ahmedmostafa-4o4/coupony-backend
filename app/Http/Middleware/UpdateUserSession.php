@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Domain\User\Models\Session;
 use Closure;
 
-
 class UpdateUserSession
 {
     /**
@@ -22,8 +21,8 @@ class UpdateUserSession
                 Session::where('user_id', $user->id)
                     ->where('token', $currentToken->token)
                     ->update([
-                    'last_activity' => now()->timestamp,
-                ]);
+                        'last_activity' => now()->timestamp,
+                    ]);
             }
         }
 

@@ -8,8 +8,7 @@ class ProductSlugGenerator
 {
     public function __construct(
         private readonly ArabicSlugTransliterator $transliterator,
-    ) {
-    }
+    ) {}
 
     public function generate(string $storeId, ?string $title, ?string $ignoreProductId = null): string
     {
@@ -38,7 +37,7 @@ class ProductSlugGenerator
             ->withTrashed()
             ->where('store_id', $storeId)
             ->where('slug', $slug)
-            ->when($ignoreProductId, fn($query) => $query->whereKeyNot($ignoreProductId))
+            ->when($ignoreProductId, fn ($query) => $query->whereKeyNot($ignoreProductId))
             ->exists();
     }
 }

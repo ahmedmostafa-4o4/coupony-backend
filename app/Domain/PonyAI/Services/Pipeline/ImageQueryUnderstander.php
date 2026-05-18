@@ -8,9 +8,7 @@ use App\Domain\PonyAI\Exceptions\GeminiException;
 
 class ImageQueryUnderstander
 {
-    public function __construct(private readonly GeminiClient $gemini)
-    {
-    }
+    public function __construct(private readonly GeminiClient $gemini) {}
 
     public function understand(string $imageBytes, string $mimeType): ImageQueryUnderstanding
     {

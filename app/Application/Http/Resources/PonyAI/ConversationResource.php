@@ -21,7 +21,7 @@ class ConversationResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'messages' => $this->whenLoaded(
                 'messages',
-                fn() => PonyMessageResource::collection($this->messages),
+                fn () => PonyMessageResource::collection($this->messages),
             ),
         ];
     }

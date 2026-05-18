@@ -18,8 +18,7 @@ class CreateAdminProduct
         private readonly ProductRepository $products,
         private readonly ResolveVariantOfferPricing $pricing,
         private readonly PrepareProductIdentifiers $identifiers,
-    ) {
-    }
+    ) {}
 
     public function execute(Store $store, ProductData $data, User $admin): Product
     {

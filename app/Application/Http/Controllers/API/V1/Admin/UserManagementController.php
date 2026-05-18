@@ -6,8 +6,8 @@ use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Resources\UserResource;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Enums\UserStatus;
-use Cache;
 use App\Domain\User\Models\User;
+use Cache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,32 +34,32 @@ class UserManagementController extends Controller
             $query = User::query()
                 ->with(['profile', 'roles', 'stores']);
 
-            if (!empty($validated['status'])) {
+            if (! empty($validated['status'])) {
                 $query->where('status', $validated['status']);
             }
 
-            if (!empty($validated['role'])) {
+            if (! empty($validated['role'])) {
                 $query->role($validated['role'], 'sanctum');
             }
 
-            if (!empty($validated['search'])) {
+            if (! empty($validated['search'])) {
                 $search = $validated['search'];
 
                 $query->where(function ($innerQuery) use ($search) {
-                    $innerQuery->where('email', 'like', '%' . $search . '%')
-                        ->orWhere('phone_number', 'like', '%' . $search . '%')
+                    $innerQuery->where('email', 'like', '%'.$search.'%')
+                        ->orWhere('phone_number', 'like', '%'.$search.'%')
                         ->orWhereHas('profile', function ($profileQuery) use ($search) {
-                            $profileQuery->where('first_name', 'like', '%' . $search . '%')
-                                ->orWhere('last_name', 'like', '%' . $search . '%');
+                            $profileQuery->where('first_name', 'like', '%'.$search.'%')
+                                ->orWhere('last_name', 'like', '%'.$search.'%');
                         });
                 });
             }
 
-            if (!empty($validated['from_date'])) {
+            if (! empty($validated['from_date'])) {
                 $query->whereDate('created_at', '>=', $validated['from_date']);
             }
 
-            if (!empty($validated['to_date'])) {
+            if (! empty($validated['to_date'])) {
                 $query->whereDate('created_at', '<=', $validated['to_date']);
             }
 
@@ -281,7 +281,7 @@ class UserManagementController extends Controller
             $filePaths = array_merge(
                 $filePaths,
                 $store->verifications->pluck('document_path')->filter()->values()->all(),
-                $store->products->flatMap(fn($product) => $product->images->pluck('image_url'))->filter()->values()->all()
+                $store->products->flatMap(fn ($product) => $product->images->pluck('image_url'))->filter()->values()->all()
             );
         }
 
@@ -336,13 +336,13 @@ class UserManagementController extends Controller
 
     private function resolvePublicStoragePath(?string $pathOrUrl): ?string
     {
-        if (!$pathOrUrl) {
+        if (! $pathOrUrl) {
             return null;
         }
 
         $storagePrefix = rtrim(Storage::disk('public')->url(''), '/');
 
-        if (str_starts_with($pathOrUrl, $storagePrefix . '/')) {
+        if (str_starts_with($pathOrUrl, $storagePrefix.'/')) {
             return ltrim(substr($pathOrUrl, strlen($storagePrefix)), '/');
         }
 

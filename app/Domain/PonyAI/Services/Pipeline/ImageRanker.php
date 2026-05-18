@@ -12,8 +12,7 @@ class ImageRanker
     public function __construct(
         private readonly GeminiClient $gemini,
         private readonly EmbeddingRepository $embeddings,
-    ) {
-    }
+    ) {}
 
     /**
      * Rerank candidate product IDs by a weighted blend of image-vs-image cosine
@@ -81,6 +80,7 @@ class ImageRanker
 
             if (! $haveImage && ! $haveText) {
                 $unscored[] = $productId;
+
                 continue;
             }
 
@@ -93,9 +93,9 @@ class ImageRanker
             $scored[] = ['id' => $productId, 'score' => $combined];
         }
 
-        usort($scored, static fn(array $a, array $b): int => $b['score'] <=> $a['score']);
+        usort($scored, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
 
-        $rankedIds = array_map(static fn(array $row): string => (string) $row['id'], $scored);
+        $rankedIds = array_map(static fn (array $row): string => (string) $row['id'], $scored);
         $rankedIds = array_slice($rankedIds, 0, $topK);
 
         if (count($rankedIds) >= $topK) {

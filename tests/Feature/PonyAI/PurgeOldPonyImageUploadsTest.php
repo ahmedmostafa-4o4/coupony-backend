@@ -54,7 +54,7 @@ class PurgeOldPonyImageUploadsTest extends TestCase
 
     public function test_purge_is_idempotent_when_directory_does_not_exist(): void
     {
-        $deleted = (new PurgeOldPonyImageUploadsJob())->handle();
+        $deleted = (new PurgeOldPonyImageUploadsJob)->handle();
 
         $this->assertSame(0, $deleted);
     }

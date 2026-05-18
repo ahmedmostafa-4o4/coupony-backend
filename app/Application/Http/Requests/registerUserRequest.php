@@ -9,10 +9,9 @@ use Illuminate\Validation\Rule;
 class registerUserRequest extends FormRequest
 {
     public function __construct(
-        private
-        UserRepository $user
-    ) {
-    }
+        private UserRepository $user
+    ) {}
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -38,11 +37,13 @@ class registerUserRequest extends FormRequest
                     $user = $this->user->findByEmail($value);
                     if ($user) {
                         if (($this->role ?? null) === 'seller') {
-                            if ($user->email_verified_at !== null || $user->phone_verified_at !== null)
+                            if ($user->email_verified_at !== null || $user->phone_verified_at !== null) {
                                 return $fail(__('validation.custom.email.already_registered_seller_onboarding'));
-                            else
+                            } else {
                                 return $fail(__('validation.custom.email.already_registered_verify'));
+                            }
                         }
+
                         return $fail(__('validation.custom.email.already_registered'));
                     }
                 },
@@ -88,6 +89,4 @@ class registerUserRequest extends FormRequest
             'language.in' => __('validation.custom.language.in'),
         ];
     }
-
-
 }

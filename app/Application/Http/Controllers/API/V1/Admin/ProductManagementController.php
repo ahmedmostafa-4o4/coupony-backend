@@ -29,8 +29,7 @@ class ProductManagementController extends Controller
         private readonly UpdateAdminProduct $updateAdminProduct,
         private readonly DeleteAdminProduct $deleteAdminProduct,
         private readonly ProductRepository $products,
-    ) {
-    }
+    ) {}
 
     public function index(AdminListProductsRequest $request): JsonResponse
     {
@@ -75,7 +74,7 @@ class ProductManagementController extends Controller
                 'Product created successfully.',
                 201
             );
-        } catch (\InvalidArgumentException | \DomainException $throwable) {
+        } catch (\InvalidArgumentException|\DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse('Failed to create product.', 500);
@@ -94,7 +93,7 @@ class ProductManagementController extends Controller
                 new ProductResource($updatedProduct),
                 'Product updated successfully.'
             );
-        } catch (\InvalidArgumentException | \DomainException $throwable) {
+        } catch (\InvalidArgumentException|\DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse('Failed to update product.', 500);

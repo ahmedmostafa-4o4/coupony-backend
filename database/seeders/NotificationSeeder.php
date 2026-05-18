@@ -14,6 +14,7 @@ class NotificationSeeder extends Seeder
 
         if ($users->isEmpty()) {
             $this->command->warn('Please run UserSeeder first!');
+
             return;
         }
 

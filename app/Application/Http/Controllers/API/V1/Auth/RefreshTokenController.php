@@ -12,8 +12,7 @@ class RefreshTokenController extends Controller
 {
     public function __construct(
         private AuthenticationService $authService
-    ) {
-    }
+    ) {}
 
     /**
      * Refresh access token
@@ -51,7 +50,7 @@ class RefreshTokenController extends Controller
             ], 401);
         } catch (\Exception $e) {
             Log::error('Token refresh failed', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'message' => __('api.auth.refresh_failed'),
             ], 401);

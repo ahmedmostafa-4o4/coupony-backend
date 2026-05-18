@@ -60,9 +60,9 @@ class LocalizationTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-                'Authorization' => "Bearer {$token}",
-                'Accept-Language' => '',
-            ])
+            'Authorization' => "Bearer {$token}",
+            'Accept-Language' => '',
+        ])
             ->postJson('/api/v1/auth/logout');
 
         $response->assertOk()
@@ -186,9 +186,9 @@ class LocalizationTest extends TestCase
         $token = $admin->createToken('admin-token')->plainTextToken;
 
         $response = $this->withHeaders([
-                'Authorization' => "Bearer {$token}",
-                'Accept-Language' => '',
-            ])
+            'Authorization' => "Bearer {$token}",
+            'Accept-Language' => '',
+        ])
             ->getJson("/api/v1/admin/stores/{$store->id}");
 
         $response->assertOk()

@@ -4,17 +4,18 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if (!Schema::hasColumn('products', 'rating_avg')) {
+        if (! Schema::hasColumn('products', 'rating_avg')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->decimal('rating_avg', 3, 2)->default(0)->after('redemption_count');
                 $table->unsignedInteger('rating_count')->default(0)->after('rating_avg');
             });
         }
 
-        if (!Schema::hasTable('product_comments')) {
+        if (! Schema::hasTable('product_comments')) {
             Schema::create('product_comments', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('product_id');
@@ -60,7 +61,7 @@ return new class extends Migration {
             });
         }
 
-        if (!Schema::hasTable('product_comment_likes')) {
+        if (! Schema::hasTable('product_comment_likes')) {
             Schema::create('product_comment_likes', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('comment_id');

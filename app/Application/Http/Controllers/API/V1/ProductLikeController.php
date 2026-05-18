@@ -20,14 +20,13 @@ class ProductLikeController extends Controller
         private readonly LikeProduct $likeProduct,
         private readonly UnlikeProduct $unlikeProduct,
         private readonly ProductRepository $products,
-    ) {
-    }
+    ) {}
 
     public function store(Request $request, Product $product): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPubliclyLikeable($product)) {
+        if (! $this->isPubliclyLikeable($product)) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 
@@ -49,7 +48,7 @@ class ProductLikeController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if (!$this->isPubliclyLikeable($product)) {
+        if (! $this->isPubliclyLikeable($product)) {
             return $this->errorResponse(__('api.product.not_found'), 404);
         }
 

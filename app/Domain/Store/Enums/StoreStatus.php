@@ -10,4 +10,3 @@ enum StoreStatus: string
     case SUSPENDED = 'suspended';
     case CLOSED = 'closed';
 }
-

@@ -15,6 +15,5 @@ class VerificationDocumentRejected
         public StoreVerification $verification,
         public User $admin,
         public string $reason
-    ) {
-    }
+    ) {}
 }

@@ -18,6 +18,7 @@ class OtpServiceTest extends TestCase
     use RefreshDatabase;
 
     private OtpService $otpService;
+
     private MockInterface $notificationService;
 
     protected function setUp(): void

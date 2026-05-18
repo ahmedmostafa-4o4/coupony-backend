@@ -14,9 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class ApproveProductRevision
 {
-    public function __construct(private readonly ProductRepository $products)
-    {
-    }
+    public function __construct(private readonly ProductRepository $products) {}
 
     public function execute(ProductRevision $revision, User $admin, ?string $notes = null): Product
     {

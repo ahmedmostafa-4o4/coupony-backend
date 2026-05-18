@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Domain\Notification\Models\Notification;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
@@ -15,6 +16,7 @@ class StoreManagementTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $seller;
 
     protected function setUp(): void
@@ -115,6 +117,20 @@ class StoreManagementTest extends TestCase
             'role_id' => Role::where('name', 'seller')->value('id'),
             'store_id' => $store->id,
         ]);
+
+        $notification = Notification::query()
+            ->where('user_id', $this->seller->id)
+            ->where('type', 'store_approved')
+            ->where('channel', 'in_app')
+            ->firstOrFail();
+
+        $this->assertSame('Store approved', $notification->title);
+        $this->assertSame('Your store has been approved.', $notification->message);
+        $this->assertSame(Store::class, $notification->reference_type);
+        $this->assertSame($store->id, $notification->reference_id);
+        $this->assertSame($store->id, $notification->data['store_id']);
+        $this->assertSame(StoreStatus::ACTIVE->value, $notification->data['status']);
+        $this->assertNotNull($notification->data['approved_at']);
     }
 
     public function test_admin_can_reject_pending_store()
@@ -137,6 +153,20 @@ class StoreManagementTest extends TestCase
             'rejected_by' => $this->admin->id,
             'rejection_reason' => 'Invalid documents',
         ]);
+
+        $notification = Notification::query()
+            ->where('user_id', $this->seller->id)
+            ->where('type', 'store_rejected')
+            ->where('channel', 'in_app')
+            ->firstOrFail();
+
+        $this->assertSame('Store rejected', $notification->title);
+        $this->assertSame('Your store verification was rejected.', $notification->message);
+        $this->assertSame(Store::class, $notification->reference_type);
+        $this->assertSame($store->id, $notification->reference_id);
+        $this->assertSame($store->id, $notification->data['store_id']);
+        $this->assertSame(StoreStatus::REJECTED->value, $notification->data['status']);
+        $this->assertSame('Invalid documents', $notification->data['rejection_reason']);
     }
 
     public function test_cannot_approve_non_pending_store()

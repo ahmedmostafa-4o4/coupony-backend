@@ -19,8 +19,7 @@ class CreateStore
      */
     public function __construct(
         private StoreRepository $stores,
-    ) {
-    }
+    ) {}
 
     public function execute(User $owner, StoreData $data): Store
     {
@@ -44,10 +43,10 @@ class CreateStore
                 'longitude' => $data->longitude,
             ]);
 
-            if (!empty($data->socials)) {
+            if (! empty($data->socials)) {
                 $store->socials()->createMany(
                     collect($data->socials)
-                        ->map(fn(array $social) => [
+                        ->map(fn (array $social) => [
                             'social_id' => $social['social_id'],
                             'link' => $social['link'],
                         ])
@@ -63,7 +62,7 @@ class CreateStore
             ];
 
             foreach ($docs as $type => $path) {
-                if (!empty($path)) {
+                if (! empty($path)) {
                     $store->verifications()->create([
                         'document_type' => $type,
                         'document_path' => $path,
@@ -79,7 +78,7 @@ class CreateStore
                 throw new \RuntimeException('Seller roles are not configured.');
             }
 
-            if (!$owner->hasRole('seller_pending') && !$owner->hasRole('seller')) {
+            if (! $owner->hasRole('seller_pending') && ! $owner->hasRole('seller')) {
                 $owner->assignRole('seller_pending');
                 UserRoles::firstOrCreate([
                     'user_id' => $owner->id,

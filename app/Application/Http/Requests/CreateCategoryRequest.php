@@ -9,7 +9,7 @@ class CreateCategoryRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if ($this->filled('name') && !$this->filled('name_en') && !$this->filled('name_ar')) {
+        if ($this->filled('name') && ! $this->filled('name_en') && ! $this->filled('name_ar')) {
             $this->merge([
                 'name_en' => $this->input('name'),
                 'name_ar' => $this->input('name'),

@@ -3,7 +3,6 @@
 namespace App\Domain\Notification\Notifiers;
 
 use App\Domain\Notification\Contracts\NotifierInterface;
-use App\Domain\Notification\Events\NewNotification;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Models\User;
 
@@ -14,10 +13,6 @@ class InAppNotifier implements NotifierInterface
      */
     public function send(Notification $notification, User $user): void
     {
-        // Notification already created in database
-        // Optionally broadcast via WebSocket for real-time updates
-
-        broadcast(new NewNotification($notification, $user))
-            ->toOthers();
+        // NotificationService broadcasts the canonical NotificationSent event.
     }
 }

@@ -15,6 +15,5 @@ class VerificationDocumentApproved
         public StoreVerification $verification,
         public User $admin,
         public ?string $notes = null
-    ) {
-    }
+    ) {}
 }

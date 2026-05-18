@@ -37,7 +37,7 @@ class PublicProductResource extends JsonResource
             'primary_image_url' => $this->whenLoaded('images', function () {
                 $primaryImage = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
 
-                if (!$primaryImage) {
+                if (! $primaryImage) {
                     return null;
                 }
 

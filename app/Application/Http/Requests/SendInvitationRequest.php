@@ -11,6 +11,7 @@ class SendInvitationRequest extends FormRequest
     public function authorize(): bool
     {
         $store = $this->route('store');
+
         return $store && $this->user()->can('manageInvitations', $store);
     }
 

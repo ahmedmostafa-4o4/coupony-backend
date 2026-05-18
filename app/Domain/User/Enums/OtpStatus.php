@@ -9,4 +9,3 @@ enum OtpStatus: string
     case EXPIRED = 'expired';
     case BLOCKED = 'blocked';
 }
-

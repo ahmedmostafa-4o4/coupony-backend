@@ -11,7 +11,7 @@ class GoogleTokenVerifier
 {
     public function verifyIdToken(string $idToken): array
     {
-        if (!$this->looksLikeJwt($idToken)) {
+        if (! $this->looksLikeJwt($idToken)) {
             Log::warning('Google token verification failed: malformed id token', [
                 'token_preview' => $this->tokenPreview($idToken),
             ]);
@@ -49,7 +49,7 @@ class GoogleTokenVerifier
 
         $payload = $response->json();
 
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             Log::warning('Google token verification failed: payload is not an array', [
                 'payload' => $payload,
                 'token_preview' => $this->tokenPreview($idToken),
@@ -67,12 +67,12 @@ class GoogleTokenVerifier
         if (
             empty($payload['sub'])
             || empty($payload['email'])
-            || !$emailVerified
+            || ! $emailVerified
         ) {
             Log::warning('Google token verification failed: invalid payload', [
                 'payload' => $payload,
-                'sub_exists' => !empty($payload['sub']),
-                'email_exists' => !empty($payload['email']),
+                'sub_exists' => ! empty($payload['sub']),
+                'email_exists' => ! empty($payload['email']),
                 'email_verified' => $emailVerified,
                 'client_id' => $clientId,
                 'client_id_length' => strlen($clientId),
@@ -96,7 +96,7 @@ class GoogleTokenVerifier
 
     private function tokenPreview(string $idToken): string
     {
-        return substr($idToken, 0, 12) . '...';
+        return substr($idToken, 0, 12).'...';
     }
 
     private function normalizeGoogleIdentifier(mixed $value): string

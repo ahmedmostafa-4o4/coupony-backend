@@ -24,6 +24,5 @@ final class SellerAssistantReply
         public readonly array $droppedProductIds,
         public readonly array $suggestions,
         public readonly StoreInsightsSnapshot $snapshot,
-    ) {
-    }
+    ) {}
 }

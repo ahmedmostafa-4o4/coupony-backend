@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('product_offers')) {
+        if (! Schema::hasTable('product_offers')) {
             Schema::create('product_offers', function (Blueprint $table) {
                 $table->uuid('id')->primary();
                 $table->uuid('product_id')->unique();
@@ -35,7 +35,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('product_offer_variant_targets')) {
+        if (! Schema::hasTable('product_offer_variant_targets')) {
             Schema::create('product_offer_variant_targets', function (Blueprint $table) {
                 $table->id();
                 $table->uuid('offer_id');

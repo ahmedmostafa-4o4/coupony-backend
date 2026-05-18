@@ -10,11 +10,6 @@ use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth:sanctum');
-    }
-
     /**
      * Get user's notifications.
      */
@@ -22,16 +17,23 @@ class NotificationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $user = $request->user();
+        $perPage = $validated['per_page'] ?? 20;
 
         $notifications = $user->notifications()
             ->latest()
-            ->paginate($request->input('per_page', 20));
+            ->paginate($perPage);
 
-        return response()->json([
+        return $this->localizedJson([
             'data' => NotificationResource::collection($notifications),
             'meta' => [
                 'current_page' => $notifications->currentPage(),
+                'last_page' => $notifications->lastPage(),
+                'per_page' => $notifications->perPage(),
                 'total' => $notifications->total(),
                 'unread_count' => $user->unreadNotifications()->count(),
             ],
@@ -45,17 +47,26 @@ class NotificationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $user = $request->user();
+        $perPage = $validated['per_page'] ?? 20;
 
         $notifications = $user->notifications()
             ->unread()
             ->latest()
-            ->paginate($request->input('per_page', 20));
+            ->paginate($perPage);
 
-        return response()->json([
+        return $this->localizedJson([
             'data' => NotificationResource::collection($notifications),
             'meta' => [
+                'current_page' => $notifications->currentPage(),
+                'last_page' => $notifications->lastPage(),
+                'per_page' => $notifications->perPage(),
                 'total' => $notifications->total(),
+                'unread_count' => $user->unreadNotifications()->count(),
             ],
         ]);
     }
@@ -67,13 +78,13 @@ class NotificationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($notification->user_id !== $request->user()->id) {
-            return response()->json([
+        if (! $this->userOwnsNotification($request, $notification)) {
+            return $this->localizedJson([
                 'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
-        return response()->json([
+        return $this->localizedJson([
             'data' => new NotificationResource($notification),
         ]);
     }
@@ -85,15 +96,15 @@ class NotificationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($notification->user_id !== $request->user()->id) {
-            return response()->json([
+        if (! $this->userOwnsNotification($request, $notification)) {
+            return $this->localizedJson([
                 'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
         $notification->markAsRead();
 
-        return response()->json([
+        return $this->localizedJson([
             'message' => __('api.notifications.marked_as_read'),
             'data' => new NotificationResource($notification->fresh()),
         ]);
@@ -112,10 +123,11 @@ class NotificationController extends Controller
             ->unread()
             ->update(['read_at' => now()]);
 
-        return response()->json([
+        return $this->localizedJson([
             'message' => __('api.notifications.marked_all_as_read', ['count' => $updated]),
             'data' => [
                 'updated_count' => $updated,
+                'unread_count' => 0,
             ],
         ]);
     }
@@ -127,15 +139,15 @@ class NotificationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($notification->user_id !== $request->user()->id) {
-            return response()->json([
+        if (! $this->userOwnsNotification($request, $notification)) {
+            return $this->localizedJson([
                 'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
         $notification->markAsUnread();
 
-        return response()->json([
+        return $this->localizedJson([
             'message' => __('api.notifications.marked_as_unread'),
             'data' => new NotificationResource($notification->fresh()),
         ]);
@@ -148,15 +160,15 @@ class NotificationController extends Controller
     {
         $this->applyAuthenticatedLocale($request);
 
-        if ($notification->user_id !== $request->user()->id) {
-            return response()->json([
+        if (! $this->userOwnsNotification($request, $notification)) {
+            return $this->localizedJson([
                 'message' => __('api.common.unauthorized'),
             ], 403);
         }
 
         $notification->delete();
 
-        return response()->json([
+        return $this->localizedJson([
             'message' => __('api.notifications.deleted'),
         ], 200);
     }
@@ -174,7 +186,7 @@ class NotificationController extends Controller
             ->read()
             ->delete();
 
-        return response()->json([
+        return $this->localizedJson([
             'message' => __('api.notifications.deleted_read', ['count' => $deleted]),
             'data' => [
                 'deleted_count' => $deleted,
@@ -191,10 +203,15 @@ class NotificationController extends Controller
 
         $user = $request->user();
 
-        return response()->json([
+        return $this->localizedJson([
             'data' => [
                 'unread_count' => $user->unreadNotifications()->count(),
             ],
         ]);
+    }
+
+    private function userOwnsNotification(Request $request, Notification $notification): bool
+    {
+        return (string) $notification->user_id === (string) $request->user()->id;
     }
 }

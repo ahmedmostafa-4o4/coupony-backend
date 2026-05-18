@@ -24,9 +24,13 @@ use App\Domain\Store\Models\Store;
 class SellerInsightsAggregator
 {
     private const TOP_PRODUCT_LIMIT = 5;
+
     private const UNDERPERFORMING_LIMIT = 5;
+
     private const INVENTORY_WARNING_LIMIT = 5;
+
     private const UNDERPERFORMING_MIN_VIEWS = 10;
+
     private const PRODUCT_ID_LIMIT = 50;
 
     public function snapshot(Store $store): StoreInsightsSnapshot
@@ -86,7 +90,7 @@ class SellerInsightsAggregator
             topProducts: $topProducts,
             underperformingProducts: $underperforming,
             inventoryWarnings: $inventoryWarnings,
-            productIds: array_map(static fn($id): string => (string) $id, $productIds),
+            productIds: array_map(static fn ($id): string => (string) $id, $productIds),
         );
     }
 
@@ -115,7 +119,7 @@ class SellerInsightsAggregator
             ->orderBy('id')
             ->limit(self::TOP_PRODUCT_LIMIT)
             ->get(['id', 'title'])
-            ->map(fn(Product $product): array => [
+            ->map(fn (Product $product): array => [
                 'id' => (string) $product->id,
                 'title' => (string) $product->title,
                 'views_count' => (int) ($product->views_count ?? 0),
@@ -145,7 +149,7 @@ class SellerInsightsAggregator
             ->orderBy('id')
             ->limit(self::UNDERPERFORMING_LIMIT)
             ->get(['id', 'title'])
-            ->map(fn(Product $product): array => [
+            ->map(fn (Product $product): array => [
                 'id' => (string) $product->id,
                 'title' => (string) $product->title,
                 'views_count' => (int) ($product->views_count ?? 0),
@@ -183,7 +187,7 @@ class SellerInsightsAggregator
             ->keyBy('id');
 
         return $lowStockVariantsByProduct
-            ->map(fn($row): array => [
+            ->map(fn ($row): array => [
                 'id' => (string) $row->product_id,
                 'title' => (string) ($products[$row->product_id]->title ?? ''),
                 'low_stock_variants' => (int) $row->low_stock_variants,

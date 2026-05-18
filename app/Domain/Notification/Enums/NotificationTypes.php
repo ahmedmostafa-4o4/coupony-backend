@@ -18,4 +18,3 @@ enum NotificationTypes: string
     case STORE_DOCUMENT_APPROVED = 'store_document_approved';
     case STORE_DOCUMENT_REJECTED = 'store_document_rejected';
 }
-

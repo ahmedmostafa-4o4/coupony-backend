@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -82,7 +83,6 @@ return new class extends Migration {
                 ->on('users')
                 ->nullOnDelete();
         });
-
 
         Schema::create('store_verifications', function (Blueprint $table) {
             $table->uuid('id')->primary();

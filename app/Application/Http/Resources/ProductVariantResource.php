@@ -34,7 +34,7 @@ class ProductVariantResource extends JsonResource
             'is_in_stock' => $this->isInStock(),
             'attributes' => $this->whenLoaded('attributes', function () {
                 return $this->attributes
-                    ->map(fn($attribute) => [
+                    ->map(fn ($attribute) => [
                         'id' => $attribute->id,
                         'attribute_name' => $attribute->attribute_name,
                         'attribute_value' => $attribute->attribute_value,
