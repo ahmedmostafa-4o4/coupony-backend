@@ -20,7 +20,19 @@ class SendInvitationRequest extends FormRequest
         return [
             'email' => ['required', 'email'],
             'address_id' => ['nullable', 'integer', 'exists:addresses,id'],
-            'role' => ['required', 'string', Rule::in(['store_manager', 'store_employee'])],
+            'role' => [
+                'required',
+                'string',
+                Rule::in([
+                    'store_manager',
+                    'store_employee',
+                    'branch_manager',
+                    'cashier',
+                    'inventory_manager',
+                    'content_manager',
+                    'support_agent',
+                ]),
+            ],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', Rule::in(StorePermission::values())],
             'message' => ['nullable', 'string', 'max:500'],

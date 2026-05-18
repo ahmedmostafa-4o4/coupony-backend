@@ -32,7 +32,7 @@ class StoreEmployeeController extends Controller
     public function index(Request $request, Store $store): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
-        $this->authorize('manageEmployees', $store);
+        $this->authorize('viewEmployees', $store);
 
         $query = StoreEmployee::query()
             ->with(['user.profile', 'address'])
@@ -74,7 +74,7 @@ class StoreEmployeeController extends Controller
     public function show(Request $request, Store $store, User $user): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
-        $this->authorize('manageEmployees', $store);
+        $this->authorize('viewEmployees', $store);
 
         $employee = $this->employeeFor($store, $user);
 
@@ -131,7 +131,7 @@ class StoreEmployeeController extends Controller
     public function destroy(Request $request, Store $store, User $user): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
-        $this->authorize('manageEmployees', $store);
+        $this->authorize('removeEmployees', $store);
 
         if ((string) $store->owner_user_id === (string) $user->id) {
             return $this->localizedJson([

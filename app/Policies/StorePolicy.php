@@ -87,6 +87,14 @@ class StorePolicy
         return $this->isOwnerOrAdmin($user, $store)
             || $store->employeeHasAnyPermission($user, [
                 StorePermission::CLAIMS_VIEW->value,
+                StorePermission::CLAIMS_MANAGE->value,
+            ]);
+    }
+
+    public function redeemClaims(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasAnyPermission($user, [
                 StorePermission::CLAIMS_REDEEM->value,
                 StorePermission::CLAIMS_MANAGE->value,
             ]);
@@ -102,6 +110,33 @@ class StorePolicy
     {
         return $this->isOwnerOrAdmin($user, $store)
             || $store->employeeHasPermission($user, StorePermission::EMPLOYEES_MANAGE->value);
+    }
+
+    public function viewEmployees(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasAnyPermission($user, [
+                StorePermission::EMPLOYEES_VIEW->value,
+                StorePermission::EMPLOYEES_MANAGE->value,
+            ]);
+    }
+
+    public function updateEmployees(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasAnyPermission($user, [
+                StorePermission::EMPLOYEES_UPDATE->value,
+                StorePermission::EMPLOYEES_MANAGE->value,
+            ]);
+    }
+
+    public function removeEmployees(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasAnyPermission($user, [
+                StorePermission::EMPLOYEES_REMOVE->value,
+                StorePermission::EMPLOYEES_MANAGE->value,
+            ]);
     }
 
     public function viewAnalytics(User $user, Store $store): bool

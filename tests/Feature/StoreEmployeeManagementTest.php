@@ -265,6 +265,16 @@ class StoreEmployeeManagementTest extends TestCase
             ->getJson("/api/v1/stores/{$store->id}/employees/{$employee->id}")
             ->assertOk()
             ->assertJsonPath('data.user_id', $employee->id);
+
+        $this->actingAs($manager, 'sanctum')
+            ->patchJson("/api/v1/stores/{$store->id}/employees/{$employee->id}", [
+                'permissions' => [StorePermission::CLAIMS_VIEW->value],
+            ])
+            ->assertOk();
+
+        $this->actingAs($manager, 'sanctum')
+            ->deleteJson("/api/v1/stores/{$store->id}/employees/{$employee->id}")
+            ->assertOk();
     }
 
     public function test_cashier_can_access_claims_but_cannot_manage_employees(): void
@@ -293,6 +303,196 @@ class StoreEmployeeManagementTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_employee_with_only_claim_view_can_list_and_show_but_cannot_redeem_claims(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $viewer = $this->employeeFor($store, [
+            StorePermission::CLAIMS_VIEW->value,
+        ]);
+        $claim = $this->claimForStore($store);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $claim->id);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims/{$claim->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $claim->id);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_employee_with_claim_redeem_can_redeem_claims(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $redeemer = $this->employeeFor($store, [
+            StorePermission::CLAIMS_REDEEM->value,
+        ]);
+        $claim = $this->claimForStore($store);
+
+        $this->actingAs($redeemer, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', OfferClaimStatus::REDEEMED->value);
+    }
+
+    public function test_employee_with_claim_manage_can_list_show_and_redeem_claims(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $manager = $this->employeeFor($store, [
+            StorePermission::CLAIMS_MANAGE->value,
+        ]);
+        $claim = $this->claimForStore($store);
+
+        $this->actingAs($manager, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $claim->id);
+
+        $this->actingAs($manager, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims/{$claim->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $claim->id);
+
+        $this->actingAs($manager, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', OfferClaimStatus::REDEEMED->value);
+    }
+
+    public function test_invitation_accepts_all_store_employee_roles(): void
+    {
+        [$owner, $store] = $this->storeWithOwner();
+
+        foreach (['cashier', 'branch_manager', 'inventory_manager', 'content_manager', 'support_agent'] as $role) {
+            $invitee = User::factory()->create();
+
+            $this->actingAs($owner, 'sanctum')
+                ->postJson("/api/v1/stores/{$store->id}/invitations", [
+                    'email' => $invitee->email,
+                    'role' => $role,
+                    'permissions' => [StorePermission::CLAIMS_VIEW->value],
+                ])
+                ->assertCreated()
+                ->assertJsonPath('data.role', $role);
+        }
+    }
+
+    public function test_employee_with_view_permission_can_index_and_show_but_cannot_update_or_delete_employees(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $viewer = $this->employeeFor($store, [
+            StorePermission::EMPLOYEES_VIEW->value,
+        ], 'store_manager');
+        $employee = $this->employeeFor($store, [
+            StorePermission::CLAIMS_VIEW->value,
+        ]);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/employees")
+            ->assertOk();
+
+        $this->actingAs($viewer, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/employees/{$employee->id}")
+            ->assertOk();
+
+        $this->actingAs($viewer, 'sanctum')
+            ->patchJson("/api/v1/stores/{$store->id}/employees/{$employee->id}", [
+                'permissions' => [StorePermission::CLAIMS_REDEEM->value],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($viewer, 'sanctum')
+            ->deleteJson("/api/v1/stores/{$store->id}/employees/{$employee->id}")
+            ->assertForbidden();
+    }
+
+    public function test_employee_with_update_permission_can_update_but_cannot_delete_employees(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $updater = $this->employeeFor($store, [
+            StorePermission::EMPLOYEES_UPDATE->value,
+        ], 'store_manager');
+        $employee = $this->employeeFor($store, [
+            StorePermission::CLAIMS_VIEW->value,
+        ]);
+
+        $this->actingAs($updater, 'sanctum')
+            ->patchJson("/api/v1/stores/{$store->id}/employees/{$employee->id}", [
+                'permissions' => [StorePermission::CLAIMS_REDEEM->value],
+            ])
+            ->assertOk();
+
+        $this->actingAs($updater, 'sanctum')
+            ->deleteJson("/api/v1/stores/{$store->id}/employees/{$employee->id}")
+            ->assertForbidden();
+    }
+
+    public function test_employee_with_remove_permission_can_delete_but_cannot_update_employees(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $remover = $this->employeeFor($store, [
+            StorePermission::EMPLOYEES_REMOVE->value,
+        ], 'store_manager');
+        $employee = $this->employeeFor($store, [
+            StorePermission::CLAIMS_VIEW->value,
+        ]);
+
+        $this->actingAs($remover, 'sanctum')
+            ->patchJson("/api/v1/stores/{$store->id}/employees/{$employee->id}", [
+                'permissions' => [StorePermission::CLAIMS_REDEEM->value],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($remover, 'sanctum')
+            ->deleteJson("/api/v1/stores/{$store->id}/employees/{$employee->id}")
+            ->assertOk();
+    }
+
+    public function test_employee_with_null_permissions_gets_role_default_permissions(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $cashier = $this->employeeFor($store, null, 'cashier');
+        $claim = $this->claimForStore($store);
+
+        $this->actingAs($cashier, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims")
+            ->assertOk();
+
+        $this->actingAs($cashier, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertOk();
+    }
+
+    public function test_employee_with_explicit_empty_permissions_gets_no_permissions(): void
+    {
+        [, $store] = $this->storeWithOwner();
+        $employee = $this->employeeFor($store, [], 'store_employee');
+        $claim = $this->claimForStore($store);
+
+        $this->actingAs($employee, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims")
+            ->assertForbidden();
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claim->qr_code_token,
+            ])
+            ->assertForbidden();
+    }
+
     private function storeWithOwner(): array
     {
         $owner = User::factory()->create();
@@ -302,7 +502,7 @@ class StoreEmployeeManagementTest extends TestCase
         return [$owner, $store];
     }
 
-    private function employeeFor(Store $store, array $permissions, string $role = 'store_employee', ?Address $address = null): User
+    private function employeeFor(Store $store, ?array $permissions, string $role = 'store_employee', ?Address $address = null): User
     {
         $user = User::factory()->create();
         $user->assignRole($role);

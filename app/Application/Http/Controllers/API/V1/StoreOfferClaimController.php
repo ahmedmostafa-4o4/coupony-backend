@@ -71,7 +71,7 @@ class StoreOfferClaimController extends Controller
     public function redeem(RedeemOfferClaimRequest $request, Store $store): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
-        Gate::authorize('accessClaims', $store);
+        Gate::authorize('redeemClaims', $store);
 
         try {
             $claim = $this->redeemOfferClaim->execute(

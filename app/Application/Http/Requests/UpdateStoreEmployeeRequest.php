@@ -13,7 +13,7 @@ class UpdateStoreEmployeeRequest extends FormRequest
     {
         $store = $this->route('store');
 
-        return $store && $this->user()->can('manageEmployees', $store);
+        return $store && $this->user()->can('updateEmployees', $store);
     }
 
     public function rules(): array

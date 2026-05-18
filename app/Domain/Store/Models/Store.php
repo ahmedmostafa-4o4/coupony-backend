@@ -6,6 +6,7 @@ use App\Domain\Points\Models\StorePoints;
 use App\Domain\Points\Models\StorePointTransaction;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
+use App\Domain\Store\Enums\StorePermission;
 use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
@@ -243,15 +244,65 @@ class Store extends Model
             return false;
         }
 
-        // Safer default: legacy/null permission rows grant no implicit access.
-        // Staff must have explicit per-store permissions in store_employees.permissions.
-        if ($employee->permissions === null) {
-            return false;
-        }
+        // Explicit per-store permissions override role defaults. Null keeps
+        // legacy/invited employees working by falling back to their role.
+        $effectivePermissions = $employee->permissions
+            ?? $this->defaultPermissionsForStoreRole($employee->role);
 
-        return collect($employee->permissions)
+        return collect($effectivePermissions)
             ->intersect($permissions)
             ->isNotEmpty();
+    }
+
+    public function defaultPermissionsForStoreRole(?string $role): array
+    {
+        return match ($role) {
+            'store_manager' => [
+                StorePermission::DASHBOARD_VIEW->value,
+                StorePermission::PRODUCTS_MANAGE->value,
+                StorePermission::OFFERS_MANAGE->value,
+                StorePermission::CLAIMS_MANAGE->value,
+                StorePermission::ORDERS_MANAGE->value,
+                StorePermission::EMPLOYEES_VIEW->value,
+                StorePermission::BRANCHES_VIEW->value,
+                StorePermission::ANALYTICS_VIEW->value,
+                StorePermission::REVIEWS_VIEW->value,
+            ],
+            'store_employee' => [
+                StorePermission::CLAIMS_VIEW->value,
+                StorePermission::CLAIMS_REDEEM->value,
+            ],
+            'cashier' => [
+                StorePermission::CLAIMS_VIEW->value,
+                StorePermission::CLAIMS_REDEEM->value,
+                StorePermission::ORDERS_VIEW->value,
+            ],
+            'branch_manager' => [
+                StorePermission::DASHBOARD_VIEW->value,
+                StorePermission::CLAIMS_MANAGE->value,
+                StorePermission::ORDERS_VIEW->value,
+                StorePermission::EMPLOYEES_VIEW->value,
+                StorePermission::BRANCHES_VIEW->value,
+            ],
+            'inventory_manager' => [
+                StorePermission::PRODUCTS_VIEW->value,
+                StorePermission::PRODUCTS_CREATE->value,
+                StorePermission::PRODUCTS_UPDATE->value,
+                StorePermission::OFFERS_VIEW->value,
+                StorePermission::OFFERS_UPDATE->value,
+            ],
+            'content_manager' => [
+                StorePermission::PRODUCTS_MANAGE->value,
+                StorePermission::OFFERS_MANAGE->value,
+                StorePermission::REVIEWS_VIEW->value,
+            ],
+            'support_agent' => [
+                StorePermission::ORDERS_VIEW->value,
+                StorePermission::CLAIMS_VIEW->value,
+                StorePermission::REVIEWS_VIEW->value,
+            ],
+            default => [],
+        };
     }
 
     public function addBranchAddress(array $data): Address
