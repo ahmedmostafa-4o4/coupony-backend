@@ -19,7 +19,9 @@ use Throwable;
 
 class AdminPointController extends Controller
 {
-    public function __construct(private readonly PointsService $points) {}
+    public function __construct(private readonly PointsService $points)
+    {
+    }
 
     public function showUserPoints(Request $request, User $user): JsonResponse
     {

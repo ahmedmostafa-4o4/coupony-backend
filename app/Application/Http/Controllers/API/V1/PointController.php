@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Gate;
 
 class PointController extends Controller
 {
-    public function __construct(private readonly PointsService $points) {}
+    public function __construct(private readonly PointsService $points)
+    {
+    }
 
     public function showMyPoints(Request $request): JsonResponse
     {

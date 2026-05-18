@@ -17,7 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class RedeemOfferClaim
 {
-    public function __construct(private readonly PointsService $points) {}
+    public function __construct(private readonly PointsService $points)
+    {
+    }
+
 
     public function execute(Store $store, string $qrCodeToken, User $redeemedBy): OfferClaim
     {
@@ -28,7 +31,7 @@ class RedeemOfferClaim
                 ->lockForUpdate()
                 ->first();
 
-            if (! $claim || $claim->store_id !== $store->id) {
+            if (!$claim || $claim->store_id !== $store->id) {
                 throw new \DomainException('The scanned claim could not be found for this store.');
             }
 
@@ -66,79 +69,82 @@ class RedeemOfferClaim
                 /** @var ProductVariant|null $variant */
                 $variant = $variants->get($variantId);
 
-                if (! $variant || $variant->product_id !== $claim->product_id || ! $variant->is_active) {
-                    throw new \DomainException('One or more claimed variants are no longer redeemable.');
+                if (!$variant || $variant->product_id !== $claim->product_id || !$variant->is_active) {
+                    if (!$variant || $variant->product_id !== $claim->product_id || !$variant->is_active) {
+                        throw new \DomainException('One or more claimed variants are no longer redeemable.');
+                    }
+
+                    if (
+                        $variant->inventory_mode === InventoryMode::TRACKED
+                        && (int) ($variant->stock_qty ?? 0) < $quantity
+                    ) {
+                        throw new \DomainException('Insufficient stock is available to redeem this claim.');
+                    }
                 }
 
-                if (
-                    $variant->inventory_mode === InventoryMode::TRACKED
-                    && (int) ($variant->stock_qty ?? 0) < $quantity
-                ) {
-                    throw new \DomainException('Insufficient stock is available to redeem this claim.');
-                }
-            }
+                foreach ($usageCounts as $variantId => $quantity) {
+                    /** @var ProductVariant $variant */
+                    $variant = $variants->get($variantId);
+                    $updates = [
+                        'redemption_count' => DB::raw("redemption_count + {$quantity}"),
+                    ];
 
-            foreach ($usageCounts as $variantId => $quantity) {
-                /** @var ProductVariant $variant */
-                $variant = $variants->get($variantId);
-                $updates = [
-                    'redemption_count' => DB::raw("redemption_count + {$quantity}"),
-                ];
+                    if ($variant->inventory_mode === InventoryMode::TRACKED) {
+                        $updates['stock_qty'] = max(0, (int) $variant->stock_qty - $quantity);
+                    }
 
-                if ($variant->inventory_mode === InventoryMode::TRACKED) {
-                    $updates['stock_qty'] = max(0, (int) $variant->stock_qty - $quantity);
+                    ProductVariant::query()->whereKey($variantId)->update($updates);
                 }
 
-                ProductVariant::query()->whereKey($variantId)->update($updates);
-            }
+                Product::query()
+                    ->whereKey($claim->product_id)
+                    ->lockForUpdate()
+                    ->update([
+                        'redemption_count' => DB::raw('redemption_count + 1'),
+                    ]);
 
-            Product::query()
-                ->whereKey($claim->product_id)
-                ->lockForUpdate()
-                ->update([
-                    'redemption_count' => DB::raw('redemption_count + 1'),
+                $claim->update([
+                    'status' => OfferClaimStatus::REDEEMED,
+                    'redeemed_at' => now(),
+                    'redeemed_by' => $redeemedBy->id,
                 ]);
 
-            $claim->update([
-                'status' => OfferClaimStatus::REDEEMED,
-                'redeemed_at' => now(),
-                'redeemed_by' => $redeemedBy->id,
-            ]);
+                $claim->loadMissing('user');
 
-            $claim->loadMissing('user');
+                $meta = [
+                    'claim_id' => $claim->id,
+                    'product_id' => $claim->product_id,
+                    'store_id' => $store->id,
+                ];
 
-            $meta = [
-                'claim_id' => $claim->id,
-                'product_id' => $claim->product_id,
-                'store_id' => $store->id,
-            ];
+                if (!$this->hasRedeemPointsAward($claim)) {
+                    $this->points->addUserPoints(
+                        $claim->user,
+                        (int) config('points.offer_redeemed_user', 20),
+                        'offer_redeemed',
+                        null,
+                        $store,
+                        $claim,
+                        null,
+                        $meta
+                    );
 
-            if (! $this->hasRedeemPointsAward($claim)) {
-                $this->points->addUserPoints(
-                    $claim->user,
-                    (int) config('points.offer_redeemed_user', 20),
-                    'offer_redeemed',
-                    null,
-                    $store,
-                    $claim,
-                    null,
-                    $meta
-                );
+                    $this->points->addStorePoints(
+                        $store,
+                        (int) config('points.offer_redeemed_store', 10),
+                        'offer_redeemed',
+                        null,
+                        $claim->user,
+                        $claim,
+                        null,
+                        $meta
+                    );
+                }
 
-                $this->points->addStorePoints(
-                    $store,
-                    (int) config('points.offer_redeemed_store', 10),
-                    'offer_redeemed',
-                    null,
-                    $claim->user,
-                    $claim,
-                    null,
-                    $meta
-                );
+                return $claim->fresh();
             }
-
-            return $claim->fresh();
         });
+
     }
 
     private function hasRedeemPointsAward(OfferClaim $claim): bool
