@@ -2,6 +2,7 @@
 
 namespace App\Domain\Product\Actions;
 
+use App\Domain\Points\Services\PointsService;
 use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Product\Models\OfferClaim;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class RedeemOfferClaim
 {
+    public function __construct(private readonly PointsService $points) {}
+
     public function execute(Store $store, string $qrCodeToken, User $redeemedBy): OfferClaim
     {
         return DB::transaction(function () use ($store, $qrCodeToken, $redeemedBy) {
@@ -23,7 +26,7 @@ class RedeemOfferClaim
                 ->lockForUpdate()
                 ->first();
 
-            if (!$claim || $claim->store_id !== $store->id) {
+            if (! $claim || $claim->store_id !== $store->id) {
                 throw new \DomainException('The scanned claim could not be found for this store.');
             }
 
@@ -61,7 +64,7 @@ class RedeemOfferClaim
                 /** @var ProductVariant|null $variant */
                 $variant = $variants->get($variantId);
 
-                if (!$variant || $variant->product_id !== $claim->product_id || !$variant->is_active) {
+                if (! $variant || $variant->product_id !== $claim->product_id || ! $variant->is_active) {
                     throw new \DomainException('One or more claimed variants are no longer redeemable.');
                 }
 
@@ -99,6 +102,36 @@ class RedeemOfferClaim
                 'redeemed_at' => now(),
                 'redeemed_by' => $redeemedBy->id,
             ]);
+
+            $claim->loadMissing('user');
+
+            $meta = [
+                'claim_id' => $claim->id,
+                'product_id' => $claim->product_id,
+                'store_id' => $store->id,
+            ];
+
+            $this->points->addUserPoints(
+                $claim->user,
+                (int) config('points.offer_redeemed_user', 20),
+                'offer_redeemed',
+                null,
+                $store,
+                $claim,
+                null,
+                $meta
+            );
+
+            $this->points->addStorePoints(
+                $store,
+                (int) config('points.offer_redeemed_store', 10),
+                'offer_redeemed',
+                null,
+                $claim->user,
+                $claim,
+                null,
+                $meta
+            );
 
             return $claim->fresh();
         });

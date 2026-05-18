@@ -1,6 +1,7 @@
 <?php
 
 use App\Application\Http\Controllers\API\V1\Admin\StoreManagementController;
+use App\Application\Http\Controllers\API\V1\Admin\AdminPointController;
 use App\Application\Http\Controllers\API\V1\Admin\ProductManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\ProductRevisionManagementController;
 use App\Application\Http\Controllers\API\V1\Admin\UserManagementController;
@@ -21,6 +22,7 @@ use App\Application\Http\Controllers\API\V1\PonyAI\PonyImageController;
 use App\Application\Http\Controllers\API\V1\PonyAI\SellerChatController;
 use App\Application\Http\Controllers\API\V1\OfferClaimController;
 use App\Application\Http\Controllers\API\V1\CategoryController;
+use App\Application\Http\Controllers\API\V1\PointController;
 use App\Application\Http\Controllers\API\V1\ProductFavoriteController;
 use App\Application\Http\Controllers\API\V1\ProductImageController;
 use App\Application\Http\Controllers\API\V1\ProductLikeController;
@@ -142,6 +144,10 @@ Route::prefix('v1')->group(function () {
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::patch('/stores/{store}/profile', [StoreController::class, 'updateProfile'])->name('stores.profile.update');
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
+        Route::get('/me/points', [PointController::class, 'showMyPoints'])->name('me.points.show');
+        Route::get('/me/points/transactions', [PointController::class, 'myTransactions'])->name('me.points.transactions');
+        Route::get('/stores/{store}/points', [PointController::class, 'showStorePoints'])->name('stores.points.show');
+        Route::get('/stores/{store}/points/transactions', [PointController::class, 'storeTransactions'])->name('stores.points.transactions');
         Route::scopeBindings()->group(function () {
             Route::prefix('/stores/{store}/addresses')->name('stores.addresses.')->group(function () {
                 Route::get('/', [StoreAddressController::class, 'index'])->name('index');
@@ -284,6 +290,22 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [SocialController::class, 'store'])->name('store');
             Route::put('/{social}', [SocialController::class, 'update'])->name('update');
             Route::delete('/{social}', [SocialController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('users/{user}/points')->name('admin.users.points.')->group(function () {
+            Route::get('/', [AdminPointController::class, 'showUserPoints'])->name('show');
+            Route::get('/transactions', [AdminPointController::class, 'userTransactions'])->name('transactions');
+            Route::post('/add', [AdminPointController::class, 'addUserPoints'])->name('add');
+            Route::post('/deduct', [AdminPointController::class, 'deductUserPoints'])->name('deduct');
+            Route::post('/set', [AdminPointController::class, 'setUserPoints'])->name('set');
+        });
+
+        Route::prefix('stores/{store}/points')->name('admin.stores.points.')->group(function () {
+            Route::get('/', [AdminPointController::class, 'showStorePoints'])->name('show');
+            Route::get('/transactions', [AdminPointController::class, 'storeTransactions'])->name('transactions');
+            Route::post('/add', [AdminPointController::class, 'addStorePoints'])->name('add');
+            Route::post('/deduct', [AdminPointController::class, 'deductStorePoints'])->name('deduct');
+            Route::post('/set', [AdminPointController::class, 'setStorePoints'])->name('set');
         });
 
         // Store Management
