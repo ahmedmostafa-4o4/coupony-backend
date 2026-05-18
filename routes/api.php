@@ -377,22 +377,20 @@ Route::prefix('v1')->group(function () {
     | Development/Testing Routes
     |--------------------------------------------------------------------------
     */
-    if (app()->environment('local', 'development')) {
-        Route::get('/test-mail', function () {
-            Mail::to('lofylofy56@gmail.com')->send(
-                new \App\Domain\Notification\Mail\NotificationEmail(
-                    Notification::first(),
-                    User::first()
-                )
-            );
+    Route::get('/test-mail', function () {
+        Mail::to('lofylofy56@gmail.com')->send(
+            new \App\Domain\Notification\Mail\NotificationEmail(
+                Notification::first(),
+                User::first()
+            )
+        );
 
-            return 'sent';
-        })->name('test.mail');
+        return 'sent';
+    })->name('test.mail');
 
-        Route::get('/mail-check', function () {
-            return config('mail.from.address');
-        })->name('test.mailCheck');
-    }
+    Route::get('/mail-check', function () {
+        return config('mail.from.address');
+    })->name('test.mailCheck');
 
     Route::get('/log-test', function () {
         Log::info('test from hostinger');
