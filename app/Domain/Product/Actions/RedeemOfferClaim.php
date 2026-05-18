@@ -2,6 +2,8 @@
 
 namespace App\Domain\Product\Actions;
 
+use App\Domain\Points\Models\StorePointTransaction;
+use App\Domain\Points\Models\UserPointTransaction;
 use App\Domain\Points\Services\PointsService;
 use App\Domain\Product\Enums\InventoryMode;
 use App\Domain\Product\Enums\OfferClaimStatus;
@@ -111,29 +113,43 @@ class RedeemOfferClaim
                 'store_id' => $store->id,
             ];
 
-            $this->points->addUserPoints(
-                $claim->user,
-                (int) config('points.offer_redeemed_user', 20),
-                'offer_redeemed',
-                null,
-                $store,
-                $claim,
-                null,
-                $meta
-            );
+            if (! $this->hasRedeemPointsAward($claim)) {
+                $this->points->addUserPoints(
+                    $claim->user,
+                    (int) config('points.offer_redeemed_user', 20),
+                    'offer_redeemed',
+                    null,
+                    $store,
+                    $claim,
+                    null,
+                    $meta
+                );
 
-            $this->points->addStorePoints(
-                $store,
-                (int) config('points.offer_redeemed_store', 10),
-                'offer_redeemed',
-                null,
-                $claim->user,
-                $claim,
-                null,
-                $meta
-            );
+                $this->points->addStorePoints(
+                    $store,
+                    (int) config('points.offer_redeemed_store', 10),
+                    'offer_redeemed',
+                    null,
+                    $claim->user,
+                    $claim,
+                    null,
+                    $meta
+                );
+            }
 
             return $claim->fresh();
         });
+    }
+
+    private function hasRedeemPointsAward(OfferClaim $claim): bool
+    {
+        return UserPointTransaction::query()
+            ->where('offer_claim_id', $claim->id)
+            ->where('reason', 'offer_redeemed')
+            ->exists()
+            || StorePointTransaction::query()
+                ->where('offer_claim_id', $claim->id)
+                ->where('reason', 'offer_redeemed')
+                ->exists();
     }
 }

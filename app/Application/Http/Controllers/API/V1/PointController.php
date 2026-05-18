@@ -50,7 +50,7 @@ class PointController extends Controller
     public function showStorePoints(Request $request, Store $store): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
-        Gate::authorize('view', $store);
+        Gate::authorize('viewPoints', $store);
 
         return $this->localizedJson([
             'message' => 'Store points retrieved successfully.',
@@ -61,7 +61,7 @@ class PointController extends Controller
     public function storeTransactions(Request $request, Store $store): JsonResponse
     {
         $this->applyAuthenticatedLocale($request);
-        Gate::authorize('view', $store);
+        Gate::authorize('viewPoints', $store);
 
         $validated = $request->validate([
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

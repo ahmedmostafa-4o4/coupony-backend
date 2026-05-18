@@ -54,7 +54,7 @@ class PointsManagementTest extends TestCase
         $this->assertDatabaseHas('user_point_transactions', [
             'user_id' => $this->customer->id,
             'admin_user_id' => $this->admin->id,
-            'type' => 'earn',
+            'type' => 'adjustment',
             'points' => 25,
             'reason' => 'manual_bonus',
         ]);
@@ -76,6 +76,14 @@ class PointsManagementTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.current_balance', 25)
             ->assertJsonPath('data.lifetime_spent', 15);
+
+        $this->assertDatabaseHas('user_point_transactions', [
+            'user_id' => $this->customer->id,
+            'admin_user_id' => $this->admin->id,
+            'type' => 'adjustment',
+            'points' => 15,
+            'reason' => 'manual_deduction',
+        ]);
     }
 
     public function test_admin_can_set_user_points(): void
@@ -156,6 +164,27 @@ class PointsManagementTest extends TestCase
             ->assertJsonPath('data.current_balance', 80);
 
         $this->assertSame(3, $this->store->pointTransactions()->count());
+        $this->assertDatabaseHas('store_point_transactions', [
+            'store_id' => $this->store->id,
+            'admin_user_id' => $this->admin->id,
+            'type' => 'adjustment',
+            'points' => 50,
+            'reason' => 'store_bonus',
+        ]);
+        $this->assertDatabaseHas('store_point_transactions', [
+            'store_id' => $this->store->id,
+            'admin_user_id' => $this->admin->id,
+            'type' => 'adjustment',
+            'points' => 20,
+            'reason' => 'store_penalty',
+        ]);
+        $this->assertDatabaseHas('store_point_transactions', [
+            'store_id' => $this->store->id,
+            'admin_user_id' => $this->admin->id,
+            'type' => 'set',
+            'points' => 50,
+            'reason' => 'store_set',
+        ]);
         $this->assertSame(80, StorePoints::query()->where('store_id', $this->store->id)->value('current_balance'));
     }
 }

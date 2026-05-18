@@ -43,6 +43,17 @@ class PointsServiceTest extends TestCase
         $this->assertSame(1, UserPointTransaction::query()->where('user_id', $user->id)->count());
     }
 
+    public function test_get_or_create_user_points_is_idempotent(): void
+    {
+        $user = User::factory()->create();
+
+        $first = $this->points->getOrCreateUserPoints($user);
+        $second = $this->points->getOrCreateUserPoints($user);
+
+        $this->assertSame($first->id, $second->id);
+        $this->assertSame(1, UserPoints::query()->where('user_id', $user->id)->count());
+    }
+
     public function test_deduct_user_points_decreases_balance_and_increases_lifetime_spent(): void
     {
         $user = User::factory()->create();
@@ -127,6 +138,17 @@ class PointsServiceTest extends TestCase
             'lifetime_earned' => 40,
         ]);
         $this->assertSame(1, StorePointTransaction::query()->where('store_id', $store->id)->count());
+    }
+
+    public function test_get_or_create_store_points_is_idempotent(): void
+    {
+        $store = Store::factory()->create();
+
+        $first = $this->points->getOrCreateStorePoints($store);
+        $second = $this->points->getOrCreateStorePoints($store);
+
+        $this->assertSame($first->id, $second->id);
+        $this->assertSame(1, StorePoints::query()->where('store_id', $store->id)->count());
     }
 
     public function test_deduct_store_points_decreases_balance_and_increases_lifetime_spent(): void

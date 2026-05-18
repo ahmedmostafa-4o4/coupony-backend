@@ -27,11 +27,12 @@ class PointsService
         ?Store $store = null,
         ?OfferClaim $claim = null,
         ?string $note = null,
-        array $meta = []
+        array $meta = [],
+        ?string $type = null
     ): UserPoints {
         $this->ensurePositivePoints($points);
 
-        return DB::transaction(function () use ($user, $points, $reason, $admin, $store, $claim, $note, $meta) {
+        return DB::transaction(function () use ($user, $points, $reason, $admin, $store, $claim, $note, $meta, $type) {
             $userPoints = $this->lockUserPoints($user);
             $balanceBefore = (int) $userPoints->current_balance;
             $balanceAfter = $balanceBefore + $points;
@@ -43,7 +44,7 @@ class PointsService
 
             $this->recordUserTransaction(
                 $user,
-                'earn',
+                $type ?? 'earn',
                 $points,
                 $balanceBefore,
                 $balanceAfter,
@@ -67,11 +68,12 @@ class PointsService
         ?Store $store = null,
         ?OfferClaim $claim = null,
         ?string $note = null,
-        array $meta = []
+        array $meta = [],
+        ?string $type = null
     ): UserPoints {
         $this->ensurePositivePoints($points);
 
-        return DB::transaction(function () use ($user, $points, $reason, $admin, $store, $claim, $note, $meta) {
+        return DB::transaction(function () use ($user, $points, $reason, $admin, $store, $claim, $note, $meta, $type) {
             $userPoints = $this->lockUserPoints($user);
             $balanceBefore = (int) $userPoints->current_balance;
             $balanceAfter = $balanceBefore - $points;
@@ -87,7 +89,7 @@ class PointsService
 
             $this->recordUserTransaction(
                 $user,
-                'spend',
+                $type ?? 'spend',
                 $points,
                 $balanceBefore,
                 $balanceAfter,
@@ -161,11 +163,12 @@ class PointsService
         ?User $user = null,
         ?OfferClaim $claim = null,
         ?string $note = null,
-        array $meta = []
+        array $meta = [],
+        ?string $type = null
     ): StorePoints {
         $this->ensurePositivePoints($points);
 
-        return DB::transaction(function () use ($store, $points, $reason, $admin, $user, $claim, $note, $meta) {
+        return DB::transaction(function () use ($store, $points, $reason, $admin, $user, $claim, $note, $meta, $type) {
             $storePoints = $this->lockStorePoints($store);
             $balanceBefore = (int) $storePoints->current_balance;
             $balanceAfter = $balanceBefore + $points;
@@ -177,7 +180,7 @@ class PointsService
 
             $this->recordStoreTransaction(
                 $store,
-                'earn',
+                $type ?? 'earn',
                 $points,
                 $balanceBefore,
                 $balanceAfter,
@@ -201,11 +204,12 @@ class PointsService
         ?User $user = null,
         ?OfferClaim $claim = null,
         ?string $note = null,
-        array $meta = []
+        array $meta = [],
+        ?string $type = null
     ): StorePoints {
         $this->ensurePositivePoints($points);
 
-        return DB::transaction(function () use ($store, $points, $reason, $admin, $user, $claim, $note, $meta) {
+        return DB::transaction(function () use ($store, $points, $reason, $admin, $user, $claim, $note, $meta, $type) {
             $storePoints = $this->lockStorePoints($store);
             $balanceBefore = (int) $storePoints->current_balance;
             $balanceAfter = $balanceBefore - $points;
@@ -221,7 +225,7 @@ class PointsService
 
             $this->recordStoreTransaction(
                 $store,
-                'spend',
+                $type ?? 'spend',
                 $points,
                 $balanceBefore,
                 $balanceAfter,
@@ -284,17 +288,13 @@ class PointsService
 
     private function lockUserPoints(User $user): UserPoints
     {
-        $userPoints = UserPoints::query()
-            ->where('user_id', $user->id)
-            ->lockForUpdate()
-            ->first();
-
-        if ($userPoints instanceof UserPoints) {
-            return $userPoints;
-        }
-
-        UserPoints::query()->create([
+        UserPoints::query()->insertOrIgnore([
             'user_id' => $user->id,
+            'current_balance' => 0,
+            'lifetime_earned' => 0,
+            'lifetime_spent' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return UserPoints::query()
@@ -305,17 +305,13 @@ class PointsService
 
     private function lockStorePoints(Store $store): StorePoints
     {
-        $storePoints = StorePoints::query()
-            ->where('store_id', $store->id)
-            ->lockForUpdate()
-            ->first();
-
-        if ($storePoints instanceof StorePoints) {
-            return $storePoints;
-        }
-
-        StorePoints::query()->create([
+        StorePoints::query()->insertOrIgnore([
             'store_id' => $store->id,
+            'current_balance' => 0,
+            'lifetime_earned' => 0,
+            'lifetime_spent' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return StorePoints::query()

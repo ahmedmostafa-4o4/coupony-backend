@@ -76,7 +76,8 @@ class AdminPointController extends Controller
                 null,
                 null,
                 $validated['note'] ?? null,
-                $validated['meta'] ?? []
+                $validated['meta'] ?? [],
+                'adjustment'
             );
 
             return $this->localizedJson([
@@ -108,7 +109,8 @@ class AdminPointController extends Controller
                 null,
                 null,
                 $validated['note'] ?? null,
-                $validated['meta'] ?? []
+                $validated['meta'] ?? [],
+                'adjustment'
             );
 
             return $this->localizedJson([
@@ -211,7 +213,8 @@ class AdminPointController extends Controller
                 null,
                 null,
                 $validated['note'] ?? null,
-                $validated['meta'] ?? []
+                $validated['meta'] ?? [],
+                'adjustment'
             );
 
             return $this->localizedJson([
@@ -243,7 +246,8 @@ class AdminPointController extends Controller
                 null,
                 null,
                 $validated['note'] ?? null,
-                $validated['meta'] ?? []
+                $validated['meta'] ?? [],
+                'adjustment'
             );
 
             return $this->localizedJson([
