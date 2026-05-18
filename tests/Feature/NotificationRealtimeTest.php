@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Notification\Events\NotificationSent;
 use App\Domain\Notification\Models\Notification;
+use App\Domain\Product\Models\OfferClaim;
 use App\Domain\User\Models\User;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -65,6 +66,8 @@ class NotificationRealtimeTest extends TestCase
             'data' => ['claim_id' => 'claim-1'],
             'channel' => 'in_app',
             'status' => 'sent',
+            'reference_type' => OfferClaim::class,
+            'reference_id' => 'claim-1',
             'read_at' => null,
         ]);
         Notification::factory()->read()->create(['user_id' => $user->id]);
@@ -76,6 +79,11 @@ class NotificationRealtimeTest extends TestCase
         $this->assertSame('Test title', $payload['notification']['title']);
         $this->assertSame('Test message', $payload['notification']['message']);
         $this->assertSame(['claim_id' => 'claim-1'], $payload['notification']['data']);
+        $this->assertSame('in_app', $payload['notification']['channel']);
+        $this->assertSame('sent', $payload['notification']['status']);
+        $this->assertSame(OfferClaim::class, $payload['notification']['reference_type']);
+        $this->assertSame('claim-1', $payload['notification']['reference_id']);
+        $this->assertNotEmpty($payload['notification']['created_at']);
         $this->assertSame(1, $payload['unread_count']);
     }
 
