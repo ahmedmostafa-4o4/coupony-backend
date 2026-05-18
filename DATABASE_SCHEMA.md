@@ -98,6 +98,34 @@ User loyalty points tracking.
 
 ---
 
+### `user_point_transactions`
+Audit ledger for every customer/user points balance change.
+
+| Column | Type | Attributes | Description |
+|--------|------|------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Transaction ID |
+| user_id | CHAR(36) | NOT NULL, INDEXED | User receiving the points change |
+| admin_user_id | CHAR(36) | NULLABLE, INDEXED | Admin who performed manual action |
+| store_id | CHAR(36) | NULLABLE, INDEXED | Related store, when applicable |
+| offer_claim_id | CHAR(36) | NULLABLE, INDEXED | Related offer claim, when applicable |
+| type | VARCHAR(255) | NOT NULL, INDEXED | earn, spend, refund, adjustment, set |
+| points | INT | NOT NULL | Points changed or set difference |
+| balance_before | INT | NOT NULL | Balance before transaction |
+| balance_after | INT | NOT NULL | Balance after transaction |
+| reason | VARCHAR(255) | NOT NULL | Business reason code |
+| note | TEXT | NULLABLE | Optional admin/system note |
+| meta | JSON | NULLABLE | Optional structured context |
+| created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Record update timestamp |
+
+**Foreign Keys:**
+- `user_id` → `users.id` (CASCADE DELETE)
+- `admin_user_id` → `users.id` (SET NULL ON DELETE)
+- `store_id` → `stores.id` (SET NULL ON DELETE)
+- `offer_claim_id` → `offer_claims.id` (SET NULL ON DELETE)
+
+---
+
 ### `user_preferences`
 User application preferences and settings.
 
@@ -307,6 +335,52 @@ Store/merchant accounts.
 - `owner_user_id` → `users.id` (RESTRICT DELETE)
 - `approved_by` → `users.id` (SET NULL)
 - `rejected_by` → `users.id` (SET NULL)
+
+---
+
+### `store_points`
+Store/seller loyalty points balance tracking.
+
+| Column | Type | Attributes | Description |
+|--------|------|------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Points record ID |
+| store_id | CHAR(36) | UNIQUE, NOT NULL | Foreign key to stores |
+| current_balance | INT | DEFAULT 0 | Current store points balance |
+| lifetime_earned | INT | DEFAULT 0 | Total store points earned |
+| lifetime_spent | INT | DEFAULT 0 | Total store points spent |
+| created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Record update timestamp |
+
+**Foreign Keys:**
+- `store_id` → `stores.id` (CASCADE DELETE)
+
+---
+
+### `store_point_transactions`
+Audit ledger for every store/seller points balance change.
+
+| Column | Type | Attributes | Description |
+|--------|------|------------|-------------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | Transaction ID |
+| store_id | CHAR(36) | NOT NULL, INDEXED | Store receiving the points change |
+| admin_user_id | CHAR(36) | NULLABLE, INDEXED | Admin who performed manual action |
+| user_id | CHAR(36) | NULLABLE, INDEXED | Related user/customer, when applicable |
+| offer_claim_id | CHAR(36) | NULLABLE, INDEXED | Related offer claim, when applicable |
+| type | VARCHAR(255) | NOT NULL, INDEXED | earn, spend, penalty, adjustment, set |
+| points | INT | NOT NULL | Points changed or set difference |
+| balance_before | INT | NOT NULL | Balance before transaction |
+| balance_after | INT | NOT NULL | Balance after transaction |
+| reason | VARCHAR(255) | NOT NULL | Business reason code |
+| note | TEXT | NULLABLE | Optional admin/system note |
+| meta | JSON | NULLABLE | Optional structured context |
+| created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Record update timestamp |
+
+**Foreign Keys:**
+- `store_id` → `stores.id` (CASCADE DELETE)
+- `admin_user_id` → `users.id` (SET NULL ON DELETE)
+- `user_id` → `users.id` (SET NULL ON DELETE)
+- `offer_claim_id` → `offer_claims.id` (SET NULL ON DELETE)
 
 ---
 

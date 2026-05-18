@@ -3,16 +3,16 @@
 namespace App\Domain\User\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Domain\Store\Models\StoreFollowers;
-use App\Domain\Store\Models\StoreEmployee;
+use App\Domain\Points\Models\UserPointTransaction;
 use App\Domain\Product\Models\OfferClaim;
-use App\Domain\Product\Models\ProductFavorite;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductComment;
 use App\Domain\Product\Models\ProductCommentLike;
+use App\Domain\Product\Models\ProductFavorite;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductView;
-use App\Domain\User\Models\UserPreference;
+use App\Domain\Store\Models\StoreEmployee;
+use App\Domain\Store\Models\StoreFollowers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,9 +21,8 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -99,7 +98,7 @@ class User extends Authenticatable
         static::creating(function ($user) {
             // Generate UUID if not set
             if (empty($user->id)) {
-                $user->id = (string)\Illuminate\Support\Str::uuid();
+                $user->id = (string) \Illuminate\Support\Str::uuid();
             }
 
             // Generate shard key for partitioning
@@ -141,14 +140,15 @@ class User extends Authenticatable
     public function getFullNameAttribute()
     {
         if ($this->profile) {
-            return $this->profile->first_name . ' ' . $this->profile->last_name;
+            return $this->profile->first_name.' '.$this->profile->last_name;
         }
+
         return null;
     }
 
     public function getIsVerifiedAttribute()
     {
-        return !is_null($this->email_verified_at);
+        return ! is_null($this->email_verified_at);
     }
 
     public function getAvatarAttribute()
@@ -171,9 +171,14 @@ class User extends Authenticatable
         return $this->hasOne(UserPoints::class);
     }
 
+    public function pointTransactions()
+    {
+        return $this->hasMany(UserPointTransaction::class, 'user_id');
+    }
+
     public function stores()
     {
-        return $this->hasMany(\App\Domain\Store\Models\Store::class , 'owner_user_id');
+        return $this->hasMany(\App\Domain\Store\Models\Store::class, 'owner_user_id');
     }
 
     public function storeEmployeeAssignments()
@@ -203,14 +208,24 @@ class User extends Authenticatable
             ->withPivot('notification_enabled', 'followed_at');
     }
 
-    public function receivedInvitations() { return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invitee_user_id'); } public function sentInvitations() { return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invited_by_user_id'); } public function addresses()
+    public function receivedInvitations()
     {
-        return $this->morphToMany(Address::class , 'owner', 'addressables')
+        return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invitee_user_id');
+    }
+
+    public function sentInvitations()
+    {
+        return $this->hasMany(\App\Domain\Store\Models\StoreInvitation::class, 'invited_by_user_id');
+    }
+
+    public function addresses()
+    {
+        return $this->morphToMany(Address::class, 'owner', 'addressables')
             ->withPivot([
-            'label',
-            'is_default_shipping',
-            'is_default_billing',
-        ])
+                'label',
+                'is_default_shipping',
+                'is_default_billing',
+            ])
             ->withTimestamps();
     }
 
@@ -271,7 +286,7 @@ class User extends Authenticatable
      */
     protected static function newFactory()
     {
-        return \Database\Factories\UserFactory::new ();
+        return \Database\Factories\UserFactory::new();
     }
 
     public function markEmailAsVerified(): void
@@ -296,4 +311,3 @@ class User extends Authenticatable
         ])->save();
     }
 }
-

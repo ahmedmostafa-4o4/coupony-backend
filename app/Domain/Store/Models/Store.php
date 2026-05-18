@@ -2,12 +2,10 @@
 
 namespace App\Domain\Store\Models;
 
-use App\Domain\Store\Models\StoreFollowers;
-use App\Domain\Store\Models\StoreHours;
-use App\Domain\Store\Models\StoreComment;
-use App\Domain\Store\Models\StoreEmployee;
-use App\Domain\Product\Models\Product;
+use App\Domain\Points\Models\StorePoints;
+use App\Domain\Points\Models\StorePointTransaction;
 use App\Domain\Product\Models\OfferClaim;
+use App\Domain\Product\Models\Product;
 use App\Domain\User\Models\Address;
 use App\Domain\User\Models\User;
 use App\Domain\User\Models\UserRoles;
@@ -164,10 +162,10 @@ class Store extends Model
     public function hasReachedEmployeeLimit(): bool
     {
         $maxEmployees = config('store.max_employees', 10);
-        
+
         $currentEmployees = $this->employees()->count();
         $pendingInvitations = $this->invitations()->pending()->where('expires_at', '>', now())->count();
-        
+
         return ($currentEmployees + $pendingInvitations) >= $maxEmployees;
     }
 
@@ -203,6 +201,16 @@ class Store extends Model
     public function offerClaims()
     {
         return $this->hasMany(OfferClaim::class, 'store_id');
+    }
+
+    public function points()
+    {
+        return $this->hasOne(StorePoints::class, 'store_id');
+    }
+
+    public function pointTransactions()
+    {
+        return $this->hasMany(StorePointTransaction::class, 'store_id');
     }
 
     public function claims()
