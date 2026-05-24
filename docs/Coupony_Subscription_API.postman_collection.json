@@ -1,0 +1,487 @@
+{
+	"info": {
+		"_postman_id": "coupony-subscription-api-v1",
+		"name": "Coupony Subscription API",
+		"description": "Complete subscription system API for Coupony. Includes plan management, payment flow (Paymob), subscription lifecycle, entitlements, and history.\n\nAll endpoints require Bearer token authentication (Laravel Sanctum).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api.coupony.shop",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "store_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "plan_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"description": "Authentication endpoints to obtain Bearer token",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.token) {",
+									"    pm.collectionVariables.set('auth_token', jsonData.data.token);",
+									"    console.log('Token saved to collection variable');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"your-email@example.com\",\n    \"password\": \"your-password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "login"]
+						},
+						"description": "Login to get a Bearer token. The token is automatically saved to the collection variable `auth_token`."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscription Plans",
+			"description": "Endpoints for viewing available subscription plans",
+			"item": [
+				{
+					"name": "Get Available Plans",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data && jsonData.data.length > 0) {",
+									"    pm.collectionVariables.set('plan_id', jsonData.data[0].id);",
+									"    console.log('First plan_id saved:', jsonData.data[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/plans",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "plans"]
+						},
+						"description": "Get all active subscription plans with pricing, entitlements, and features.\n\nThe first plan's ID is automatically saved to the `plan_id` collection variable."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"url": {
+									"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/plans",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "plans"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n      \"name\": \"Pro Plan\",\n      \"slug\": \"pro\",\n      \"description\": \"Best for growing businesses\",\n      \"prices\": {\n        \"monthly\": \"99.00\",\n        \"yearly\": \"999.00\",\n        \"currency\": \"EGP\"\n      },\n      \"entitlements\": {\n        \"max_products\": 100,\n        \"max_employees\": 10,\n        \"max_branches\": 5\n      },\n      \"features\": {\n        \"ai_assistant\": true,\n        \"analytics\": true\n      },\n      \"payment_config\": {\n        \"is_review_mode\": false,\n        \"supported_payment_methods\": [\"card\", \"wallet\"]\n      }\n    }\n  ]\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Payment Flow",
+			"description": "Payment initiation and confirmation endpoints",
+			"item": [
+				{
+					"name": "Initiate Payment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.collectionVariables.set('session_id', jsonData.data.session_id);",
+									"    console.log('session_id saved:', jsonData.data.session_id);",
+									"    console.log('Client Secret:', jsonData.data.client_secret);",
+									"    console.log('Public Key:', jsonData.data.public_key);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"plan_id\": \"{{plan_id}}\",\n    \"billing_cycle\": \"monthly\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/initiate-payment",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "initiate-payment"]
+						},
+						"description": "Initiate a payment session for a subscription plan.\n\n**billing_cycle** values: `monthly`, `yearly`\n\nReturns a `client_secret` and `public_key` for use with the Paymob native SDK (Flutter `paymob_sdk` package).\n\nThe session expires after 30 minutes."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"session_id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n    \"client_secret\": \"pk_xxxxxxx_client_secret_xxxxxxx\",\n    \"public_key\": \"egy_pk_live_xxxxxxxxxxxxxxx\",\n    \"expires_at\": \"2025-01-15T14:30:00+00:00\"\n  }\n}"
+						},
+						{
+							"name": "Conflict - Session Already Exists",
+							"status": "Conflict",
+							"code": 409,
+							"body": "{\n  \"success\": false,\n  \"message\": \"A pending payment session already exists for this store.\",\n  \"error_code\": \"PAYMENT_SESSION_ALREADY_USED\"\n}"
+						},
+						{
+							"name": "Bad Gateway - Paymob Error",
+							"status": "Bad Gateway",
+							"code": 502,
+							"body": "{\n  \"success\": false,\n  \"message\": \"Payment gateway error. Please try again later.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Confirm Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"session_id\": \"{{session_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/confirm-payment",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "confirm-payment"]
+						},
+						"description": "Confirm a payment session after the user completes payment in the WebView.\n\nIf the Paymob webhook has already confirmed the payment (session status = `paid`), the subscription will be activated immediately.\n\nIf the webhook hasn't arrived yet (session still `pending`), the response returns the subscription with current status. Poll this endpoint every 2 seconds (up to 5 attempts)."
+					},
+					"response": [
+						{
+							"name": "Success - Subscription Activated",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n    \"status\": \"active\",\n    \"billing_cycle\": \"monthly\",\n    \"current_period_start\": \"2025-01-15T12:00:00+00:00\",\n    \"current_period_end\": \"2025-02-15T12:00:00+00:00\",\n    \"grace_period_end\": null,\n    \"degraded_period_end\": null,\n    \"trial_ends_at\": null,\n    \"cancelled_at\": null,\n    \"plan\": {\n      \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n      \"name\": \"Pro Plan\",\n      \"slug\": \"pro\",\n      \"description\": \"Best for growing businesses\",\n      \"price_monthly\": \"99.00\",\n      \"price_yearly\": \"999.00\",\n      \"currency\": \"EGP\",\n      \"max_products\": 100,\n      \"max_employees\": 10,\n      \"max_branches\": 5,\n      \"features\": {\n        \"ai_assistant\": true,\n        \"analytics\": true\n      }\n    },\n    \"created_at\": \"2025-01-15T12:00:00+00:00\",\n    \"updated_at\": \"2025-01-15T12:00:00+00:00\"\n  }\n}"
+						},
+						{
+							"name": "Not Found - Invalid Session",
+							"status": "Not Found",
+							"code": 404,
+							"body": "{\n  \"success\": false,\n  \"message\": \"Payment session not found.\",\n  \"error_code\": \"PAYMENT_SESSION_NOT_FOUND\"\n}"
+						},
+						{
+							"name": "Conflict - Session Already Used",
+							"status": "Conflict",
+							"code": 409,
+							"body": "{\n  \"success\": false,\n  \"message\": \"Payment session has already been used.\",\n  \"error_code\": \"PAYMENT_SESSION_ALREADY_USED\"\n}"
+						},
+						{
+							"name": "Gone - Session Expired",
+							"status": "Gone",
+							"code": 410,
+							"body": "{\n  \"success\": false,\n  \"message\": \"Payment session has expired.\",\n  \"error_code\": \"PAYMENT_SESSION_EXPIRED\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Subscription Status",
+			"description": "Endpoints for checking subscription state and details",
+			"item": [
+				{
+					"name": "Get Subscription Overview",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/overview",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "overview"]
+						},
+						"description": "Get the full subscription overview including current plan details, usage statistics, and period dates.\n\nIf no subscription exists, returns `status: 'none'` with available plans."
+					},
+					"response": [
+						{
+							"name": "Success - Active Subscription",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n    \"status\": \"active\",\n    \"billing_cycle\": \"monthly\",\n    \"current_period_start\": \"2025-01-15T12:00:00+00:00\",\n    \"current_period_end\": \"2025-02-15T12:00:00+00:00\",\n    \"grace_period_end\": null,\n    \"degraded_period_end\": null,\n    \"trial_ends_at\": null,\n    \"cancelled_at\": null,\n    \"plan\": {\n      \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n      \"name\": \"Pro Plan\",\n      \"slug\": \"pro\",\n      \"description\": \"Best for growing businesses\",\n      \"price_monthly\": \"99.00\",\n      \"price_yearly\": \"999.00\",\n      \"currency\": \"EGP\",\n      \"max_products\": 100,\n      \"max_employees\": 10,\n      \"max_branches\": 5,\n      \"features\": {\n        \"ai_assistant\": true\n      }\n    },\n    \"usage\": {\n      \"products\": 45,\n      \"employees\": 3,\n      \"branches\": 2\n    },\n    \"created_at\": \"2025-01-15T12:00:00+00:00\",\n    \"updated_at\": \"2025-01-15T12:00:00+00:00\"\n  }\n}"
+						},
+						{
+							"name": "Success - No Subscription",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"status\": \"none\",\n    \"plan\": null,\n    \"usage\": null,\n    \"available_plans\": [\n      {\n        \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n        \"name\": \"Pro Plan\",\n        \"slug\": \"pro\",\n        \"description\": \"Best for growing businesses\",\n        \"prices\": {\n          \"monthly\": \"99.00\",\n          \"yearly\": \"999.00\",\n          \"currency\": \"EGP\"\n        },\n        \"entitlements\": {\n          \"max_products\": 100,\n          \"max_employees\": 10,\n          \"max_branches\": 5\n        },\n        \"features\": {\n          \"ai_assistant\": true\n        },\n        \"payment_config\": {\n          \"is_review_mode\": false,\n          \"supported_payment_methods\": [\"card\", \"wallet\"]\n        }\n      }\n    ]\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Subscription Status (Lightweight)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "status"]
+						},
+						"description": "Get a lightweight subscription status suitable for displaying banners and quick checks.\n\nReturns status, days remaining, and an actionable message."
+					},
+					"response": [
+						{
+							"name": "Success - Active",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"status\": \"active\",\n    \"days_remaining\": 25,\n    \"message\": null\n  }\n}"
+						},
+						{
+							"name": "Success - Grace Period",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"status\": \"grace\",\n    \"days_remaining\": 0,\n    \"message\": \"Your subscription has expired. Renew before 2025-01-22 to avoid losing access.\"\n  }\n}"
+						},
+						{
+							"name": "Success - No Subscription",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"status\": \"none\",\n    \"days_remaining\": null,\n    \"message\": \"No active subscription. Subscribe to a plan to unlock features.\"\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Entitlements",
+			"description": "Endpoints for checking plan limits and feature access",
+			"item": [
+				{
+					"name": "Get Entitlements",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/entitlements",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "entitlements"]
+						},
+						"description": "Get current entitlements including resource limits (products, employees, branches) with usage counts and remaining capacity, plus feature flags."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"limits\": {\n      \"products\": {\n        \"limit\": 100,\n        \"usage\": 45,\n        \"remaining\": 55\n      },\n      \"employees\": {\n        \"limit\": 10,\n        \"usage\": 3,\n        \"remaining\": 7\n      },\n      \"branches\": {\n        \"limit\": 5,\n        \"usage\": 2,\n        \"remaining\": 3\n      }\n    },\n    \"features\": {\n      \"ai_assistant\": true,\n      \"analytics\": true,\n      \"priority_support\": false\n    }\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Payment History",
+			"description": "Endpoints for viewing past payments and transactions",
+			"item": [
+				{
+					"name": "Get Payment History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/history?per_page=15",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "history"],
+							"query": [
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Filter by status: active, expired, refunded, failed, cancelled",
+									"disabled": true
+								},
+								{
+									"key": "per_page",
+									"value": "15",
+									"description": "Items per page (1-100, default: 15)"
+								}
+							]
+						},
+						"description": "Get paginated subscription payment history.\n\nOptional filters:\n- `status`: active, expired, refunded, failed, cancelled\n- `per_page`: 1-100 (default 15)"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n      \"plan_name\": \"Pro Plan\",\n      \"billing_cycle\": \"monthly\",\n      \"amount\": \"99.00\",\n      \"payment_method\": \"card\",\n      \"status\": \"active\",\n      \"period_start\": \"2025-01-15T12:00:00+00:00\",\n      \"period_end\": \"2025-02-15T12:00:00+00:00\",\n      \"created_at\": \"2025-01-15T12:00:00+00:00\"\n    }\n  ],\n  \"meta\": {\n    \"current_page\": 1,\n    \"last_page\": 3,\n    \"per_page\": 15,\n    \"total\": 42\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Payment History (Filtered by Status)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/subscription/history?status=active&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "subscription", "history"],
+							"query": [
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Filter by status: active, expired, refunded, failed, cancelled"
+								},
+								{
+									"key": "per_page",
+									"value": "10",
+									"description": "Items per page (1-100)"
+								}
+							]
+						},
+						"description": "Get payment history filtered by a specific status."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -42,7 +42,9 @@ use App\Application\Http\Controllers\API\V1\StoreController;
 use App\Application\Http\Controllers\API\V1\StoreEmployeeController;
 use App\Application\Http\Controllers\API\V1\StoreFollowController;
 use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
+use App\Application\Http\Controllers\API\V1\SubscriptionController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
+use App\Application\Http\Controllers\API\V1\WebhookController;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
@@ -160,13 +162,13 @@ Route::prefix('v1')->group(function () {
         Route::scopeBindings()->group(function () {
             Route::prefix('/stores/{store}/addresses')->name('stores.addresses.')->group(function () {
                 Route::get('/', [StoreAddressController::class, 'index'])->name('index');
-                Route::post('/', [StoreAddressController::class, 'store'])->name('store');
+                Route::post('/', [StoreAddressController::class, 'store'])->name('store')->middleware('subscription:branches');
                 Route::get('/{address}', [StoreAddressController::class, 'show'])->name('show');
                 Route::patch('/{address}', [StoreAddressController::class, 'update'])->name('update');
                 Route::delete('/{address}', [StoreAddressController::class, 'destroy'])->name('destroy');
             });
             Route::prefix('/stores/{store}/products')->name('stores.products.')->group(function () {
-                Route::post('/', [ProductController::class, 'store'])->name('store');
+                Route::post('/', [ProductController::class, 'store'])->name('store')->middleware('subscription:products');
                 Route::get('/{product}', [ProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [ProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
@@ -199,7 +201,7 @@ Route::prefix('v1')->group(function () {
                     Route::post('/redeem', [StoreOfferClaimController::class, 'redeem'])->name('redeem');
                 });
             Route::prefix('/stores/{store}/invitations')->name('stores.invitations.')->group(function () {
-                Route::post('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'store'])->name('store');
+                Route::post('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'store'])->name('store')->middleware('subscription:employees');
                 Route::get('/', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'index'])->name('index');
                 Route::delete('/{invitation}', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'destroy'])->name('destroy');
                 Route::post('/{invitation}/resend', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'resend'])->name('resend');
@@ -213,6 +215,16 @@ Route::prefix('v1')->group(function () {
         });
         Route::get('/store-employee-permissions', [StoreEmployeeController::class, 'permissions'])
             ->name('store-employee-permissions.index');
+
+        Route::prefix('/stores/{store}/subscription')->name('stores.subscription.')->group(function () {
+            Route::post('/initiate-payment', [SubscriptionController::class, 'initiatePayment'])->name('initiate-payment');
+            Route::post('/confirm-payment', [SubscriptionController::class, 'confirmPayment'])->name('confirm-payment');
+            Route::get('/overview', [SubscriptionController::class, 'overview'])->name('overview');
+            Route::get('/status', [SubscriptionController::class, 'status'])->name('status');
+            Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
+            Route::get('/history', [SubscriptionController::class, 'history'])->name('history');
+            Route::get('/entitlements', [SubscriptionController::class, 'entitlements'])->name('entitlements');
+        });
         Route::post('/invitations/{invitation}/accept', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'accept'])->name('invitations.accept');
         Route::post('/invitations/{invitation}/decline', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'decline'])->name('invitations.decline');
         Route::get('/me/invitations', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'myInvitations'])->name('me.invitations');
@@ -234,10 +246,25 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::prefix('pony/stores/{store}')->name('pony.seller.')->group(function () {
-            Route::post('/chat', [SellerChatController::class, 'store'])->name('chat')->middleware('pony.throttle:text');
+            Route::post('/chat', [SellerChatController::class, 'store'])->name('chat')->middleware(['pony.throttle:text', 'subscription:null,ai_assistant']);
             Route::get('/conversations', [SellerChatController::class, 'index'])->name('conversations.index');
             Route::get('/conversations/{conversation}', [SellerChatController::class, 'show'])->name('conversations.show');
             Route::delete('/conversations/{conversation}', [SellerChatController::class, 'destroy'])->name('conversations.destroy');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subscription Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('stores/{store}/subscription')->name('stores.subscription.')->group(function () {
+            Route::post('/initiate-payment', [SubscriptionController::class, 'initiatePayment'])->name('initiate-payment');
+            Route::post('/confirm-payment', [SubscriptionController::class, 'confirmPayment'])->name('confirm-payment');
+            Route::get('/overview', [SubscriptionController::class, 'overview'])->name('overview');
+            Route::get('/status', [SubscriptionController::class, 'status'])->name('status');
+            Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
+            Route::get('/history', [SubscriptionController::class, 'history'])->name('history');
+            Route::get('/entitlements', [SubscriptionController::class, 'entitlements'])->name('entitlements');
         });
     });
 
@@ -274,6 +301,13 @@ Route::prefix('v1')->group(function () {
     Route::post('/notify-me/submit', [NotifyMeController::class, 'submit'])
         ->name('notifyMe.submit')
         ->middleware(ContactUsThrottle::class);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Webhook Routes (No Auth - HMAC Verified)
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/webhooks/paymob', [WebhookController::class, 'paymob'])->name('webhooks.paymob');
 
     /*
     |--------------------------------------------------------------------------

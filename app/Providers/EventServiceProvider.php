@@ -16,6 +16,10 @@ use App\Domain\Store\Events\VerificationDocumentRejected;
 use App\Domain\Store\Listeners\NotifyStoreOwnerOnDocumentApproval;
 use App\Domain\Store\Listeners\NotifyStoreOwnerOnDocumentRejection;
 use App\Domain\Store\Listeners\SendStoreModerationNotification;
+use App\Domain\Subscription\Events\SubscriptionPaymentApproved;
+use App\Domain\Subscription\Events\SubscriptionPaymentFailed;
+use App\Domain\Subscription\Events\SubscriptionStatusChanged;
+use App\Domain\Subscription\Listeners\SendSubscriptionNotification;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -43,5 +47,9 @@ class EventServiceProvider extends ServiceProvider
         Event::listen(OfferClaimRedeemed::class, SendOfferRedeemedNotifications::class);
         Event::listen(ProductRevisionApproved::class, SendProductModerationNotification::class);
         Event::listen(ProductRevisionRejected::class, SendProductModerationNotification::class);
+
+        Event::listen(SubscriptionPaymentApproved::class, SendSubscriptionNotification::class);
+        Event::listen(SubscriptionPaymentFailed::class, SendSubscriptionNotification::class);
+        Event::listen(SubscriptionStatusChanged::class, SendSubscriptionNotification::class);
     }
 }

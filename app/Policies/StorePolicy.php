@@ -82,6 +82,11 @@ class StorePolicy
         return $store->owner_user_id === $user->id;
     }
 
+    public function manageSubscription(User $user, Store $store): bool
+    {
+        return $store->owner_user_id === $user->id;
+    }
+
     public function accessClaims(User $user, Store $store): bool
     {
         return $this->isOwnerOrAdmin($user, $store)
