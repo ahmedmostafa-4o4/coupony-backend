@@ -235,7 +235,7 @@ class ProductController extends Controller
 
         try {
             $viewer = $this->resolveAuthenticatedUser($request);
-            $this->products->recordView($product, $viewer, $request->ip(), $request->userAgent());
+            $this->products->recordView($product, $viewer, $request->ip(), $request->userAgent(), $request->query('source'));
 
             return $this->successResponse(
                 new PublicShowProductResource($this->products->loadPublicProduct($product, $viewer)),

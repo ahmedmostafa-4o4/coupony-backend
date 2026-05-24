@@ -42,6 +42,8 @@ use App\Application\Http\Controllers\API\V1\StoreController;
 use App\Application\Http\Controllers\API\V1\StoreEmployeeController;
 use App\Application\Http\Controllers\API\V1\StoreFollowController;
 use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
+use App\Application\Http\Controllers\API\V1\SellerAnalyticsController;
+use App\Application\Http\Controllers\API\V1\StoreProfileViewController;
 use App\Application\Http\Controllers\API\V1\SubscriptionController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Application\Http\Controllers\API\V1\WebhookController;
@@ -66,6 +68,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/{product}/comments', [ProductCommentController::class, 'index'])->name('products.comments.index');
     // Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
+    Route::get('/public-stores/{store}', [StoreController::class, 'publicShow'])->name('public.stores.show');
     Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
     Route::get('/public-stores/{store}/reviews-summary', [StoreCommentController::class, 'summary'])->name('public.stores.reviews.summary');
     Route::get('/public-stores/{store}/comments', [StoreCommentController::class, 'index'])->name('public.stores.comments.index');
@@ -121,6 +124,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('/products/{product}/likes', [ProductLikeController::class, 'destroy'])->name('products.likes.destroy');
         Route::post('/products/{product}/favorites', [ProductFavoriteController::class, 'store'])->name('products.favorites.store');
         Route::delete('/products/{product}/favorites', [ProductFavoriteController::class, 'destroy'])->name('products.favorites.destroy');
+        Route::post('/products/{product}/shares', [\App\Application\Http\Controllers\API\V1\ProductShareController::class, 'store'])->name('products.shares.store');
         Route::post('/products/{product}/comments', [ProductCommentController::class, 'store'])->name('products.comments.store');
         Route::post('/products/{product}/comments/{comment}/replies', [ProductCommentController::class, 'reply'])->name('products.comments.replies.store');
         Route::patch('/product-comments/{comment}', [ProductCommentController::class, 'update'])->name('product-comments.update');
@@ -267,6 +271,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
             Route::get('/history', [SubscriptionController::class, 'history'])->name('history');
             Route::get('/entitlements', [SubscriptionController::class, 'entitlements'])->name('entitlements');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Analytics Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('stores/{storeId}/analytics')->name('stores.analytics.')->group(function () {
+            Route::get('/', [SellerAnalyticsController::class, 'dashboard'])->name('dashboard');
+            Route::patch('/monthly-goal', [SellerAnalyticsController::class, 'updateMonthlyGoal'])->name('monthly-goal');
+            Route::get('/products/{productId}', [SellerAnalyticsController::class, 'productAnalytics'])->name('products');
         });
     });
 

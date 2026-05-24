@@ -1,0 +1,660 @@
+{
+	"info": {
+		"_postman_id": "coupony-seller-analytics-api-v1",
+		"name": "Coupony Seller Analytics API",
+		"description": "Seller Product Analytics API for Coupony. Includes store-level dashboard, monthly goal management, and per-product analytics.\n\nAll endpoints require Bearer token authentication (Laravel Sanctum). The authenticated user must own or manage a store.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api.coupony.shop",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "store_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "product_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"description": "Authentication endpoint to obtain Bearer token",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.token) {",
+									"    pm.collectionVariables.set('auth_token', jsonData.data.token);",
+									"    console.log('Token saved to collection variable');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"seller@example.com\",\n    \"password\": \"your-password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "login"]
+						},
+						"description": "Login to get a Bearer token. The token is automatically saved to the collection variable `auth_token`.\n\nUse a seller account that owns a store."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Seller Dashboard",
+			"description": "Store-level analytics dashboard endpoints",
+			"item": [
+				{
+					"name": "Get Dashboard (All Time)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics"]
+						},
+						"description": "Get the seller's analytics dashboard with default period (all time).\n\nReturns: monthly_goal, new_followers, store_visits, offer_distribution, peak_redemption_times, top_performing_offers."
+					},
+					"response": [
+						{
+							"name": "Success - With Data",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"monthly_goal\": {\n    \"goal\": 100,\n    \"current\": 45,\n    \"achievement_percent\": 45.0\n  },\n  \"new_followers\": {\n    \"count\": 23,\n    \"growth_percent\": 0.0\n  },\n  \"store_visits\": {\n    \"count\": 1250,\n    \"growth_percent\": 0.0\n  },\n  \"offer_distribution\": [\n    { \"type\": \"fixed\", \"percentage\": 50.0 },\n    { \"type\": \"percentage\", \"percentage\": 33.3 },\n    { \"type\": \"buy_x_get_y\", \"percentage\": 16.7 }\n  ],\n  \"peak_redemption_times\": [\n    { \"day\": \"monday\", \"time_window\": \"morning\", \"count\": 12 },\n    { \"day\": \"monday\", \"time_window\": \"afternoon\", \"count\": 8 },\n    { \"day\": \"monday\", \"time_window\": \"evening\", \"count\": 5 },\n    { \"day\": \"monday\", \"time_window\": \"night\", \"count\": 1 }\n  ],\n  \"top_performing_offers\": [\n    {\n      \"product_title\": \"Premium Coffee\",\n      \"offer_type\": \"percentage\",\n      \"offer_label\": \"20% Off\",\n      \"usage_count\": 145\n    }\n  ]\n}"
+						},
+						{
+							"name": "Success - Zero Data (New Store)",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"monthly_goal\": {\n    \"goal\": null,\n    \"current\": 0,\n    \"achievement_percent\": 0.0\n  },\n  \"new_followers\": {\n    \"count\": 0,\n    \"growth_percent\": 0.0\n  },\n  \"store_visits\": {\n    \"count\": 0,\n    \"growth_percent\": 0.0\n  },\n  \"offer_distribution\": [],\n  \"peak_redemption_times\": [\n    { \"day\": \"monday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"monday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"monday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"monday\", \"time_window\": \"night\", \"count\": 0 },\n    { \"day\": \"tuesday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"tuesday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"tuesday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"tuesday\", \"time_window\": \"night\", \"count\": 0 },\n    { \"day\": \"wednesday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"wednesday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"wednesday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"wednesday\", \"time_window\": \"night\", \"count\": 0 },\n    { \"day\": \"thursday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"thursday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"thursday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"thursday\", \"time_window\": \"night\", \"count\": 0 },\n    { \"day\": \"friday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"friday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"friday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"friday\", \"time_window\": \"night\", \"count\": 0 },\n    { \"day\": \"saturday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"saturday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"saturday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"saturday\", \"time_window\": \"night\", \"count\": 0 },\n    { \"day\": \"sunday\", \"time_window\": \"morning\", \"count\": 0 },\n    { \"day\": \"sunday\", \"time_window\": \"afternoon\", \"count\": 0 },\n    { \"day\": \"sunday\", \"time_window\": \"evening\", \"count\": 0 },\n    { \"day\": \"sunday\", \"time_window\": \"night\", \"count\": 0 }\n  ],\n  \"top_performing_offers\": []\n}"
+						},
+						{
+							"name": "Unauthorized",
+							"status": "Unauthorized",
+							"code": 401,
+							"body": "{\n  \"message\": \"Unauthenticated.\"\n}"
+						},
+						{
+							"name": "Forbidden - No Store",
+							"status": "Forbidden",
+							"code": 403,
+							"body": "{\n  \"message\": \"Forbidden.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Dashboard (Today)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics?period=today",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics"],
+							"query": [
+								{
+									"key": "period",
+									"value": "today"
+								}
+							]
+						},
+						"description": "Get dashboard analytics for today only. Growth is compared against yesterday."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard (Last 7 Days)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics?period=last_7_days",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics"],
+							"query": [
+								{
+									"key": "period",
+									"value": "last_7_days"
+								}
+							]
+						},
+						"description": "Get dashboard analytics for the last 7 days. Growth is compared against the previous 7 days (days 8-14)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard (This Month)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics?period=this_month",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics"],
+							"query": [
+								{
+									"key": "period",
+									"value": "this_month"
+								}
+							]
+						},
+						"description": "Get dashboard analytics for the current month. Growth is compared against the previous month."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard (This Year)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics?period=this_year",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics"],
+							"query": [
+								{
+									"key": "period",
+									"value": "this_year"
+								}
+							]
+						},
+						"description": "Get dashboard analytics for the current year. Growth is compared against the previous year."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard (Invalid Period - 422)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics?period=invalid_value",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics"],
+							"query": [
+								{
+									"key": "period",
+									"value": "invalid_value"
+								}
+							]
+						},
+						"description": "Test validation: invalid period value returns 422.\n\nValid values: all, today, last_7_days, this_month, this_year"
+					},
+					"response": [
+						{
+							"name": "Validation Error",
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"body": "{\n  \"message\": \"The selected period is invalid.\",\n  \"errors\": {\n    \"period\": [\n      \"The selected period is invalid.\"\n    ]\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Monthly Goal",
+			"description": "Monthly goal management endpoint",
+			"item": [
+				{
+					"name": "Update Monthly Goal",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"goal\": 150\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics/monthly-goal",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics", "monthly-goal"]
+						},
+						"description": "Set or update the seller's monthly redemption goal.\n\nThe goal must be a positive integer (min: 1).\n\nUpdating the goal invalidates the cached dashboard for all periods."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"goal\": 150\n}"
+						},
+						{
+							"name": "Validation Error - Zero",
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"body": "{\n  \"message\": \"The goal field must be at least 1.\",\n  \"errors\": {\n    \"goal\": [\n      \"The goal field must be at least 1.\"\n    ]\n  }\n}"
+						},
+						{
+							"name": "Validation Error - Missing",
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"body": "{\n  \"message\": \"The goal field is required.\",\n  \"errors\": {\n    \"goal\": [\n      \"The goal field is required.\"\n    ]\n  }\n}"
+						},
+						{
+							"name": "Validation Error - Not Integer",
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"body": "{\n  \"message\": \"The goal field must be an integer.\",\n  \"errors\": {\n    \"goal\": [\n      \"The goal field must be an integer.\"\n    ]\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Product Analytics",
+			"description": "Per-product analytics endpoints",
+			"item": [
+				{
+					"name": "Get Product Analytics (All Time)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics/products/{{product_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics", "products", "{{product_id}}"]
+						},
+						"description": "Get detailed analytics for a specific product (all time).\n\nThe product must belong to the authenticated seller's store.\n\nReturns: header (views, likes, comments, saves), overview (impressions, reach, traffic sources), engagement (rate, trend, breakdown), audience (follower split, age groups, gender)."
+					},
+					"response": [
+						{
+							"name": "Success - With Data",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"header\": {\n    \"views\": 1500,\n    \"likes\": 230,\n    \"comments\": 45,\n    \"saves\": 89\n  },\n  \"overview\": {\n    \"impressions\": 5000,\n    \"reached_accounts\": 3200,\n    \"profile_visits\": 180,\n    \"new_followers\": 12,\n    \"traffic_sources\": [\n      { \"source\": \"search\", \"percentage\": 40.0 },\n      { \"source\": \"explore\", \"percentage\": 25.0 },\n      { \"source\": \"profile\", \"percentage\": 20.0 },\n      { \"source\": \"direct\", \"percentage\": 10.0 },\n      { \"source\": \"recommendation\", \"percentage\": 5.0 }\n    ]\n  },\n  \"engagement\": {\n    \"total_interactions\": 364,\n    \"engagement_rate\": 7.28,\n    \"trend\": [\n      { \"date\": \"2025-01\", \"count\": 120 },\n      { \"date\": \"2025-02\", \"count\": 145 },\n      { \"date\": \"2025-03\", \"count\": 99 }\n    ],\n    \"action_breakdown\": {\n      \"likes\": 230,\n      \"comments\": 45,\n      \"saves\": 89,\n      \"shares\": 0\n    }\n  },\n  \"audience\": {\n    \"followers_percent\": 65.0,\n    \"non_followers_percent\": 35.0,\n    \"age_groups\": [\n      { \"range\": \"13-17\", \"percentage\": 5.0 },\n      { \"range\": \"18-24\", \"percentage\": 35.0 },\n      { \"range\": \"25-34\", \"percentage\": 30.0 },\n      { \"range\": \"35-44\", \"percentage\": 15.0 },\n      { \"range\": \"45-54\", \"percentage\": 8.0 },\n      { \"range\": \"55-64\", \"percentage\": 5.0 },\n      { \"range\": \"65+\", \"percentage\": 2.0 }\n    ],\n    \"gender_groups\": [\n      { \"gender\": \"male\", \"percentage\": 55.0 },\n      { \"gender\": \"female\", \"percentage\": 42.0 },\n      { \"gender\": \"other\", \"percentage\": 3.0 }\n    ]\n  }\n}"
+						},
+						{
+							"name": "Success - Zero Data",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"header\": {\n    \"views\": 0,\n    \"likes\": 0,\n    \"comments\": 0,\n    \"saves\": 0\n  },\n  \"overview\": {\n    \"impressions\": 0,\n    \"reached_accounts\": 0,\n    \"profile_visits\": 0,\n    \"new_followers\": 0,\n    \"traffic_sources\": []\n  },\n  \"engagement\": {\n    \"total_interactions\": 0,\n    \"engagement_rate\": 0.0,\n    \"trend\": [],\n    \"action_breakdown\": {\n      \"likes\": 0,\n      \"comments\": 0,\n      \"saves\": 0,\n      \"shares\": 0\n    }\n  },\n  \"audience\": {\n    \"followers_percent\": 50.0,\n    \"non_followers_percent\": 50.0,\n    \"age_groups\": [\n      { \"range\": \"13-17\", \"percentage\": 14.3 },\n      { \"range\": \"18-24\", \"percentage\": 14.3 },\n      { \"range\": \"25-34\", \"percentage\": 14.3 },\n      { \"range\": \"35-44\", \"percentage\": 14.3 },\n      { \"range\": \"45-54\", \"percentage\": 14.3 },\n      { \"range\": \"55-64\", \"percentage\": 14.3 },\n      { \"range\": \"65+\", \"percentage\": 14.2 }\n    ],\n    \"gender_groups\": []\n  }\n}"
+						},
+						{
+							"name": "Not Found",
+							"status": "Not Found",
+							"code": 404,
+							"body": "{\n  \"message\": \"Not Found.\"\n}"
+						},
+						{
+							"name": "Forbidden - Product Not In Store",
+							"status": "Forbidden",
+							"code": 403,
+							"body": "{\n  \"message\": \"Forbidden.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Product Analytics (Last 7 Days)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics/products/{{product_id}}?period=last_7_days",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics", "products", "{{product_id}}"],
+							"query": [
+								{
+									"key": "period",
+									"value": "last_7_days"
+								}
+							]
+						},
+						"description": "Get product analytics for the last 7 days.\n\nTrend data will be grouped by day (daily data points)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Analytics (This Month)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics/products/{{product_id}}?period=this_month",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics", "products", "{{product_id}}"],
+							"query": [
+								{
+									"key": "period",
+									"value": "this_month"
+								}
+							]
+						},
+						"description": "Get product analytics for the current month.\n\nTrend data will be grouped by day (daily data points)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Analytics (This Year)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/stores/{{store_id}}/analytics/products/{{product_id}}?period=this_year",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "stores", "{{store_id}}", "analytics", "products", "{{product_id}}"],
+							"query": [
+								{
+									"key": "period",
+									"value": "this_year"
+								}
+							]
+						},
+						"description": "Get product analytics for the current year.\n\nTrend data will be grouped by month (monthly data points with format YYYY-MM)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Store Profile",
+			"description": "Public store profile endpoint with integrated profile view tracking",
+			"item": [
+				{
+					"name": "Get Store Profile (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/public-stores/{{store_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "public-stores", "{{store_id}}"]
+						},
+						"description": "Get a public store profile. No authentication required.\n\nAutomatically records a profile view for analytics. If the user is authenticated (Bearer token provided), their user ID is captured in the view.\n\nReturns 404 if the store is not active."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Stores retrieved successfully.\",\n  \"data\": {\n    \"id\": \"9e1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c\",\n    \"name\": \"Premium Coffee Shop\",\n    \"description\": \"Best coffee in town\",\n    \"logo_url\": \"https://api.coupony.shop/storage/stores/logo.png\",\n    \"banner_url\": \"https://api.coupony.shop/storage/stores/banner.png\",\n    \"email\": \"store@example.com\",\n    \"phone\": \"+201234567890\",\n    \"subscription_tier\": \"pro\",\n    \"is_verified\": true,\n    \"verified_at\": \"2025-01-15T12:00:00+00:00\",\n    \"rating_avg\": 4.5,\n    \"rating_count\": 120,\n    \"followers_count\": 500,\n    \"is_following\": false,\n    \"created_at\": \"2024-06-01T10:00:00+00:00\",\n    \"categories\": [],\n    \"addresses\": [],\n    \"socials\": [],\n    \"hours\": []\n  }\n}"
+						},
+						{
+							"name": "Not Found - Inactive Store",
+							"status": "Not Found",
+							"code": 404,
+							"body": "{\n  \"success\": false,\n  \"message\": \"Store not found.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Store Profile (Authenticated)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/public-stores/{{store_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "public-stores", "{{store_id}}"]
+						},
+						"description": "Get a public store profile with authentication. The authenticated user's ID will be recorded in the profile view, and `is_following` will reflect the user's follow status."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Shares",
+			"description": "Product share tracking endpoint",
+			"item": [
+				{
+					"name": "Record Product Share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"platform\": \"whatsapp\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{{product_id}}/shares",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{{product_id}}", "shares"]
+						},
+						"description": "Record a product share event. Requires authentication.\n\n**platform** values (optional): `whatsapp`, `facebook`, `twitter`, `instagram`, `copy_link`, `other`\n\nIf platform is omitted, the share is recorded without a platform."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "Created",
+							"code": 201,
+							"body": "{\n  \"message\": \"Share recorded.\"\n}"
+						},
+						{
+							"name": "Validation Error - Invalid Platform",
+							"status": "Unprocessable Entity",
+							"code": 422,
+							"body": "{\n  \"message\": \"The selected platform is invalid.\",\n  \"errors\": {\n    \"platform\": [\n      \"The selected platform is invalid.\"\n    ]\n  }\n}"
+						},
+						{
+							"name": "Unauthorized",
+							"status": "Unauthorized",
+							"code": 401,
+							"body": "{\n  \"message\": \"Unauthenticated.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Record Product Share (No Platform)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{{product_id}}/shares",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{{product_id}}", "shares"]
+						},
+						"description": "Record a product share without specifying the platform (e.g. when using the native share sheet)."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "Created",
+							"code": 201,
+							"body": "{\n  \"message\": \"Share recorded.\"\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}

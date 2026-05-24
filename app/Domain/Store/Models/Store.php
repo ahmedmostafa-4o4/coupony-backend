@@ -49,6 +49,7 @@ class Store extends Model
         'rating_avg',
         'rating_count',
         'followers_count',
+        'monthly_goal',
         'shard_key',
         'approved_at',
         'approved_by',

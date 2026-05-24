@@ -972,13 +972,15 @@ class ProductRepository
         Product $product,
         ?User $user = null,
         ?string $ipAddress = null,
-        ?string $userAgent = null
+        ?string $userAgent = null,
+        ?string $source = null
     ): ProductView {
         return ProductView::query()->create([
             'product_id' => $product->id,
             'user_id' => $user?->id,
             'ip_address' => $ipAddress,
             'user_agent' => $userAgent,
+            'source' => $source,
         ]);
     }
 

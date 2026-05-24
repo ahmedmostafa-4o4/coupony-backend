@@ -19,6 +19,7 @@ use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Enums\VerificationDocumentType;
 use App\Domain\Store\Enums\VerificationStatus;
 use App\Domain\Store\Models\Store;
+use App\Domain\Store\Models\StoreProfileView;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -266,6 +267,46 @@ class StoreController extends Controller
             );
         } catch (Throwable $e) {
             Log::error('Failed to retrieve public stores', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse(
+                __('api.store.public_retrieve_failed'),
+                500
+            );
+        }
+    }
+
+    /**
+     * Show a single public store profile.
+     * Records a profile view for analytics.
+     */
+    public function publicShow(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        if ($store->status !== StoreStatus::ACTIVE) {
+            return $this->errorResponse(__('api.store.retrieve_failed'), 404);
+        }
+
+        try {
+            $store->load($this->publicStoreRelations());
+
+            // Record profile view for analytics
+            $viewer = $this->resolveAuthenticatedUser($request);
+            StoreProfileView::create([
+                'store_id' => $store->id,
+                'user_id' => $viewer?->id,
+                'ip_address' => $request->ip(),
+            ]);
+
+            return $this->successResponse(
+                (new PublicStoreResource($store))->resolve($request),
+                __('api.store.public_retrieved')
+            );
+        } catch (Throwable $e) {
+            Log::error('Failed to retrieve public store', [
+                'store_id' => $store->id,
                 'error' => $e->getMessage(),
             ]);
 

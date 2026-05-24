@@ -3,14 +3,12 @@
 namespace App\Domain\Product\Models;
 
 use App\Domain\User\Models\User;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
-class ProductView extends Model
+class ProductShare extends Model
 {
-    use HasFactory;
-
-    protected $table = 'product_views';
+    protected $table = 'product_shares';
 
     protected $keyType = 'string';
 
@@ -19,24 +17,14 @@ class ProductView extends Model
     protected $fillable = [
         'product_id',
         'user_id',
-        'ip_address',
-        'user_agent',
-        'source',
+        'platform',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-        ];
-    }
 
     protected static function booted(): void
     {
-        static::creating(function (ProductView $view) {
-            if (blank($view->id)) {
-                $view->id = (string) \Illuminate\Support\Str::uuid();
+        static::creating(function (ProductShare $share) {
+            if (blank($share->id)) {
+                $share->id = (string) Str::uuid();
             }
         });
     }
