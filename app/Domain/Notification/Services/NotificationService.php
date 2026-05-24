@@ -6,6 +6,7 @@ use App\Domain\Notification\Contracts\NotifierInterface;
 use App\Domain\Notification\Events\NotificationSent;
 use App\Domain\Notification\Mail\notifyMe;
 use App\Domain\Notification\Models\Notification;
+use App\Domain\Notification\Support\NotificationBadgeResolver;
 use App\Domain\User\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,9 @@ class NotificationService
         string $channel = 'in_app',
         array $data = [],
         ?string $referenceType = null,
-        ?string $referenceId = null
+        ?string $referenceId = null,
+        ?string $imageUrl = null,
+        ?string $badgeStatus = null
     ): Notification {
         $notification = Notification::create([
             'user_id' => $user->id,
@@ -41,6 +44,8 @@ class NotificationService
             'title' => $title,
             'message' => $message,
             'data' => $data,
+            'image_url' => $imageUrl,
+            'badge_status' => $badgeStatus ?? NotificationBadgeResolver::resolve($type),
             'channel' => $channel,
             'status' => 'pending',
             'reference_type' => $referenceType,

@@ -19,11 +19,11 @@ class NotificationResource extends JsonResource
             'title' => $this->title,
             'message' => $this->message,
             'data' => $this->data,
+            'image_url' => $this->image_url,
+            'badge_status' => $this->badge_status ?? 'none',
             'channel' => $this->channel,
             'status' => $this->status,
             'is_read' => $this->is_read,
-            'is_sent' => $this->is_sent,
-            'time_ago' => $this->time_ago,
 
             'reference' => [
                 'type' => $this->reference_type,

@@ -70,7 +70,7 @@ class ExpiredSessionRejectionPropertyTest extends TestCase
             'currency' => 'EGP',
             'status' => PaymentSessionStatus::PENDING,
             'expires_at' => now()->subMinutes($minutesAgo),
-            'payment_url' => 'https://accept.paymob.com/api/acceptance/iframes/test',
+            'payment_url' => 'pk_test_client_secret_expired',
             'paymob_order_id' => 'order_' . uniqid(),
         ]);
 

@@ -22,3 +22,15 @@ Schedule::command('subscription:transition-to-grace')->daily();
 Schedule::command('subscription:transition-to-degraded')->daily();
 Schedule::command('subscription:transition-to-suspended')->daily();
 Schedule::command('subscription:send-expiring-notifications')->daily();
+
+/*
+|--------------------------------------------------------------------------
+| Notification Scheduled Jobs
+|--------------------------------------------------------------------------
+|
+| Daily analytics summary and milestone checks for store owners.
+|
+*/
+
+Schedule::command('notifications:daily-analytics-summary')->dailyAt('22:00');
+Schedule::command('notifications:check-milestones')->dailyAt('22:30');

@@ -4,6 +4,7 @@ namespace App\Domain\Product\Listeners;
 
 use App\Domain\Notification\Models\Notification;
 use App\Domain\Notification\Services\NotificationService;
+use App\Domain\Notification\Support\NotificationMessageResolver;
 use App\Domain\Product\Events\OfferClaimRedeemed;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\User\Models\User;
@@ -19,17 +20,27 @@ class SendOfferRedeemedNotifications implements ShouldQueue
     {
         $claim = $event->claim;
         $store = $event->store;
-        $claim->loadMissing('user');
+        $claim->loadMissing('user.profile', 'product');
         $store->loadMissing('owner');
 
         $referenceType = OfferClaim::class;
         $redeemedAt = $claim->redeemed_at?->toIso8601String();
+        $productName = $claim->product?->name ?? 'Product';
+        $storeName = $store->name ?? 'Store';
+        $storeLogo = $store->logo_url ?? null;
+        $customerAvatar = $claim->user?->avatar ?? $claim->user?->profile?->avatar_url ?? null;
 
+        // Notify customer: offer_redeemed
         if ($claim->user) {
+            $customerResolved = NotificationMessageResolver::resolve('offer_redeemed', [
+                'product_name' => $productName,
+                'store_name' => $storeName,
+            ], $claim->user);
+
             $this->sendOnce($claim->user, [
                 'type' => 'offer_redeemed',
-                'title' => 'Offer redeemed',
-                'message' => 'Your offer was redeemed successfully.',
+                'title' => $customerResolved['title'],
+                'message' => $customerResolved['message'],
                 'channel' => 'in_app',
                 'data' => [
                     'claim_id' => $claim->id,
@@ -39,13 +50,20 @@ class SendOfferRedeemedNotifications implements ShouldQueue
                 ],
                 'referenceType' => $referenceType,
                 'referenceId' => $claim->id,
+                'imageUrl' => $storeLogo,
             ]);
 
+            // Notify customer: points_earned
             if ($event->userPointsAwarded) {
+                $pointsResolved = NotificationMessageResolver::resolve('points_earned', [
+                    'points' => $event->userPoints,
+                    'product_name' => $productName,
+                ], $claim->user);
+
                 $this->sendOnce($claim->user, [
                     'type' => 'points_earned',
-                    'title' => 'Points earned',
-                    'message' => 'You earned points for redeeming an offer.',
+                    'title' => $pointsResolved['title'],
+                    'message' => $pointsResolved['message'],
                     'channel' => 'in_app',
                     'data' => [
                         'points' => $event->userPoints,
@@ -56,6 +74,7 @@ class SendOfferRedeemedNotifications implements ShouldQueue
                     ],
                     'referenceType' => $referenceType,
                     'referenceId' => $claim->id,
+                    'imageUrl' => null,
                 ]);
             }
         }
@@ -64,10 +83,20 @@ class SendOfferRedeemedNotifications implements ShouldQueue
             return;
         }
 
+        // Notify store owner: offer_redeemed_by_employee
+        $employeeEmail = $event->redeemedBy->email ?? '';
+        $customerEmail = $claim->user?->email ?? '';
+
+        $ownerResolved = NotificationMessageResolver::resolve('offer_redeemed_by_employee', [
+            'employee_email' => $employeeEmail,
+            'product_name' => $productName,
+            'customer_email' => $customerEmail,
+        ], $store->owner);
+
         $this->sendOnce($store->owner, [
             'type' => 'offer_redeemed_by_employee',
-            'title' => 'Offer redeemed',
-            'message' => 'An offer claim was redeemed at your store.',
+            'title' => $ownerResolved['title'],
+            'message' => $ownerResolved['message'],
             'channel' => 'in_app',
             'data' => [
                 'claim_id' => $claim->id,
@@ -78,13 +107,20 @@ class SendOfferRedeemedNotifications implements ShouldQueue
             ],
             'referenceType' => $referenceType,
             'referenceId' => $claim->id,
+            'imageUrl' => $customerAvatar,
         ]);
 
+        // Notify store owner: seller_points_earned
         if ($event->storePointsAwarded) {
+            $storePointsResolved = NotificationMessageResolver::resolve('seller_points_earned', [
+                'points' => $event->storePoints,
+                'product_name' => $productName,
+            ], $store->owner);
+
             $this->sendOnce($store->owner, [
                 'type' => 'seller_points_earned',
-                'title' => 'Store points earned',
-                'message' => 'Your store earned points from an offer redemption.',
+                'title' => $storePointsResolved['title'],
+                'message' => $storePointsResolved['message'],
                 'channel' => 'in_app',
                 'data' => [
                     'points' => $event->storePoints,
@@ -95,6 +131,7 @@ class SendOfferRedeemedNotifications implements ShouldQueue
                 ],
                 'referenceType' => $referenceType,
                 'referenceId' => $claim->id,
+                'imageUrl' => null,
             ]);
         }
     }
@@ -120,6 +157,7 @@ class SendOfferRedeemedNotifications implements ShouldQueue
                 data: $notification['data'],
                 referenceType: $notification['referenceType'],
                 referenceId: $notification['referenceId'],
+                imageUrl: $notification['imageUrl'] ?? null,
             );
         } catch (Throwable $e) {
             Log::error('Offer redemption notification failed', [

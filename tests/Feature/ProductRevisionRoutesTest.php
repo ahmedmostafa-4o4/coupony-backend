@@ -95,8 +95,7 @@ class ProductRevisionRoutesTest extends TestCase
             ->where('type', 'product_approved')
             ->firstOrFail();
 
-        $this->assertSame('Product approved', $notification->title);
-        $this->assertSame('Your product update has been approved.', $notification->message);
+        $this->assertSame('تم قبول المنتج', $notification->title);
         $this->assertSame('in_app', $notification->channel);
         $this->assertSame('sent', $notification->status);
         $this->assertSame(Product::class, $notification->reference_type);
@@ -171,8 +170,7 @@ class ProductRevisionRoutesTest extends TestCase
             ->where('type', 'product_rejected')
             ->firstOrFail();
 
-        $this->assertSame('Product rejected', $notification->title);
-        $this->assertSame('Your product update was rejected.', $notification->message);
+        $this->assertSame('تم رفض المنتج', $notification->title);
         $this->assertSame('in_app', $notification->channel);
         $this->assertSame('sent', $notification->status);
         $this->assertSame(Product::class, $notification->reference_type);

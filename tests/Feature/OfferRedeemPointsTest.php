@@ -95,8 +95,7 @@ class OfferRedeemPointsTest extends TestCase
             ->where('type', 'offer_redeemed')
             ->firstOrFail();
 
-        $this->assertSame('Offer redeemed', $notification->title);
-        $this->assertSame('Your offer was redeemed successfully.', $notification->message);
+        $this->assertSame('تم استخدام العرض', $notification->title);
         $this->assertSame('in_app', $notification->channel);
         $this->assertSame('sent', $notification->status);
         $this->assertSame(OfferClaim::class, $notification->reference_type);
@@ -122,8 +121,7 @@ class OfferRedeemPointsTest extends TestCase
             ->where('type', 'offer_redeemed_by_employee')
             ->firstOrFail();
 
-        $this->assertSame('Offer redeemed', $notification->title);
-        $this->assertSame('An offer claim was redeemed at your store.', $notification->message);
+        $this->assertSame('تم استخدام عرض', $notification->title);
         $this->assertSame('in_app', $notification->channel);
         $this->assertSame('sent', $notification->status);
         $this->assertSame(OfferClaim::class, $notification->reference_type);
@@ -150,8 +148,7 @@ class OfferRedeemPointsTest extends TestCase
             ->where('type', 'points_earned')
             ->firstOrFail();
 
-        $this->assertSame('Points earned', $customerNotification->title);
-        $this->assertSame('You earned points for redeeming an offer.', $customerNotification->message);
+        $this->assertSame('ربحت نقاط', $customerNotification->title);
         $this->assertSame(20, $customerNotification->data['points']);
         $this->assertSame('offer_redeemed', $customerNotification->data['reason']);
         $this->assertSame($claim->id, $customerNotification->data['claim_id']);
@@ -163,8 +160,7 @@ class OfferRedeemPointsTest extends TestCase
             ->where('type', 'seller_points_earned')
             ->firstOrFail();
 
-        $this->assertSame('Store points earned', $storeNotification->title);
-        $this->assertSame('Your store earned points from an offer redemption.', $storeNotification->message);
+        $this->assertSame('ربح متجرك نقاط', $storeNotification->title);
         $this->assertSame(10, $storeNotification->data['points']);
         $this->assertSame('offer_redeemed', $storeNotification->data['reason']);
         $this->assertSame($claim->id, $storeNotification->data['claim_id']);

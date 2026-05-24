@@ -8,8 +8,6 @@ use App\Domain\Subscription\Enums\PaymentSessionStatus;
 use App\Domain\Subscription\Exceptions\PaymentSessionAlreadyExistsException;
 use App\Domain\Subscription\Models\PaymentSession;
 use App\Domain\Subscription\Models\SubscriptionPlan;
-use App\Domain\Subscription\Repositories\PaymentSessionRepository;
-use App\Domain\Subscription\Services\PaymobService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -26,23 +24,33 @@ class InitiatePaymentActionTest extends TestCase
 
         config([
             'subscription.payment_session_ttl_minutes' => 30,
+            'subscription.paymob.secret_key' => 'test_secret_key',
+            'subscription.paymob.public_key' => 'egy_pk_test_abc123',
             'subscription.paymob.api_key' => 'test_api_key',
             'subscription.paymob.integration_id' => '12345',
-            'subscription.paymob.iframe_id' => '67890',
             'subscription.paymob.hmac_secret' => 'test_secret',
-            'subscription.paymob.base_url' => 'https://accept.paymob.com/api',
+            'subscription.paymob.base_url' => 'https://accept.paymob.com',
         ]);
 
         $this->action = $this->app->make(InitiatePaymentAction::class);
     }
 
-    public function test_creates_payment_session_successfully(): void
+    private function fakePaymobIntention(string $clientSecret = 'pk_test_client_secret_xyz', string $intentionId = 'intention_123'): void
     {
         Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response(['token' => 'auth_token_123'], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response(['id' => 99001, 'created_at' => now()->toISOString()], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response(['token' => 'payment_key_xyz'], 200),
+            'accept.paymob.com/v1/intention/' => Http::response([
+                'id' => $intentionId,
+                'client_secret' => $clientSecret,
+                'payment_keys' => [
+                    ['key' => 'key_1', 'integration' => 12345],
+                ],
+            ], 200),
         ]);
+    }
+
+    public function test_creates_payment_session_successfully(): void
+    {
+        $this->fakePaymobIntention('pk_test_secret_abc123', 'intention_99001');
 
         $store = Store::factory()->create();
         $plan = SubscriptionPlan::factory()->create([
@@ -60,18 +68,50 @@ class InitiatePaymentActionTest extends TestCase
         $this->assertEquals(99.99, (float) $session->amount);
         $this->assertEquals('EGP', $session->currency);
         $this->assertEquals(PaymentSessionStatus::PENDING, $session->status);
-        $this->assertNotNull($session->payment_url);
+        $this->assertNotNull($session->payment_url); // stores client_secret
+        $this->assertEquals('pk_test_secret_abc123', $session->payment_url);
         $this->assertNotNull($session->expires_at);
-        $this->assertEquals('99001', $session->paymob_order_id);
+        $this->assertEquals('intention_99001', $session->paymob_order_id);
+    }
+
+    public function test_sends_correct_amount_cents_to_paymob(): void
+    {
+        $this->fakePaymobIntention();
+
+        $store = Store::factory()->create();
+        $plan = SubscriptionPlan::factory()->create([
+            'price_monthly' => 99.99,
+            'currency' => 'EGP',
+        ]);
+
+        $this->action->execute($store, $plan, 'monthly');
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://accept.paymob.com/v1/intention/'
+                && $request['amount'] === 9999 // 99.99 * 100
+                && $request['currency'] === 'EGP';
+        });
+    }
+
+    public function test_sends_extras_with_store_and_plan_info(): void
+    {
+        $this->fakePaymobIntention();
+
+        $store = Store::factory()->create();
+        $plan = SubscriptionPlan::factory()->create();
+
+        $this->action->execute($store, $plan, 'yearly');
+
+        Http::assertSent(function ($request) use ($store, $plan) {
+            return $request['extras']['store_id'] === $store->id
+                && $request['extras']['plan_id'] === $plan->id
+                && $request['extras']['billing_cycle'] === 'yearly';
+        });
     }
 
     public function test_calculates_amount_from_plan_for_monthly_cycle(): void
     {
-        Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response(['token' => 'auth_token_123'], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response(['id' => 99001, 'created_at' => now()->toISOString()], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response(['token' => 'payment_key_xyz'], 200),
-        ]);
+        $this->fakePaymobIntention();
 
         $store = Store::factory()->create();
         $plan = SubscriptionPlan::factory()->create([
@@ -86,11 +126,7 @@ class InitiatePaymentActionTest extends TestCase
 
     public function test_calculates_amount_from_plan_for_yearly_cycle(): void
     {
-        Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response(['token' => 'auth_token_123'], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response(['id' => 99001, 'created_at' => now()->toISOString()], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response(['token' => 'payment_key_xyz'], 200),
-        ]);
+        $this->fakePaymobIntention();
 
         $store = Store::factory()->create();
         $plan = SubscriptionPlan::factory()->create([
@@ -126,11 +162,7 @@ class InitiatePaymentActionTest extends TestCase
 
     public function test_allows_new_session_when_existing_session_is_expired(): void
     {
-        Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response(['token' => 'auth_token_123'], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response(['id' => 99001, 'created_at' => now()->toISOString()], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response(['token' => 'payment_key_xyz'], 200),
-        ]);
+        $this->fakePaymobIntention();
 
         $store = Store::factory()->create();
         $plan = SubscriptionPlan::factory()->create([
@@ -158,11 +190,7 @@ class InitiatePaymentActionTest extends TestCase
     {
         config(['subscription.payment_session_ttl_minutes' => 45]);
 
-        Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response(['token' => 'auth_token_123'], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response(['id' => 99001, 'created_at' => now()->toISOString()], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response(['token' => 'payment_key_xyz'], 200),
-        ]);
+        $this->fakePaymobIntention();
 
         $store = Store::factory()->create();
         $plan = SubscriptionPlan::factory()->create();
@@ -176,20 +204,15 @@ class InitiatePaymentActionTest extends TestCase
         });
     }
 
-    public function test_payment_url_is_stored_in_session(): void
+    public function test_client_secret_is_stored_in_payment_url_field(): void
     {
-        Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response(['token' => 'auth_token_123'], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response(['id' => 99001, 'created_at' => now()->toISOString()], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response(['token' => 'payment_key_xyz'], 200),
-        ]);
+        $this->fakePaymobIntention('pk_test_my_secret_value');
 
         $store = Store::factory()->create();
         $plan = SubscriptionPlan::factory()->create();
 
         $session = $this->action->execute($store, $plan, 'monthly');
 
-        $this->assertStringContainsString('payment_token=payment_key_xyz', $session->payment_url);
-        $this->assertStringContainsString('iframes/67890', $session->payment_url);
+        $this->assertEquals('pk_test_my_secret_value', $session->payment_url);
     }
 }

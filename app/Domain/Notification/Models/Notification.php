@@ -26,6 +26,8 @@ class Notification extends Model
         'title',
         'message',
         'data',
+        'image_url',
+        'badge_status',
         'channel',
         'status',
         'reference_type',

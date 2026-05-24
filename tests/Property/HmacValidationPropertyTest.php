@@ -28,11 +28,12 @@ class HmacValidationPropertyTest extends TestCase
         $this->hmacSecret = 'property_test_hmac_secret_' . bin2hex(random_bytes(8));
 
         config([
+            'subscription.paymob.secret_key' => 'test_secret_key',
+            'subscription.paymob.public_key' => 'egy_pk_test_abc123',
             'subscription.paymob.api_key' => 'test_api_key',
             'subscription.paymob.integration_id' => '12345',
-            'subscription.paymob.iframe_id' => '67890',
             'subscription.paymob.hmac_secret' => $this->hmacSecret,
-            'subscription.paymob.base_url' => 'https://accept.paymob.com/api',
+            'subscription.paymob.base_url' => 'https://accept.paymob.com',
         ]);
 
         $this->service = new PaymobService();

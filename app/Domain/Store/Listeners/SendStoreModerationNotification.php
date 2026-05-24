@@ -3,6 +3,7 @@
 namespace App\Domain\Store\Listeners;
 
 use App\Domain\Notification\Services\NotificationService;
+use App\Domain\Notification\Support\NotificationMessageResolver;
 use App\Domain\Store\Enums\StoreStatus;
 use App\Domain\Store\Events\StoreApproved;
 use App\Domain\Store\Events\StoreRejected;
@@ -25,15 +26,21 @@ class SendStoreModerationNotification implements ShouldQueue
         }
 
         $isApproved = $event instanceof StoreApproved;
+        $type = $isApproved ? 'store_approved' : 'store_rejected';
+
+        $params = [];
+        if (! $isApproved) {
+            $params['rejection_reason'] = $store->rejection_reason ?? '';
+        }
+
+        $resolved = NotificationMessageResolver::resolve($type, $params, $store->owner);
 
         try {
             $this->notifications->send(
                 user: $store->owner,
-                type: $isApproved ? 'store_approved' : 'store_rejected',
-                title: $isApproved ? 'Store approved' : 'Store rejected',
-                message: $isApproved
-                    ? 'Your store has been approved.'
-                    : 'Your store verification was rejected.',
+                type: $type,
+                title: $resolved['title'],
+                message: $resolved['message'],
                 channel: 'in_app',
                 data: $isApproved
                     ? [
@@ -48,6 +55,7 @@ class SendStoreModerationNotification implements ShouldQueue
                     ],
                 referenceType: Store::class,
                 referenceId: $store->id,
+                imageUrl: $store->logo_url ?? null,
             );
         } catch (Throwable $e) {
             Log::error('Store moderation notification failed', [

@@ -105,8 +105,9 @@ class NotificationController extends Controller
         $notification->markAsRead();
 
         return $this->localizedJson([
-            'message' => __('api.notifications.marked_as_read'),
-            'data' => new NotificationResource($notification->fresh()),
+            'data' => [
+                'unread_count' => $request->user()->unreadNotifications()->count(),
+            ],
         ]);
     }
 
@@ -168,9 +169,7 @@ class NotificationController extends Controller
 
         $notification->delete();
 
-        return $this->localizedJson([
-            'message' => __('api.notifications.deleted'),
-        ], 200);
+        return response()->json(null, 204);
     }
 
     /**

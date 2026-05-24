@@ -3,6 +3,7 @@
 namespace App\Domain\Product\Listeners;
 
 use App\Domain\Notification\Services\NotificationService;
+use App\Domain\Notification\Support\NotificationMessageResolver;
 use App\Domain\Product\Events\OfferClaimCreated;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\User\Models\User;
@@ -21,10 +22,23 @@ class SendOfferClaimCreatedNotifications implements ShouldQueue
         $customer = $event->customer;
         $referenceType = OfferClaim::class;
 
+        $product->loadMissing('store.owner', 'images');
+        $store = $product->store;
+        $storeName = $store?->name ?? 'Store';
+        $productName = $product->name ?? 'Product';
+        $storeLogo = $store?->logo_url ?? null;
+        $customerAvatar = $customer->avatar ?? $customer->profile?->avatar_url ?? null;
+
+        // Notify customer
+        $customerResolved = NotificationMessageResolver::resolve('offer_claim_created', [
+            'product_name' => $productName,
+            'expires_at' => $claim->expires_at?->toIso8601String() ?? '',
+        ], $customer);
+
         $this->sendSafely($customer, [
             'type' => 'offer_claim_created',
-            'title' => 'Offer claimed successfully',
-            'message' => 'Your offer claim has been created successfully.',
+            'title' => $customerResolved['title'],
+            'message' => $customerResolved['message'],
             'channel' => 'in_app',
             'data' => [
                 'claim_id' => $claim->id,
@@ -34,38 +48,64 @@ class SendOfferClaimCreatedNotifications implements ShouldQueue
             ],
             'referenceType' => $referenceType,
             'referenceId' => $claim->id,
+            'imageUrl' => $storeLogo,
         ]);
-
-        $store = $product->store;
 
         if (! $store) {
             return;
         }
 
-        $storeNotification = [
-            'type' => 'new_offer_claim',
-            'title' => 'New offer claim',
-            'message' => 'A customer claimed an offer from your store.',
-            'channel' => 'in_app',
-            'data' => [
-                'claim_id' => $claim->id,
-                'product_id' => $product->id,
-                'store_id' => $product->store_id,
-                'customer_id' => $customer->id,
-            ],
-            'referenceType' => $referenceType,
-            'referenceId' => $claim->id,
-        ];
-
+        // Notify store owner and employees
         $store->loadMissing('owner', 'employees');
 
+        $storeNotificationParams = [
+            'customer_email' => $customer->email ?? '',
+            'product_name' => $productName,
+        ];
+
         if ($store->owner) {
+            $ownerResolved = NotificationMessageResolver::resolve('new_offer_claim', $storeNotificationParams, $store->owner);
+
+            $storeNotification = [
+                'type' => 'new_offer_claim',
+                'title' => $ownerResolved['title'],
+                'message' => $ownerResolved['message'],
+                'channel' => 'in_app',
+                'data' => [
+                    'claim_id' => $claim->id,
+                    'product_id' => $product->id,
+                    'store_id' => $product->store_id,
+                    'customer_id' => $customer->id,
+                ],
+                'referenceType' => $referenceType,
+                'referenceId' => $claim->id,
+                'imageUrl' => $customerAvatar,
+            ];
+
             $this->sendSafely($store->owner, $storeNotification);
         }
 
         $store->employees
             ->reject(fn (User $employee) => (string) $employee->id === (string) $store->owner_user_id)
-            ->each(fn (User $employee) => $this->sendSafely($employee, $storeNotification));
+            ->each(function (User $employee) use ($storeNotificationParams, $claim, $product, $customer, $referenceType, $customerAvatar) {
+                $resolved = NotificationMessageResolver::resolve('new_offer_claim', $storeNotificationParams, $employee);
+
+                $this->sendSafely($employee, [
+                    'type' => 'new_offer_claim',
+                    'title' => $resolved['title'],
+                    'message' => $resolved['message'],
+                    'channel' => 'in_app',
+                    'data' => [
+                        'claim_id' => $claim->id,
+                        'product_id' => $product->id,
+                        'store_id' => $product->store_id,
+                        'customer_id' => $customer->id,
+                    ],
+                    'referenceType' => $referenceType,
+                    'referenceId' => $claim->id,
+                    'imageUrl' => $customerAvatar,
+                ]);
+            });
     }
 
     private function sendSafely(User $user, array $notification): void
@@ -80,6 +120,7 @@ class SendOfferClaimCreatedNotifications implements ShouldQueue
                 data: $notification['data'],
                 referenceType: $notification['referenceType'],
                 referenceId: $notification['referenceId'],
+                imageUrl: $notification['imageUrl'] ?? null,
             );
         } catch (Throwable $e) {
             Log::error('Offer claim notification failed', [

@@ -40,6 +40,8 @@ class NotificationSent implements ShouldBroadcast
                 'title' => $this->notification->title,
                 'message' => $this->notification->message,
                 'data' => $this->notification->data,
+                'image_url' => $this->notification->image_url,
+                'badge_status' => $this->notification->badge_status ?? 'none',
                 'channel' => $this->notification->channel,
                 'status' => $this->notification->status,
                 'reference_type' => $this->notification->reference_type,

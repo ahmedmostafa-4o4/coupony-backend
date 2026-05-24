@@ -6,6 +6,7 @@ use App\Domain\Product\DTOs\ProductData;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductRevisionAction;
 use App\Domain\Product\Enums\ProductRevisionStatus;
+use App\Domain\Product\Events\ProductRevisionSubmitted;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductRevision;
 use App\Domain\Product\Repositories\ProductRepository;
@@ -52,10 +53,12 @@ class CreateOrUpdatePendingProductRevision
                         'requested_changes' => null,
                     ]);
 
+                    event(new ProductRevisionSubmitted($product, $pendingRevision->fresh(), $submittedBy));
+
                     return $pendingRevision->fresh();
                 }
 
-                return $product->revisions()->create([
+                $revision = $product->revisions()->create([
                     'revision_no' => $this->products->nextRevisionNumber($product),
                     'action' => $product->published_revision_no > 0
                         ? ProductRevisionAction::UPDATE
@@ -68,6 +71,10 @@ class CreateOrUpdatePendingProductRevision
                     'review_fields' => $reviewFields,
                     'requested_changes' => null,
                 ]);
+
+                event(new ProductRevisionSubmitted($product, $revision, $submittedBy));
+
+                return $revision;
             });
         } catch (\Exception $e) {
             Log::error("Failed to create or update pending product revision for product ID {$product->id}: ".$e->getMessage(), [

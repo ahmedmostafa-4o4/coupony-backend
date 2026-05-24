@@ -49,6 +49,7 @@ use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
 use App\Http\Middleware\UseAuthenticatedUserLocale;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
@@ -236,6 +237,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/favorite-products', [ProductFavoriteController::class, 'index'])->name('me.products.favorites.index');
         Route::get('/me/recommendations/products', [ProductRecommendationController::class, 'index'])->name('me.products.recommendations.index');
         Route::get('/me/followed-stores', [StoreFollowController::class, 'index'])->name('me.followed-stores.index');
+        Route::get('/me/followers/new', [\App\Application\Http\Controllers\API\V1\MyFollowersController::class, 'newFollowers'])->name('me.followers.new');
 
         Route::prefix('pony/customer')->name('pony.customer.')->group(function () {
             Route::post('/chat', [CustomerChatController::class, 'store'])->name('chat')->middleware('pony.throttle:text');

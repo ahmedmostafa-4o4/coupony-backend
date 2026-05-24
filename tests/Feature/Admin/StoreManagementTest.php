@@ -124,8 +124,8 @@ class StoreManagementTest extends TestCase
             ->where('channel', 'in_app')
             ->firstOrFail();
 
-        $this->assertSame('Store approved', $notification->title);
-        $this->assertSame('Your store has been approved.', $notification->message);
+        $this->assertSame('تم قبول متجرك', $notification->title);
+        $this->assertSame('مبروك! تم الموافقة على متجرك وأصبح نشطاً الآن.', $notification->message);
         $this->assertSame(Store::class, $notification->reference_type);
         $this->assertSame($store->id, $notification->reference_id);
         $this->assertSame($store->id, $notification->data['store_id']);
@@ -160,8 +160,8 @@ class StoreManagementTest extends TestCase
             ->where('channel', 'in_app')
             ->firstOrFail();
 
-        $this->assertSame('Store rejected', $notification->title);
-        $this->assertSame('Your store verification was rejected.', $notification->message);
+        $this->assertSame('تم رفض متجرك', $notification->title);
+        $this->assertStringContainsString('Invalid documents', $notification->message);
         $this->assertSame(Store::class, $notification->reference_type);
         $this->assertSame($store->id, $notification->reference_id);
         $this->assertSame($store->id, $notification->data['store_id']);

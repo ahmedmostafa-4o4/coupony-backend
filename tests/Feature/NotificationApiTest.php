@@ -68,7 +68,7 @@ class NotificationApiTest extends TestCase
         $this->actingAs($user, 'sanctum')
             ->patchJson("/api/v1/me/notifications/{$notification->id}/read")
             ->assertOk()
-            ->assertJsonPath('data.is_read', true);
+            ->assertJsonPath('data.unread_count', 0);
 
         $this->assertNotNull($notification->fresh()->read_at);
     }
@@ -121,7 +121,7 @@ class NotificationApiTest extends TestCase
 
         $this->actingAs($user, 'sanctum')
             ->deleteJson("/api/v1/me/notifications/{$notification->id}")
-            ->assertOk();
+            ->assertNoContent();
 
         $this->assertDatabaseMissing('notifications', ['id' => $notification->id]);
     }

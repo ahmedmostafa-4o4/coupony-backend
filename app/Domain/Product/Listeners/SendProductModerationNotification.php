@@ -3,6 +3,7 @@
 namespace App\Domain\Product\Listeners;
 
 use App\Domain\Notification\Services\NotificationService;
+use App\Domain\Notification\Support\NotificationMessageResolver;
 use App\Domain\Product\Events\ProductRevisionApproved;
 use App\Domain\Product\Events\ProductRevisionRejected;
 use App\Domain\Product\Models\Product;
@@ -26,7 +27,7 @@ class SendProductModerationNotification implements ShouldQueue
             return;
         }
 
-        $product->loadMissing('store.owner');
+        $product->loadMissing('store.owner', 'images');
         $owner = $product->store?->owner;
 
         if (! $owner) {
@@ -34,21 +35,33 @@ class SendProductModerationNotification implements ShouldQueue
         }
 
         $isApproved = $event instanceof ProductRevisionApproved;
+        $type = $isApproved ? 'product_approved' : 'product_rejected';
+        $productName = $product->name ?? 'Product';
+
+        $params = ['product_name' => $productName];
+        if (! $isApproved) {
+            $params['rejection_reason'] = $event->reason ?? '';
+        }
+
+        $resolved = NotificationMessageResolver::resolve($type, $params, $owner);
+
+        $productImage = $product->images?->where('is_primary', true)->first()?->image_url
+            ?? $product->images?->first()?->image_url
+            ?? null;
 
         try {
             $this->notifications->send(
                 user: $owner,
-                type: $isApproved ? 'product_approved' : 'product_rejected',
-                title: $isApproved ? 'Product approved' : 'Product rejected',
-                message: $isApproved
-                    ? 'Your product update has been approved.'
-                    : 'Your product update was rejected.',
+                type: $type,
+                title: $resolved['title'],
+                message: $resolved['message'],
                 channel: 'in_app',
                 data: $isApproved
                     ? $this->approvedData($product, $revision)
                     : $this->rejectedData($product, $revision, $event->reason),
                 referenceType: Product::class,
                 referenceId: $product->id,
+                imageUrl: $productImage,
             );
         } catch (Throwable $e) {
             Log::error('Product moderation notification failed', [

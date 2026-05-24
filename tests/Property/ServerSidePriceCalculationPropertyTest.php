@@ -74,17 +74,12 @@ class ServerSidePriceCalculationPropertyTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Mock all Paymob HTTP calls
+        // Mock Paymob Intention API
         Http::fake([
-            'accept.paymob.com/api/auth/tokens' => Http::response([
-                'token' => 'test_auth_token_' . $iteration,
-            ], 200),
-            'accept.paymob.com/api/ecommerce/orders' => Http::response([
-                'id' => 90000 + $iteration,
-                'created_at' => now()->toISOString(),
-            ], 200),
-            'accept.paymob.com/api/acceptance/payment_keys' => Http::response([
-                'token' => 'payment_key_' . $iteration,
+            'accept.paymob.com/v1/intention/' => Http::response([
+                'id' => 'intention_' . $iteration,
+                'client_secret' => 'pk_test_secret_' . $iteration,
+                'payment_keys' => [],
             ], 200),
         ]);
 

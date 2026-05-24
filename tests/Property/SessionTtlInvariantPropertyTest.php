@@ -58,14 +58,12 @@ class SessionTtlInvariantPropertyTest extends TestCase
 
         // Mock PaymobService to avoid real HTTP calls
         $paymobServiceMock = Mockery::mock(PaymobService::class);
-        $paymobServiceMock->shouldReceive('authenticate')
-            ->andReturn('fake-auth-token');
-        $paymobServiceMock->shouldReceive('createOrder')
-            ->andReturn(['id' => rand(10000, 99999), 'created_at' => now()->toISOString()]);
-        $paymobServiceMock->shouldReceive('generatePaymentKey')
-            ->andReturn('fake-payment-key');
-        $paymobServiceMock->shouldReceive('getPaymentUrl')
-            ->andReturn('https://accept.paymob.com/acceptance/iframes/12345?payment_token=fake-payment-key');
+        $paymobServiceMock->shouldReceive('createIntention')
+            ->andReturn([
+                'id' => 'intention_' . rand(10000, 99999),
+                'client_secret' => 'pk_test_fake_secret_' . rand(1000, 9999),
+                'payment_keys' => [],
+            ]);
 
         $this->app->instance(PaymobService::class, $paymobServiceMock);
 

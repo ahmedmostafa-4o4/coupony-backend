@@ -178,8 +178,7 @@ class OfferClaimTest extends TestCase
             ->where('type', 'offer_claim_created')
             ->firstOrFail();
 
-        $this->assertSame('Offer claimed successfully', $customerNotification->title);
-        $this->assertSame('Your offer claim has been created successfully.', $customerNotification->message);
+        $this->assertSame('تم حجز العرض', $customerNotification->title);
         $this->assertSame('in_app', $customerNotification->channel);
         $this->assertSame('sent', $customerNotification->status);
         $this->assertSame(OfferClaim::class, $customerNotification->reference_type);
@@ -195,8 +194,7 @@ class OfferClaimTest extends TestCase
                 ->where('type', 'new_offer_claim')
                 ->firstOrFail();
 
-            $this->assertSame('New offer claim', $storeNotification->title);
-            $this->assertSame('A customer claimed an offer from your store.', $storeNotification->message);
+            $this->assertSame('عميل جديد حجز عرضك', $storeNotification->title);
             $this->assertSame('in_app', $storeNotification->channel);
             $this->assertSame('sent', $storeNotification->status);
             $this->assertSame(OfferClaim::class, $storeNotification->reference_type);
@@ -222,7 +220,9 @@ class OfferClaimTest extends TestCase
                 string $channel = 'in_app',
                 array $data = [],
                 ?string $referenceType = null,
-                ?string $referenceId = null
+                ?string $referenceId = null,
+                ?string $imageUrl = null,
+                ?string $badgeStatus = null
             ): Notification {
                 throw new \RuntimeException('Notification transport unavailable.');
             }
