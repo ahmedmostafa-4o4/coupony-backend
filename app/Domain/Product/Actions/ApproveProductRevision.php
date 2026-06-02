@@ -49,6 +49,25 @@ class ApproveProductRevision
                 'admin_notes' => $notes,
             ]);
 
+            // Set offer dates on first approval only (when starts_at is still null)
+            $offer = $product->offer;
+            if ($offer && $offer->starts_at === null) {
+                $startsAt = now();
+                $endsAt = $startsAt->copy();
+
+                if ($offer->duration_days) {
+                    $endsAt = $endsAt->addDays($offer->duration_days);
+                }
+                if ($offer->duration_hours) {
+                    $endsAt = $endsAt->addHours($offer->duration_hours);
+                }
+
+                $offer->update([
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                ]);
+            }
+
             $fresh = $this->products->loadSellerProduct($product->fresh());
 
             ProductRevisionApproved::dispatch($fresh, $revision->fresh(), $admin);

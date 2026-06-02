@@ -44,6 +44,7 @@ class Product extends Model
         'redemption_count',
         'rating_avg',
         'rating_count',
+        'favorites_count',
     ];
 
     protected function casts(): array
@@ -61,6 +62,7 @@ class Product extends Model
             'redemption_count' => 'integer',
             'rating_avg' => 'decimal:2',
             'rating_count' => 'integer',
+            'favorites_count' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

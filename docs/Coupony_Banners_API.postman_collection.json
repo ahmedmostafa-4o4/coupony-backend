@@ -1,0 +1,679 @@
+{
+  "info": {
+    "_postman_id": "coupony-banners-api-v1",
+    "name": "Coupony Banners API",
+    "description": "Seller banner requests, admin approval, customer banner browsing, interactions, shares, and grouped banner claims.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.coupony.shop",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "store_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "banner_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "offer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "address_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Customer Banners",
+      "description": "Public and authenticated customer banner endpoints.",
+      "item": [
+        {
+          "name": "Get Active Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners"
+              ]
+            },
+            "description": "Returns max 10 active approved non-expired banners ordered by priority ASC. Auth is optional; Bearer token enables is_liked and is_favorited flags."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners retrieved successfully.\",\n  \"data\": [\n    {\n      \"id\": \"{{banner_id}}\",\n      \"store_id\": \"{{store_id}}\",\n      \"image_url\": \"https://api.coupony.shop/storage/banners/store/banner.jpg\",\n      \"discount_label\": \"30% OFF\",\n      \"date_range\": \"June 1 - June 30\",\n      \"cta_label\": \"Claim now\",\n      \"terms_of_use\": \"Valid for selected branches only.\",\n      \"end_time\": \"2026-06-30T20:59:59+00:00\",\n      \"priority\": 1,\n      \"is_active\": true,\n      \"status\": \"approved\",\n      \"likes_count\": 15,\n      \"is_liked\": false,\n      \"is_favorited\": false,\n      \"store\": {},\n      \"branches\": [],\n      \"offers\": []\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Banner Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}"
+              ]
+            },
+            "description": "Returns banner data, linked eligible offers, branches, terms of use, store details, likes_count, is_liked, and is_favorited."
+          }
+        },
+        {
+          "name": "Like Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}/likes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}",
+                "likes"
+              ]
+            },
+            "description": "Requires auth. Idempotently likes the banner and returns updated likes_count."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner liked successfully.\",\n  \"data\": {\n    \"banner_id\": \"{{banner_id}}\",\n    \"likes_count\": 16,\n    \"is_liked\": true\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unlike Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}/likes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}",
+                "likes"
+              ]
+            },
+            "description": "Requires auth. Removes the current user's like from the banner."
+          }
+        },
+        {
+          "name": "Favorite Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}/favorites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}",
+                "favorites"
+              ]
+            },
+            "description": "Requires auth. Adds the banner to the current user's favorites."
+          }
+        },
+        {
+          "name": "Unfavorite Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}/favorites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}",
+                "favorites"
+              ]
+            },
+            "description": "Requires auth. Removes the banner from the current user's favorites."
+          }
+        },
+        {
+          "name": "Share Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"whatsapp\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}/shares",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}",
+                "shares"
+              ]
+            },
+            "description": "Requires auth. Allowed platform values: whatsapp, facebook, twitter, instagram, copy_link, other."
+          }
+        },
+        {
+          "name": "Claim Banner Offers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/banners/{{banner_id}}/claims",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "banners",
+                "{{banner_id}}",
+                "claims"
+              ]
+            },
+            "description": "Requires auth. Creates one grouped banner_claim containing all currently eligible offers linked to the banner."
+          },
+          "response": [
+            {
+              "name": "Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner claim created successfully.\",\n  \"data\": {\n    \"id\": \"claim-uuid\",\n    \"banner_id\": \"{{banner_id}}\",\n    \"store_id\": \"{{store_id}}\",\n    \"status\": \"active\",\n    \"claim_token\": \"long-random-token\",\n    \"qr_code_token\": \"long-random-token\",\n    \"claim_snapshot\": {\n      \"banner\": {},\n      \"store\": {},\n      \"branches\": [],\n      \"offers\": []\n    },\n    \"expires_at\": \"2026-06-30T20:59:59+00:00\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Seller Banners",
+      "description": "Seller/store-owner banner request workflow.",
+      "item": [
+        {
+          "name": "Get Selectable Banner Offers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/banner-offers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "banner-offers"
+              ]
+            },
+            "description": "Requires seller/store access. Returns product offers from this store that can be linked to a banner."
+          }
+        },
+        {
+          "name": "List Store Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "banners"
+              ]
+            },
+            "description": "Requires seller/store access. Optional query: status=pending|approved|rejected, per_page=15."
+          }
+        },
+        {
+          "name": "Submit Banner Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "discount_label",
+                  "value": "30% OFF",
+                  "type": "text"
+                },
+                {
+                  "key": "date_range",
+                  "value": "June 1 - June 30",
+                  "type": "text"
+                },
+                {
+                  "key": "cta_label",
+                  "value": "Claim now",
+                  "type": "text"
+                },
+                {
+                  "key": "terms_of_use",
+                  "value": "Valid for selected branches only.",
+                  "type": "text"
+                },
+                {
+                  "key": "end_time",
+                  "value": "2026-06-30 23:59:59",
+                  "type": "text"
+                },
+                {
+                  "key": "offer_ids[]",
+                  "value": "{{offer_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "address_ids[]",
+                  "value": "{{address_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "banners"
+              ]
+            },
+            "description": "Requires seller/store access. multipart/form-data. Do not send min_transaction; it is prohibited."
+          }
+        },
+        {
+          "name": "Get Store Banner Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/banners/{{banner_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "banners",
+                "{{banner_id}}"
+              ]
+            },
+            "description": "Requires seller/store access. Returns request details, selected offers, branches, status, and rejection reason if present."
+          }
+        },
+        {
+          "name": "Edit Store Banner Request",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "discount_label",
+                  "value": "40% OFF",
+                  "type": "text"
+                },
+                {
+                  "key": "terms_of_use",
+                  "value": "Updated terms.",
+                  "type": "text"
+                },
+                {
+                  "key": "offer_ids[]",
+                  "value": "{{offer_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "address_ids[]",
+                  "value": "{{address_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/banners/{{banner_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stores",
+                "{{store_id}}",
+                "banners",
+                "{{banner_id}}"
+              ]
+            },
+            "description": "Requires seller/store access. Only pending or rejected banners can be edited by sellers."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Banners",
+      "description": "Admin moderation and banner management endpoints.",
+      "item": [
+        {
+          "name": "List Admin Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/banners?status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "banners"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Optional: pending, approved, rejected"
+                }
+              ]
+            },
+            "description": "Requires admin auth. Optional query: status, store_id, per_page."
+          }
+        },
+        {
+          "name": "Get Admin Banner Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/banners/{{banner_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "banners",
+                "{{banner_id}}"
+              ]
+            },
+            "description": "Requires admin auth. Returns full management detail."
+          }
+        },
+        {
+          "name": "Update Admin Banner",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": 1,\n  \"is_active\": true,\n  \"discount_label\": \"30% OFF\",\n  \"cta_label\": \"Claim now\",\n  \"terms_of_use\": \"Valid for selected branches only.\",\n  \"end_time\": \"2026-06-30 23:59:59\",\n  \"offer_ids\": [\"{{offer_id}}\"],\n  \"address_ids\": [{{address_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/banners/{{banner_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "banners",
+                "{{banner_id}}"
+              ]
+            },
+            "description": "Requires admin auth. Updates banner metadata and invalidates the customer banner cache."
+          }
+        },
+        {
+          "name": "Approve Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": 1,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/banners/{{banner_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "banners",
+                "{{banner_id}}",
+                "approve"
+              ]
+            },
+            "description": "Requires admin auth. Approves the banner, activates it by default, approves linked pending products/offers, and clears customer banner cache."
+          }
+        },
+        {
+          "name": "Reject Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Image quality is too low.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/banners/{{banner_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "banners",
+                "{{banner_id}}",
+                "reject"
+              ]
+            },
+            "description": "Requires admin auth. Rejects the banner, stores rejection_reason, deactivates it, and clears customer banner cache."
+          }
+        }
+      ]
+    }
+  ]
+}

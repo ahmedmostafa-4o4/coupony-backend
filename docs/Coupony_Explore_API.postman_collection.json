@@ -1,0 +1,528 @@
+{
+	"info": {
+		"_postman_id": "coupony-explore-api-v1",
+		"name": "Coupony Explore & Picks API",
+		"description": "Explore page and Picked-for-You endpoints for Coupony.\n\nBoth endpoints are public (no auth required), but passing a Bearer token enables personalized features like is_favorite flags and recommendation-based picks.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api.coupony.shop",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string",
+			"description": "Optional - enables personalized results (is_favorite, recommendation-based picks)"
+		}
+	],
+	"item": [
+		{
+			"name": "Explore Bootstrap",
+			"description": "Endpoints for the main explore page bootstrap data",
+			"item": [
+				{
+					"name": "Get Explore Bootstrap (No Filters)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore"]
+						},
+						"description": "Returns all explore sections without any filters.\n\nResponse includes: interests, activities, trending, flash, top_stores, nearby (empty without lat/lng), server_time."
+					},
+					"response": [
+						{
+							"name": "Success - No Filters",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"interests\": [\n      { \"id\": 1, \"name\": \"Electronics\", \"icon_url\": \"https://...\" }\n    ],\n    \"activities\": [\n      { \"id\": 1, \"name\": \"Retail\", \"icon_url\": \"https://...\" }\n    ],\n    \"trending\": [\n      {\n        \"id\": 10,\n        \"product_id\": 5,\n        \"store_id\": 2,\n        \"image_url\": \"https://...\",\n        \"title\": \"50% Off Headphones\",\n        \"store_name\": \"TechStore\",\n        \"discount_percent\": 50.0,\n        \"original_price\": 200.0,\n        \"discounted_price\": 100.0,\n        \"saved_count\": 42,\n        \"interest_id\": 1,\n        \"activity_id\": 1,\n        \"is_favorite\": false\n      }\n    ],\n    \"flash\": [\n      {\n        \"id\": 15,\n        \"product_id\": 8,\n        \"store_id\": 3,\n        \"image_url\": \"https://...\",\n        \"title\": \"Flash Deal - Shoes\",\n        \"store_name\": \"ShoeWorld\",\n        \"discount_percent\": 30.0,\n        \"expires_at\": \"2025-06-01T18:00:00Z\",\n        \"interest_id\": 2,\n        \"activity_id\": 1\n      }\n    ],\n    \"top_stores\": [\n      {\n        \"id\": 2,\n        \"store_id\": 2,\n        \"name\": \"TechStore\",\n        \"image_url\": \"https://...\",\n        \"followers_count\": 150,\n        \"rating\": 4.8,\n        \"interest_id\": 1,\n        \"activity_id\": 1,\n        \"best_coupon_title\": \"50% Off Headphones\",\n        \"best_coupon_discount\": 50.0,\n        \"best_coupon_image_url\": \"https://...\"\n      }\n    ],\n    \"nearby\": [],\n    \"server_time\": \"2025-05-28T12:00:00Z\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Explore Bootstrap (With Interest Filter)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore?interest_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore"],
+							"query": [
+								{
+									"key": "interest_id",
+									"value": "1",
+									"description": "Filter by category (interest) ID. Must be an active category."
+								}
+							]
+						},
+						"description": "Returns explore data filtered by a specific interest (product category)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Explore Bootstrap (With Activity Filter)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore?activity_id=2",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore"],
+							"query": [
+								{
+									"key": "activity_id",
+									"value": "2",
+									"description": "Filter by store category (activity) ID. Must be an active store category."
+								}
+							]
+						},
+						"description": "Returns explore data filtered by a specific activity (store category)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Explore Bootstrap (With Search)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore?search=shoes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore"],
+							"query": [
+								{
+									"key": "search",
+									"value": "shoes",
+									"description": "Search term (max 200 chars). Searches offer labels, product titles, and store names."
+								}
+							]
+						},
+						"description": "Returns explore data filtered by a search term. Matches against offer labels, product titles, and store names."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Explore Bootstrap (With Location - Nearby)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore?lat=30.0444&lng=31.2357",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore"],
+							"query": [
+								{
+									"key": "lat",
+									"value": "30.0444",
+									"description": "Latitude (-90 to 90). Required with lng to enable nearby section."
+								},
+								{
+									"key": "lng",
+									"value": "31.2357",
+									"description": "Longitude (-180 to 180). Required when lat is provided."
+								}
+							]
+						},
+						"description": "Returns explore data including the nearby section. Both lat and lng must be provided to populate the nearby offers (sorted by distance)."
+					},
+					"response": [
+						{
+							"name": "Success - With Nearby",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"interests\": [],\n    \"activities\": [],\n    \"trending\": [],\n    \"flash\": [],\n    \"top_stores\": [],\n    \"nearby\": [\n      {\n        \"id\": 20,\n        \"product_id\": 12,\n        \"store_id\": 4,\n        \"image_url\": \"https://...\",\n        \"title\": \"20% Off Coffee\",\n        \"store_name\": \"CafeCorner\",\n        \"original_price\": 50.0,\n        \"discounted_price\": 40.0,\n        \"save_percent\": 20.0,\n        \"distance_km\": 1.23,\n        \"interest_id\": 3,\n        \"activity_id\": 2\n      }\n    ],\n    \"server_time\": \"2025-05-28T12:00:00Z\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Explore Bootstrap (All Filters Combined)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore?interest_id=1&activity_id=2&search=coffee&lat=30.0444&lng=31.2357",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore"],
+							"query": [
+								{
+									"key": "interest_id",
+									"value": "1",
+									"description": "Filter by category (interest) ID"
+								},
+								{
+									"key": "activity_id",
+									"value": "2",
+									"description": "Filter by store category (activity) ID"
+								},
+								{
+									"key": "search",
+									"value": "coffee",
+									"description": "Search term (max 200 chars)"
+								},
+								{
+									"key": "lat",
+									"value": "30.0444",
+									"description": "Latitude (-90 to 90)"
+								},
+								{
+									"key": "lng",
+									"value": "31.2357",
+									"description": "Longitude (-180 to 180)"
+								}
+							]
+						},
+						"description": "Returns explore data with all filters applied simultaneously."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Explore Picks (Picked for You)",
+			"description": "Paginated picked-for-you offers with filtering and sorting.\n\nAuthenticated users get personalized recommendations. Guests get popular offers sorted by favorites count.",
+			"item": [
+				{
+					"name": "Get Picks (Default - Page 1)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"]
+						},
+						"description": "Returns the first page of picked offers with default settings (page=1, page_size=12, sort_by=trending)."
+					},
+					"response": [
+						{
+							"name": "Success - Default Picks",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 10,\n      \"product_id\": 5,\n      \"store_id\": 2,\n      \"image_url\": \"https://...\",\n      \"title\": \"50% Off Headphones\",\n      \"store_name\": \"TechStore\",\n      \"discount_percent\": 50.0,\n      \"original_price\": 200.0,\n      \"discounted_price\": 100.0,\n      \"saved_count\": 42,\n      \"interest_id\": 1,\n      \"activity_id\": 1,\n      \"is_favorite\": false\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 12,\n    \"total\": 48,\n    \"total_pages\": 4,\n    \"has_more\": true\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Picks (With Pagination)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?page=2&page_size=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "page",
+									"value": "2",
+									"description": "Page number (min: 1, default: 1)"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Items per page (min: 1, max: 50, default: 12)"
+								}
+							]
+						},
+						"description": "Returns a specific page of picks with custom page size."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (Sort by Newest)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?sort_by=newest",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "sort_by",
+									"value": "newest",
+									"description": "Sort order: trending (default), newest, most_saved, highest_discount"
+								}
+							]
+						},
+						"description": "Returns picks sorted by newest offers first."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (Sort by Most Saved)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?sort_by=most_saved",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "sort_by",
+									"value": "most_saved",
+									"description": "Sort order: trending (default), newest, most_saved, highest_discount"
+								}
+							]
+						},
+						"description": "Returns picks sorted by most favorited/saved offers."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (Sort by Highest Discount)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?sort_by=highest_discount",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "sort_by",
+									"value": "highest_discount",
+									"description": "Sort order: trending (default), newest, most_saved, highest_discount"
+								}
+							]
+						},
+						"description": "Returns picks sorted by highest discount percentage first."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (With Min Discount Filter)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?min_discount_percent=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "min_discount_percent",
+									"value": "20",
+									"description": "Minimum discount percentage filter (0-90)"
+								}
+							]
+						},
+						"description": "Returns only picks with at least 20% discount."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (With Interest Filter)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?interest_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "interest_id",
+									"value": "1",
+									"description": "Filter by category (interest) ID. Must be an active category."
+								}
+							]
+						},
+						"description": "Returns picks filtered by a specific interest (product category)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (With Activity Filter)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?activity_id=2",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "activity_id",
+									"value": "2",
+									"description": "Filter by store category (activity) ID. Must be an active store category."
+								}
+							]
+						},
+						"description": "Returns picks filtered by a specific activity (store category)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (With Search)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?search=headphones",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "search",
+									"value": "headphones",
+									"description": "Search term (max 200 chars). Searches offer labels, product titles, and store names."
+								}
+							]
+						},
+						"description": "Returns picks matching the search term across offer labels, product titles, and store names."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Picks (All Filters Combined)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/explore/picks?interest_id=1&activity_id=2&search=coffee&min_discount_percent=10&sort_by=highest_discount&page=1&page_size=15",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "explore", "picks"],
+							"query": [
+								{
+									"key": "interest_id",
+									"value": "1",
+									"description": "Filter by category (interest) ID"
+								},
+								{
+									"key": "activity_id",
+									"value": "2",
+									"description": "Filter by store category (activity) ID"
+								},
+								{
+									"key": "search",
+									"value": "coffee",
+									"description": "Search term (max 200 chars)"
+								},
+								{
+									"key": "min_discount_percent",
+									"value": "10",
+									"description": "Minimum discount percentage (0-90)"
+								},
+								{
+									"key": "sort_by",
+									"value": "highest_discount",
+									"description": "Sort: trending, newest, most_saved, highest_discount"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (min: 1)"
+								},
+								{
+									"key": "page_size",
+									"value": "15",
+									"description": "Items per page (1-50)"
+								}
+							]
+						},
+						"description": "Returns picks with all available filters and sorting applied simultaneously."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

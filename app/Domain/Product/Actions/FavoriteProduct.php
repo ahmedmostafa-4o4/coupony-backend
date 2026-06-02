@@ -13,6 +13,11 @@ class FavoriteProduct
 
     public function execute(Product $product, User $user): ProductFavorite
     {
-        return $this->products->favorite($product, $user);
+        $favorite = $this->products->favorite($product, $user);
+
+        // Atomically increment favorites_count
+        $product->increment('favorites_count');
+
+        return $favorite;
     }
 }

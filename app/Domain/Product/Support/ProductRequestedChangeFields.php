@@ -31,8 +31,6 @@ final class ProductRequestedChangeFields
             'type',
             'status',
             'label',
-            'starts_at',
-            'ends_at',
             'claim_expiration_minutes',
             'fixed_amount',
             'percentage_value',

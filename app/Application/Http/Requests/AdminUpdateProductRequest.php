@@ -81,6 +81,8 @@ class AdminUpdateProductRequest extends FormRequest
             'offer.label' => ['nullable', 'string', 'max:255'],
             'offer.starts_at' => ['nullable', 'date'],
             'offer.ends_at' => ['nullable', 'date', 'after:offer.starts_at'],
+            'offer.duration_days' => ['nullable', 'integer', 'min:1'],
+            'offer.duration_hours' => ['nullable', 'integer', 'min:1'],
             'offer.claim_expiration_minutes' => ['nullable', 'integer', 'min:1'],
             'offer.fixed_amount' => ['nullable', 'numeric', 'gt:0'],
             'offer.percentage_value' => ['nullable', 'numeric', 'gt:0', 'lte:100'],

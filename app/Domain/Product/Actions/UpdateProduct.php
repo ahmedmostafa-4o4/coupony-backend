@@ -135,8 +135,25 @@ class UpdateProduct
         }
 
         if ($data->hasOffer()) {
-            if (! $this->offerDataEquals($data->offer(), $this->currentOfferData($product))) {
-                $reviewData = $reviewData->withOffer($data->offer());
+            // Extract duration changes — these are direct updates (no review needed)
+            $offerData = $data->offer();
+            $hasDurationChange = array_key_exists('duration_days', $offerData) || array_key_exists('duration_hours', $offerData);
+
+            // Remove duration fields from the offer data that goes to review
+            $reviewOfferData = $offerData;
+            unset($reviewOfferData['duration_days'], $reviewOfferData['duration_hours']);
+
+            if ($hasDurationChange) {
+                // Apply duration change directly to the live offer
+                $this->applyOfferDurationUpdate($product, $offerData);
+            }
+
+            // Check if remaining offer fields (excluding duration) differ from current
+            $currentOffer = $this->currentOfferData($product);
+            unset($currentOffer['duration_days'], $currentOffer['duration_hours']);
+
+            if (! $this->offerDataEquals($reviewOfferData, $currentOffer)) {
+                $reviewData = $reviewData->withOffer($reviewOfferData);
                 $reviewFields[] = 'offer';
             }
         }
@@ -349,8 +366,8 @@ class UpdateProduct
             'type' => $product->offer?->type?->value ?? $product->offer?->type,
             'status' => $product->offer?->status?->value ?? $product->offer?->status,
             'label' => $product->offer?->label,
-            'starts_at' => $product->offer?->starts_at?->toIso8601String(),
-            'ends_at' => $product->offer?->ends_at?->toIso8601String(),
+            'duration_days' => $product->offer?->duration_days,
+            'duration_hours' => $product->offer?->duration_hours,
             'claim_expiration_minutes' => $product->offer?->claim_expiration_minutes,
             'fixed_amount' => $this->normalizeOptionalNumber($product->offer?->fixed_amount),
             'percentage_value' => $this->normalizeOptionalNumber($product->offer?->percentage_value),
@@ -384,8 +401,8 @@ class UpdateProduct
             'type',
             'status',
             'label',
-            'starts_at',
-            'ends_at',
+            'duration_days',
+            'duration_hours',
             'claim_expiration_minutes',
             'buy_qty',
             'get_qty',
@@ -406,6 +423,47 @@ class UpdateProduct
         }
 
         return true;
+    }
+
+    private function applyOfferDurationUpdate(Product $product, array $offerData): void
+    {
+        $offer = $product->offer;
+
+        if (! $offer) {
+            return;
+        }
+
+        $updateData = [];
+
+        if (array_key_exists('duration_days', $offerData)) {
+            $updateData['duration_days'] = $offerData['duration_days'];
+        }
+
+        if (array_key_exists('duration_hours', $offerData)) {
+            $updateData['duration_hours'] = $offerData['duration_hours'];
+        }
+
+        if ($updateData === []) {
+            return;
+        }
+
+        $offer->update($updateData);
+
+        // Recalculate ends_at based on starts_at + new duration (only if already approved)
+        $offer->refresh();
+
+        if ($offer->starts_at !== null) {
+            $endsAt = $offer->starts_at->copy();
+
+            if ($offer->duration_days) {
+                $endsAt = $endsAt->addDays($offer->duration_days);
+            }
+            if ($offer->duration_hours) {
+                $endsAt = $endsAt->addHours($offer->duration_hours);
+            }
+
+            $offer->update(['ends_at' => $endsAt]);
+        }
     }
 
     private function sameNumericValue(mixed $left, mixed $right): bool
@@ -511,8 +569,8 @@ class UpdateProduct
                 'type' => $product->offer?->type?->value ?? $product->offer?->type,
                 'status' => $product->offer?->status?->value ?? $product->offer?->status,
                 'label' => $product->offer?->label,
-                'starts_at' => $product->offer?->starts_at?->toIso8601String(),
-                'ends_at' => $product->offer?->ends_at?->toIso8601String(),
+                'duration_days' => $product->offer?->duration_days,
+                'duration_hours' => $product->offer?->duration_hours,
                 'claim_expiration_minutes' => $product->offer?->claim_expiration_minutes,
                 'fixed_amount' => $product->offer?->fixed_amount,
                 'percentage_value' => $product->offer?->percentage_value,

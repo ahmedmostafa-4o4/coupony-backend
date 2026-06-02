@@ -97,6 +97,12 @@ class ProductData
             'label' => $offerInput['label'] ?? null,
             'starts_at' => $offerInput['starts_at'] ?? null,
             'ends_at' => $offerInput['ends_at'] ?? null,
+            'duration_days' => array_key_exists('duration_days', $offerInput) && $offerInput['duration_days'] !== null
+                ? (int) $offerInput['duration_days']
+                : null,
+            'duration_hours' => array_key_exists('duration_hours', $offerInput) && $offerInput['duration_hours'] !== null
+                ? (int) $offerInput['duration_hours']
+                : null,
             'claim_expiration_minutes' => array_key_exists('claim_expiration_minutes', $offerInput) && $offerInput['claim_expiration_minutes'] !== null
                 ? (int) $offerInput['claim_expiration_minutes']
                 : null,

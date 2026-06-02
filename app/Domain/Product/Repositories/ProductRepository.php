@@ -141,23 +141,33 @@ class ProductRepository
 
     public function syncOffer(Product $product, array $attributes): ProductOffer
     {
+        $offerData = [
+            'type' => $attributes['type'],
+            'status' => $attributes['status'] ?? ProductOfferStatus::ACTIVE,
+            'label' => $attributes['label'] ?? null,
+            'duration_days' => $attributes['duration_days'] ?? null,
+            'duration_hours' => $attributes['duration_hours'] ?? null,
+            'claim_expiration_minutes' => $attributes['claim_expiration_minutes'] ?? null,
+            'fixed_amount' => $attributes['fixed_amount'] ?? null,
+            'percentage_value' => $attributes['percentage_value'] ?? null,
+            'max_discount' => $attributes['max_discount'] ?? null,
+            'buy_qty' => $attributes['buy_qty'] ?? null,
+            'get_qty' => $attributes['get_qty'] ?? null,
+            'allow_mix_buy_variants' => (bool) ($attributes['allow_mix_buy_variants'] ?? false),
+            'allow_mix_reward_variants' => (bool) ($attributes['allow_mix_reward_variants'] ?? false),
+        ];
+
+        // Allow admin to set starts_at/ends_at directly
+        if (array_key_exists('starts_at', $attributes)) {
+            $offerData['starts_at'] = $attributes['starts_at'];
+        }
+        if (array_key_exists('ends_at', $attributes)) {
+            $offerData['ends_at'] = $attributes['ends_at'];
+        }
+
         $offer = $product->offer()->updateOrCreate(
             ['product_id' => $product->id],
-            [
-                'type' => $attributes['type'],
-                'status' => $attributes['status'] ?? ProductOfferStatus::ACTIVE,
-                'label' => $attributes['label'] ?? null,
-                'starts_at' => $attributes['starts_at'] ?? null,
-                'ends_at' => $attributes['ends_at'] ?? null,
-                'claim_expiration_minutes' => $attributes['claim_expiration_minutes'] ?? null,
-                'fixed_amount' => $attributes['fixed_amount'] ?? null,
-                'percentage_value' => $attributes['percentage_value'] ?? null,
-                'max_discount' => $attributes['max_discount'] ?? null,
-                'buy_qty' => $attributes['buy_qty'] ?? null,
-                'get_qty' => $attributes['get_qty'] ?? null,
-                'allow_mix_buy_variants' => (bool) ($attributes['allow_mix_buy_variants'] ?? false),
-                'allow_mix_reward_variants' => (bool) ($attributes['allow_mix_reward_variants'] ?? false),
-            ]
+            $offerData
         );
 
         $offer->targets()->delete();
@@ -407,8 +417,8 @@ class ProductRepository
                 'type' => $offer->type?->value ?? $offer->type,
                 'status' => $offer->status?->value ?? $offer->status,
                 'label' => $offer->label,
-                'starts_at' => $offer->starts_at?->toIso8601String(),
-                'ends_at' => $offer->ends_at?->toIso8601String(),
+                'duration_days' => $offer->duration_days,
+                'duration_hours' => $offer->duration_hours,
                 'claim_expiration_minutes' => $offer->claim_expiration_minutes,
                 'fixed_amount' => $offer->fixed_amount,
                 'percentage_value' => $offer->percentage_value,

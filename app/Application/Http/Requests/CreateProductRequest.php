@@ -72,8 +72,8 @@ class CreateProductRequest extends FormRequest
             'offer.type' => ['required', Rule::in(ProductOfferType::values())],
             'offer.status' => ['nullable', Rule::in(ProductOfferStatus::values())],
             'offer.label' => ['nullable', 'string', 'max:255'],
-            'offer.starts_at' => ['nullable', 'date'],
-            'offer.ends_at' => ['nullable', 'date', 'after:offer.starts_at'],
+            'offer.duration_days' => ['nullable', 'integer', 'min:1'],
+            'offer.duration_hours' => ['nullable', 'integer', 'min:1'],
             'offer.claim_expiration_minutes' => ['nullable', 'integer', 'min:1'],
             'offer.fixed_amount' => ['nullable', 'numeric', 'gt:0'],
             'offer.percentage_value' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
@@ -92,6 +92,12 @@ class CreateProductRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            $offer = $this->input('offer', []);
+
+            if (empty($offer['duration_days']) && empty($offer['duration_hours'])) {
+                $validator->errors()->add('offer.duration_days', 'At least one of duration_days or duration_hours is required.');
+            }
+
             $variants = collect($this->input('variants', []) ?? []);
             $preparedVariantSkus = $this->preparedVariantSkuKeys();
             $defaultCount = $variants->filter(fn (array $variant) => (bool) ($variant['is_default'] ?? false))->count();

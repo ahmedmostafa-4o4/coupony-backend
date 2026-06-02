@@ -4,6 +4,7 @@ namespace App\Domain\Store\Models;
 
 use App\Domain\Points\Models\StorePoints;
 use App\Domain\Points\Models\StorePointTransaction;
+use App\Domain\Banner\Models\Banner;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Store\Enums\StorePermission;
@@ -198,6 +199,11 @@ class Store extends Model
     public function products()
     {
         return $this->hasMany(Product::class, 'store_id');
+    }
+
+    public function banners()
+    {
+        return $this->hasMany(Banner::class, 'store_id');
     }
 
     public function offerClaims()

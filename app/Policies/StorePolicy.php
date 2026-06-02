@@ -162,6 +162,15 @@ class StorePolicy
             || $store->employeeHasPermission($user, StorePermission::PRODUCTS_MANAGE->value);
     }
 
+    public function manageBanners(User $user, Store $store): bool
+    {
+        return $this->isOwnerOrAdmin($user, $store)
+            || $store->employeeHasAnyPermission($user, [
+                StorePermission::OFFERS_MANAGE->value,
+                StorePermission::PRODUCTS_MANAGE->value,
+            ]);
+    }
+
     public function manageOrders(User $user, Store $store): bool
     {
         return $this->isOwnerOrAdmin($user, $store)
