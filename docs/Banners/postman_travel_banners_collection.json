@@ -1,0 +1,343 @@
+{
+	"info": {
+		"_postman_id": "c8e7e1f4-3d18-4c28-98e6-12a832c3f1b4",
+		"name": "Travel Banners",
+		"description": "Endpoints for managing and fetching Travel Banners.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Admin - Travel Banners",
+			"item": [
+				{
+					"name": "Get Selectable Products (Filters)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/travel-banners/selectable-products?sort_by=most_likes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"travel-banners",
+								"selectable-products"
+							],
+							"query": [
+								{
+									"key": "sort_by",
+									"value": "most_likes",
+									"description": "most_likes, most_saves, price_asc, price_desc, newest"
+								},
+								{
+									"key": "min_review_score",
+									"value": "4",
+									"disabled": true
+								},
+								{
+									"key": "category_id",
+									"value": "uuid-goes-here",
+									"disabled": true
+								},
+								{
+									"key": "min_price",
+									"value": "100",
+									"disabled": true
+								},
+								{
+									"key": "max_price",
+									"value": "5000",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "resort",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Travel Banners",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/travel-banners",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"travel-banners"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Travel Banner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "product_id",
+									"value": "{{product_id}}",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "cta_text",
+									"value": "Book Now",
+									"type": "text"
+								},
+								{
+									"key": "save_percent",
+									"value": "50% OFF",
+									"type": "text"
+								},
+								{
+									"key": "priority",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "start_date",
+									"value": "2026-06-01 00:00:00",
+									"type": "text"
+								},
+								{
+									"key": "end_date",
+									"value": "2026-07-01 00:00:00",
+									"type": "text"
+								},
+								{
+									"key": "is_active",
+									"value": "1",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/travel-banners",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"travel-banners"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Travel Banner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "_method",
+									"value": "PATCH",
+									"type": "text"
+								},
+								{
+									"key": "cta_text",
+									"value": "Explore Offers",
+									"type": "text"
+								},
+								{
+									"key": "save_percent",
+									"value": "Save 20$",
+									"type": "text"
+								},
+								{
+									"key": "priority",
+									"value": "2",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/travel-banners/{{travel_banner_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"travel-banners",
+								"{{travel_banner_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Travel Banner",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/travel-banners/{{travel_banner_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"travel-banners",
+								"{{travel_banner_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Travel Banner",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/travel-banners/{{travel_banner_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"travel-banners",
+								"{{travel_banner_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Customer - Travel Banners",
+			"item": [
+				{
+					"name": "List Active Travel Banners",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customer/travel-banners",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customer",
+								"travel-banners"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		},
+		{
+			"key": "admin_token",
+			"value": "your-admin-token"
+		},
+		{
+			"key": "product_id",
+			"value": ""
+		},
+		{
+			"key": "travel_banner_id",
+			"value": ""
+		}
+	]
+}

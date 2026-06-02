@@ -20,6 +20,8 @@ use App\Application\Http\Controllers\API\V1\ExploreController;
 use App\Application\Http\Controllers\API\V1\FollowingFeedController;
 use App\Application\Http\Controllers\API\V1\LocaleController;
 use App\Application\Http\Controllers\API\V1\MeAddressController;
+use App\Application\Http\Controllers\API\V1\MeWorkplaceController;
+use App\Application\Http\Controllers\API\V1\MyOfferClaimController;
 use App\Application\Http\Controllers\API\V1\NotificationController;
 use App\Application\Http\Controllers\API\V1\NotifyMeController;
 use App\Application\Http\Controllers\API\V1\OfferClaimController;
@@ -52,6 +54,8 @@ use App\Application\Http\Controllers\API\V1\StoreProfileViewController;
 use App\Application\Http\Controllers\API\V1\SubscriptionController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Application\Http\Controllers\API\V1\WebhookController;
+use App\Application\Http\Controllers\API\V1\Admin\TravelBannerController as AdminTravelBannerController;
+use App\Application\Http\Controllers\API\V1\CustomerTravelBannerController;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\User\Models\User;
 use App\Http\Middleware\ContactUsThrottle;
@@ -73,13 +77,21 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/{product}/comments', [ProductCommentController::class, 'index'])->name('products.comments.index');
     // Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
+
+    // Search Offers (Public with optional auth via controller)
+    Route::get('/search/offers', [\App\Application\Http\Controllers\API\V1\SearchOffersController::class, 'index'])->name('search.offers.index');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/search/offers/{offerId}/favorite', [\App\Application\Http\Controllers\API\V1\SearchOffersController::class, 'toggleFavorite'])->name('search.offers.favorite');
+        Route::delete('/search/offers/{offerId}/favorite', [\App\Application\Http\Controllers\API\V1\SearchOffersController::class, 'toggleFavorite'])->name('search.offers.unfavorite');
+    });
     Route::get('/public-stores/{store}', [StoreController::class, 'publicShow'])->name('public.stores.show');
     Route::get('/public-stores/{store}/products', [ProductController::class, 'publicStoreIndex'])->name('public.stores.products.index');
     Route::get('/public-stores/{store}/reviews-summary', [StoreCommentController::class, 'summary'])->name('public.stores.reviews.summary');
     Route::get('/public-stores/{store}/comments', [StoreCommentController::class, 'index'])->name('public.stores.comments.index');
-    Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
-    Route::get('/categories/{category}/products', [ProductController::class, 'categoryProducts'])->name('categories.products.index');
+    Route::get('/categories', [ProductController::class, 'categories'])->name('public.categories.index');
+    Route::get('/categories/{category}/products', [ProductController::class, 'categoryProducts'])->name('public.categories.products.index');
     Route::get('/customer/banners', [CustomerBannerController::class, 'index'])->name('customer.banners.index');
+    Route::get('/customer/travel-banners', [CustomerTravelBannerController::class, 'index'])->name('customer.travel-banners.index');
     Route::get('/customer/banners/{banner}', [CustomerBannerController::class, 'show'])->name('customer.banners.show');
 
     // Explore Routes (Public - No Auth Required)
@@ -259,14 +271,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/invitations/{invitation}/decline', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'decline'])->name('invitations.decline');
         Route::get('/me/invitations', [\App\Application\Http\Controllers\API\V1\StoreInvitationController::class, 'myInvitations'])->name('me.invitations');
         Route::get('/me/addresses', [MeAddressController::class, 'index'])->name('me.addresses.index');
+        Route::get('/me/workplaces', [MeWorkplaceController::class, 'index'])->name('me.workplaces.index');
         Route::post('/me/addresses', [MeAddressController::class, 'store'])->name('me.addresses.store');
         Route::patch('/me/addresses/{addressId}', [MeAddressController::class, 'update'])->name('me.addresses.update');
         Route::delete('/me/addresses/{addressId}', [MeAddressController::class, 'destroy'])->name('me.addresses.destroy');
         Route::get('/me/liked-products', [ProductLikeController::class, 'index'])->name('me.products.likes.index');
         Route::get('/me/favorite-products', [ProductFavoriteController::class, 'index'])->name('me.products.favorites.index');
+        Route::get('/me/offer-claims', [MyOfferClaimController::class, 'index'])->name('me.offer-claims.index');
+        Route::get('/me/offer-claims/{claim}', [MyOfferClaimController::class, 'show'])->name('me.offer-claims.show');
         Route::get('/me/recommendations/products', [ProductRecommendationController::class, 'index'])->name('me.products.recommendations.index');
         Route::get('/me/followed-stores', [StoreFollowController::class, 'index'])->name('me.followed-stores.index');
         Route::get('/me/followers/new', [\App\Application\Http\Controllers\API\V1\MyFollowersController::class, 'newFollowers'])->name('me.followers.new');
+
+
 
         Route::prefix('pony/customer')->name('pony.customer.')->group(function () {
             Route::post('/chat', [CustomerChatController::class, 'store'])->name('chat')->middleware('pony.throttle:text');
@@ -433,6 +450,15 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{banner}', [BannerManagementController::class, 'update'])->name('update');
             Route::post('/{banner}/approve', [BannerManagementController::class, 'approve'])->name('approve');
             Route::post('/{banner}/reject', [BannerManagementController::class, 'reject'])->name('reject');
+        });
+
+        Route::prefix('travel-banners')->name('admin.travel-banners.')->group(function () {
+            Route::get('/selectable-products', [AdminTravelBannerController::class, 'selectableProducts'])->name('selectableProducts');
+            Route::get('/', [AdminTravelBannerController::class, 'index'])->name('index');
+            Route::post('/', [AdminTravelBannerController::class, 'store'])->name('store');
+            Route::get('/{travelBanner}', [AdminTravelBannerController::class, 'show'])->name('show');
+            Route::patch('/{travelBanner}', [AdminTravelBannerController::class, 'update'])->name('update');
+            Route::delete('/{travelBanner}', [AdminTravelBannerController::class, 'destroy'])->name('destroy');
         });
 
         Route::patch('/product-comments/{comment}/hide', [ProductCommentController::class, 'hide'])->name('admin.product-comments.hide');

@@ -717,7 +717,14 @@ class ProductRepository
                 ->with($this->publicRelations())
                 ->when(
                     filled($filters['category'] ?? null),
-                    fn (Builder $query) => $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey($filters['category']))
+                    function (Builder $query) use ($filters) {
+                        $categoryIds = \App\Domain\Product\Models\Category::query()
+                            ->whereKey($filters['category'])
+                            ->orWhere('parent_id', $filters['category'])
+                            ->pluck('id');
+
+                        return $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereIn('categories.id', $categoryIds));
+                    }
                 )
                 ->when(
                     filled($filters['search'] ?? null),
@@ -727,7 +734,37 @@ class ProductRepository
                     array_key_exists('featured', $filters) && $filters['featured'] !== null,
                     fn (Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['featured']))
                 )
-                ->latest(),
+                ->when(
+                    filled($filters['min_price'] ?? null),
+                    fn (Builder $query) => $query->where('base_price', '>=', $filters['min_price'])
+                )
+                ->when(
+                    filled($filters['max_price'] ?? null),
+                    fn (Builder $query) => $query->where('base_price', '<=', $filters['max_price'])
+                )
+                ->when(
+                    filled($filters['min_review_score'] ?? null),
+                    fn (Builder $query) => $query->where('rating_avg', '>=', $filters['min_review_score'])
+                )
+                ->when(
+                    filled($filters['sort_by'] ?? null),
+                    function (Builder $query) use ($filters) {
+                        $order = strtolower($filters['sort_order'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+                        return match ($filters['sort_by']) {
+                            'trending' => $query->orderByDesc('favorites_count'),
+                            'highest_price' => $query->orderByDesc('base_price'),
+                            'lowest_price' => $query->orderBy('base_price'),
+                            'most_seller' => $query->orderByDesc('sale_count'),
+                            'newest' => $query->latest(),
+                            'popular' => $query->orderBy('favorites_count', $order)
+                                ->orderBy('sale_count', $order)
+                                ->orderBy('rating_avg', $order),
+                            'price' => $query->orderBy('base_price', $order),
+                            default => $query->latest(),
+                        };
+                    },
+                    fn (Builder $query) => $query->latest()
+                ),
             $filters['liked_by_user'] ?? null
         )->paginate($perPage);
     }
@@ -741,7 +778,14 @@ class ProductRepository
                 ->with($this->publicRelations())
                 ->when(
                     filled($filters['category'] ?? null),
-                    fn (Builder $query) => $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey($filters['category']))
+                    function (Builder $query) use ($filters) {
+                        $categoryIds = \App\Domain\Product\Models\Category::query()
+                            ->whereKey($filters['category'])
+                            ->orWhere('parent_id', $filters['category'])
+                            ->pluck('id');
+
+                        return $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereIn('categories.id', $categoryIds));
+                    }
                 )
                 ->when(
                     filled($filters['search'] ?? null),
@@ -751,7 +795,25 @@ class ProductRepository
                     array_key_exists('featured', $filters) && $filters['featured'] !== null,
                     fn (Builder $query) => $query->where('is_featured', $this->normalizeBoolean($filters['featured']))
                 )
-                ->latest(),
+                ->when(
+                    filled($filters['sort_by'] ?? null),
+                    function (Builder $query) use ($filters) {
+                        $order = strtolower($filters['sort_order'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+                        return match ($filters['sort_by']) {
+                            'trending' => $query->orderByDesc('favorites_count'),
+                            'highest_price' => $query->orderByDesc('base_price'),
+                            'lowest_price' => $query->orderBy('base_price'),
+                            'most_seller' => $query->orderByDesc('sale_count'),
+                            'newest' => $query->latest(),
+                            'popular' => $query->orderBy('favorites_count', $order)
+                                ->orderBy('sale_count', $order)
+                                ->orderBy('rating_avg', $order),
+                            'price' => $query->orderBy('base_price', $order),
+                            default => $query->latest(),
+                        };
+                    },
+                    fn (Builder $query) => $query->latest()
+                ),
             $filters['liked_by_user'] ?? null
         )->paginate($perPage);
     }
@@ -770,7 +832,7 @@ class ProductRepository
 
     public function publicCategories(): Collection
     {
-        return Category::query()
+        $categories = Category::query()
             ->active()
             ->withCount([
                 'products' => fn ($query) => $query
@@ -781,6 +843,16 @@ class ProductRepository
             ->orderBy('name_en')
             ->orderBy('name_ar')
             ->get();
+
+        // Add children's products count to parent category
+        foreach ($categories as $category) {
+            if ($category->parent_id === null) {
+                $childrenCount = $categories->where('parent_id', $category->id)->sum('products_count');
+                $category->products_count += $childrenCount;
+            }
+        }
+
+        return $categories;
     }
 
     public function loadSellerProduct(Product $product, ?User $user = null): Product

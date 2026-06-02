@@ -1,0 +1,152 @@
+<?php
+
+namespace Tests\Feature\API\V1;
+
+use App\Domain\Product\Models\Category;
+use App\Domain\Product\Models\OfferClaim;
+use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductOffer;
+use App\Domain\Store\Models\Store;
+use App\Domain\User\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class MyOfferClaimControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function createClaim(User $user, Store $store = null, Product $product = null, string $status = 'active', string $token = null): OfferClaim
+    {
+        $token = $token ?? Str::random(10);
+        $store = $store ?? Store::factory()->create();
+        $product = $product ?? clone Product::factory()->create(['store_id' => $store->id]);
+        
+        $offer = ProductOffer::where('product_id', $product->id)->first();
+        if (!$offer) {
+            $offer = ProductOffer::factory()->create(['product_id' => $product->id]);
+        }
+
+        return OfferClaim::forceCreate([
+            'id' => Str::uuid()->toString(),
+            'user_id' => $user->id,
+            'store_id' => $store->id,
+            'product_id' => $product->id,
+            'offer_id' => $offer->id,
+            'status' => $status,
+            'claim_token' => $token,
+            'qr_code_token' => Str::random(10),
+            'offer_snapshot' => '[]',
+            'expires_at' => now()->addDays(7),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    #[Test]
+    public function it_can_list_my_offer_claims(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $claim1 = $this->createClaim($user, null, null, 'active', 'TOKEN123');
+        $this->createClaim($otherUser);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => [
+                        'id', 'status', 'claim_token'
+                    ]
+                ],
+                'meta'
+            ])
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $claim1->id);
+    }
+
+    #[Test]
+    public function it_can_filter_claims_by_status(): void
+    {
+        $user = User::factory()->create();
+
+        $this->createClaim($user, null, null, 'active');
+        $this->createClaim($user, null, null, 'redeemed');
+
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?status=active');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'active');
+    }
+
+    #[Test]
+    public function it_can_search_claims_by_product_title(): void
+    {
+        $user = User::factory()->create();
+
+        $store = Store::factory()->create();
+        $product1 = clone Product::factory()->create(['store_id' => $store->id, 'title' => 'Awesome Headset']);
+        $product2 = clone Product::factory()->create(['store_id' => $store->id, 'title' => 'Keyboard']);
+
+        $claim1 = $this->createClaim($user, $store, $product1);
+        $this->createClaim($user, $store, $product2);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?search=Awesome');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.product_id', $claim1->product_id);
+    }
+
+    #[Test]
+    public function it_can_filter_claims_by_category(): void
+    {
+        $user = User::factory()->create();
+        
+        $category = Category::factory()->create();
+        
+        $store = Store::factory()->create();
+        $product1 = clone Product::factory()->create(['store_id' => $store->id]);
+        $product1->categories()->attach($category->id);
+        
+        $product2 = clone Product::factory()->create(['store_id' => $store->id]);
+
+        $claim1 = $this->createClaim($user, $store, $product1);
+        $this->createClaim($user, $store, $product2);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?category=' . $category->id);
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.product_id', $claim1->product_id);
+    }
+
+    #[Test]
+    public function it_can_show_a_specific_claim(): void
+    {
+        $user = User::factory()->create();
+        $claim = $this->createClaim($user);
+
+        $response = $this->actingAs($user)->getJson("/api/v1/me/offer-claims/{$claim->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.id', $claim->id);
+    }
+
+    #[Test]
+    public function it_returns_404_if_claim_does_not_belong_to_user(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $claim = $this->createClaim($otherUser);
+
+        $response = $this->actingAs($user)->getJson("/api/v1/me/offer-claims/{$claim->id}");
+
+        $response->assertNotFound();
+    }
+}

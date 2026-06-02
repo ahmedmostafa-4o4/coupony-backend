@@ -1,0 +1,167 @@
+{
+	"info": {
+		"_postman_id": "c4f9d2e5-4e29-5d39-a9f7-23b943d4e2c7",
+		"name": "Search Offers",
+		"description": "Endpoints for the Search Page (Flutter backend requirements).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Search Offers",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"description": "Optional"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/search/offers?q=shoes&category=1&sort_by=popular&quick_filter=nearby&lat=30.0444&lng=31.2357&min_rating=4&page=1&page_size=20",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"search",
+						"offers"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "shoes",
+							"description": "Required text query"
+						},
+						{
+							"key": "category",
+							"value": "1"
+						},
+						{
+							"key": "sort_by",
+							"value": "popular"
+						},
+						{
+							"key": "quick_filter",
+							"value": "nearby"
+						},
+						{
+							"key": "lat",
+							"value": "30.0444",
+							"description": "Required if quick_filter=nearby"
+						},
+						{
+							"key": "lng",
+							"value": "31.2357",
+							"description": "Required if quick_filter=nearby"
+						},
+						{
+							"key": "min_rating",
+							"value": "4"
+						},
+						{
+							"key": "min_price",
+							"value": "100",
+							"disabled": true
+						},
+						{
+							"key": "max_price",
+							"value": "1000",
+							"disabled": true
+						},
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "page_size",
+							"value": "20"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Toggle Favorite (Add)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/search/offers/{{offer_id}}/favorite",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"search",
+						"offers",
+						"{{offer_id}}",
+						"favorite"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Toggle Favorite (Remove)",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/search/offers/{{offer_id}}/favorite",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"search",
+						"offers",
+						"{{offer_id}}",
+						"favorite"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		},
+		{
+			"key": "user_token",
+			"value": "your-customer-token"
+		},
+		{
+			"key": "offer_id",
+			"value": "1"
+		}
+	]
+}

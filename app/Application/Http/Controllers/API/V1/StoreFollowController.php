@@ -176,15 +176,23 @@ class StoreFollowController extends Controller
 
         $validated = $request->validate([
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
 
         try {
-            $stores = $request->user()
+            $query = $request->user()
                 ->followedStores()
                 ->where('status', StoreStatus::ACTIVE)
                 ->with(['categories', 'addresses', 'hours', 'socials.social'])
-                ->orderByPivot('followed_at', 'desc')
-                ->paginate($validated['per_page'] ?? 15);
+                ->orderByPivot('followed_at', 'desc');
+
+            if (!empty($validated['category_id'])) {
+                $query->whereHas('categories', function ($q) use ($validated) {
+                    $q->where('categories.id', $validated['category_id']);
+                });
+            }
+
+            $stores = $query->paginate($validated['per_page'] ?? 15);
 
             return $this->paginatedResponse(
                 FollowedStoreResource::collection($stores->getCollection())->resolve($request),

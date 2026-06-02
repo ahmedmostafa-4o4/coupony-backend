@@ -1,0 +1,120 @@
+{
+	"info": {
+		"_postman_id": "c62f2f7d-e6f7-4187-b649-65236b2bdf95",
+		"name": "Coupony Customer Saved Claims API",
+		"description": "Endpoints for a customer to view and manage their saved/created offer claims.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Customer Saved Claims",
+			"item": [
+				{
+					"name": "List My Offer Claims",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/me/offer-claims?status=active&search=&category=&per_page=15",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"me",
+								"offer-claims"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Optional. Values: active, redeemed, expired, cancelled."
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Optional. Search by product title, store name, or claim token."
+								},
+								{
+									"key": "category",
+									"value": "",
+									"description": "Optional. Filter by product category ID."
+								},
+								{
+									"key": "per_page",
+									"value": "15",
+									"description": "Optional. Number of items per page."
+								}
+							]
+						},
+						"description": "Returns a paginated list of offer claims belonging to the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Show Specific Offer Claim",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/me/offer-claims/{{claim_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"me",
+								"offer-claims",
+								"{{claim_id}}"
+							]
+						},
+						"description": "Returns details of a specific offer claim. Ensure the claim belongs to the authenticated user."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

@@ -159,8 +159,8 @@ class Product extends Model
     public function scopeActive($query)
     {
         return $query
-            ->where('status', ProductStatus::ACTIVE)
-            ->where('approval_status', ProductApprovalStatus::APPROVED);
+            ->where($this->qualifyColumn('status'), ProductStatus::ACTIVE)
+            ->where($this->qualifyColumn('approval_status'), ProductApprovalStatus::APPROVED);
     }
 
     public function approvedBy()

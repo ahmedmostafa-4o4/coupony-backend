@@ -212,7 +212,7 @@ class StoreController extends Controller
             'city' => ['nullable', 'string', 'max:255'],
             'is_verified' => ['nullable', 'boolean'],
             'min_rating' => ['nullable', 'numeric', 'between:0,5'],
-            'sort_by' => ['nullable', Rule::in(['latest', 'rating', 'name'])],
+            'sort_by' => ['nullable', Rule::in(['latest', 'rating', 'name', 'popular'])],
             'sort_direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
@@ -226,7 +226,14 @@ class StoreController extends Controller
                 $query->where(function ($builder) use ($validated) {
                     $builder
                         ->where('name', 'like', '%'.$validated['search'].'%')
-                        ->orWhere('description', 'like', '%'.$validated['search'].'%');
+                        ->orWhere('description', 'like', '%'.$validated['search'].'%')
+                        ->orWhereHas('categories', function ($catBuilder) use ($validated) {
+                            $catBuilder->where('name', 'like', '%'.$validated['search'].'%');
+                        })
+                        ->orWhereHas('addresses', function ($addrBuilder) use ($validated) {
+                            $addrBuilder->where('city', 'like', '%'.$validated['search'].'%')
+                                ->orWhere('address_line_1', 'like', '%'.$validated['search'].'%');
+                        });
                 });
             }
 
@@ -255,6 +262,7 @@ class StoreController extends Controller
             match ($sortBy) {
                 'rating' => $query->orderBy('rating_avg', $sortDirection)->orderBy('rating_count', 'desc'),
                 'name' => $query->orderBy('name', $sortDirection),
+                'popular' => $query->orderBy('followers_count', $sortDirection)->orderBy('rating_avg', 'desc'),
                 default => $query->latest(),
             };
 

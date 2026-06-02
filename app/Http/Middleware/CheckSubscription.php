@@ -66,7 +66,7 @@ class CheckSubscription
         if ($status === SubscriptionStatus::DEGRADED) {
             if ($this->isWriteRequest($request)) {
                 // Block write operations that exceed free-tier limits
-                if ($resourceType && ! $this->entitlementService->checkLimit($store, $resourceType)) {
+                if ($resourceType && $resourceType !== 'null' && ! $this->entitlementService->checkLimit($store, $resourceType)) {
                     return response()->json([
                         'success' => false,
                         'message' => __('api.subscription.limit_reached'),
@@ -87,7 +87,7 @@ class CheckSubscription
         }
 
         // For active, trial, and grace statuses: check resource limits and feature access
-        if ($resourceType && ! $this->entitlementService->checkLimit($store, $resourceType)) {
+        if ($resourceType && $resourceType !== 'null' && ! $this->entitlementService->checkLimit($store, $resourceType)) {
             return response()->json([
                 'success' => false,
                 'message' => __('api.subscription.limit_reached'),

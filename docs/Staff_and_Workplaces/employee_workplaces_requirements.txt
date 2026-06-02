@@ -1,0 +1,79 @@
+
+Backend Requirements — Employee Workplaces Separation
+To: Backend Developer
+From: Frontend Team
+Feature: Employee Workspace Selection & Dynamic Dashboard
+
+أهلاً بك، بناءً على التقرير الممتاز الخاص بصلاحيات الموظفين (Store Employees & Invitations)، ولتطبيق مبدأ الـ (Clean Architecture) وفصل الصلاحيات في الواجهة (Frontend)، نحتاج إلى تنفيذ أمرين محددين لكي يتمكن الموظف من الدخول إلى "مساحة العمل" الخاصة به ورؤية الداشبورد بناءً على الصلاحيات (permissions) التي أرسلتها.
+
+من الناحية الهندسية، لا يمكننا دمج المتاجر التي يملكها المستخدم مع المتاجر التي يعمل بها في نفس الـ Endpoint (/api/v1/stores) لاختلاف طبيعة البيانات وحالات المتجر (Pending, Rejected) الخاصة بالمالك، والتي لا تهم الموظف.
+
+لذلك، نحتاج إلى التنفيذ المباشر للتعديلات التالية:
+
+1. إضافة حقل is_employee في الـ User Profile
+في الـ Endpoint الخاص بجلب بيانات المستخدم الحالي (GET /api/v1/me أو عند الـ Login):
+
+المطلوب: إضافة حقل من نوع Boolean باسم is_employee (أو has_workplaces).
+المنطق: يرجع true إذا كان هذا المستخدم مسجلاً كموظف (له سجل في جدول store_employees وحالته نشطة) في أي متجر، ويرجع false فيما عدا ذلك.
+الفائدة للفرونت إند: سنستخدم هذا الحقل لإظهار زر "مساحة العمل" في بروفايل المستخدم فوراً دون الحاجة لعمل فلاتر معقدة على مصفوفة الـ roles.
+شكل الرد المتوقع جزئياً:
+
+json
+ Show full code block 
+{
+    "data": {
+        "id": "32c77cd7-...",
+        "email": "m62173511@gmail.com",
+        "roles": ["customer", "store_employee"],
+        "is_store_owner": false,
+        "is_employee": true, 
+        ...
+    }
+}
+2. إنشاء Endpoint جديد لجلب "مساحات العمل" (Workplaces)
+هذا الـ Endpoint هو حلقة الوصل التي ستخبر الموظف بأسماء المحلات التي يعمل بها وصلاحياته داخل كل محل ليتم رسم الداشبورد الخاص به ديناميكياً.
+
+Endpoint: GET /api/v1/me/workplaces
+Method: GET
+Auth: Bearer Token (Authenticated User)
+المنطق: يقوم بالبحث في جدول store_employees عن الـ user_id الحالي، ويرجع قائمة بالمتاجر التي يعمل بها هذا المستخدم، مرفقاً معها مصفوفة الصلاحيات (Permissions) الخاصة به في كل متجر.
+شكل الرد المطلوب (Response Schema):
+
+json
+ Show full code block 
+{
+  "success": true,
+  "data": [
+    {
+      "store_id": "uuid-store-1",
+      "store_name": "اسم المتجر الأول",
+      "logo_url": "https://api.coupony.shop/...",
+      "role": "cashier",
+      "permissions": [
+        "store.claims.view",
+        "store.claims.redeem"
+      ],
+      "address_id": 12,
+      "joined_at": "2026-05-18T12:00:00.000000Z"
+    },
+    {
+      "store_id": "uuid-store-2",
+      "store_name": "اسم المتجر الثاني",
+      "logo_url": "https://api.coupony.shop/...",
+      "role": "store_manager",
+      "permissions": [
+        "store.products.manage",
+        "store.orders.manage",
+        "store.employees.manage",
+        "store.settings.manage"
+      ],
+      "address_id": null,
+      "joined_at": "2026-05-10T09:30:00.000000Z"
+    }
+  ]
+}
+ملاحظات هامة لتسهيل الربط:
+مصفوفة permissions داخل رد الـ Workplaces هي الأهم بالنسبة لنا، لأننا سنعتمد عليها كلياً في إظهار وإخفاء أزرار الداشبورد كما طلبت في تقريرك (Dynamic Dashboard).
+لا نحتاج إلى pagination في هذا الـ Endpoint غالباً (لأن الموظف لن يعمل في 50 متجراً)، ولكن إن أردت إضافته فلا مشكلة، الفرونت إند جاهز للتعامل معه.
+الـ store_id هنا ضروري جداً لكي نقوم بتمريره لاحقاً في أي API Request يخص هذا المتجر (مثل مسح الـ QR أو جلب الطلبات).
+في انتظار التأكيد عند الانتهاء من تجهيز الـ Endpoints لنبدأ عملية الربط (Integration) مباشرة. شكراً لتعاونك!

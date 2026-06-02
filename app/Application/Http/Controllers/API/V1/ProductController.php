@@ -169,6 +169,11 @@ class ProductController extends Controller
             'category' => ['nullable', 'integer', 'exists:categories,id'],
             'search' => ['nullable', 'string', 'max:255'],
             'featured' => ['nullable', 'boolean'],
+            'min_price' => ['nullable', 'numeric', 'min:0'],
+            'max_price' => ['nullable', 'numeric', 'min:0'],
+            'min_review_score' => ['nullable', 'numeric', 'min:0', 'max:5'],
+            'sort_by' => ['nullable', 'string', 'in:trending,newest,highest_price,lowest_price,most_seller,popular,price'],
+            'sort_order' => ['nullable', 'string', 'in:asc,desc'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -202,6 +207,8 @@ class ProductController extends Controller
             'category' => ['nullable', 'integer', 'exists:categories,id'],
             'search' => ['nullable', 'string', 'max:255'],
             'featured' => ['nullable', 'boolean'],
+            'sort_by' => ['nullable', 'string', 'in:trending,newest,highest_price,lowest_price,most_seller,popular,price'],
+            'sort_order' => ['nullable', 'string', 'in:asc,desc'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 

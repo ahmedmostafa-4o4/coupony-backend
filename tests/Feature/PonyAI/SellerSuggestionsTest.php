@@ -10,6 +10,9 @@ use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
+use App\Domain\Subscription\Enums\SubscriptionStatus;
+use App\Domain\Subscription\Models\Subscription;
+use App\Domain\Subscription\Models\SubscriptionPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,10 +28,27 @@ class SellerSuggestionsTest extends TestCase
         return $client;
     }
 
+    private function createSubscription(Store $store): void
+    {
+        $plan = SubscriptionPlan::factory()->create([
+            'features' => ['ai_assistant' => true],
+        ]);
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $plan->id,
+            'status' => SubscriptionStatus::ACTIVE,
+            'billing_cycle' => 'monthly',
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+    }
+
     public function test_high_view_zero_claim_product_surfaces_as_offer_suggestion(): void
     {
         $seller = User::factory()->create();
         $store = Store::factory()->create(['owner_user_id' => $seller->id]);
+        $this->createSubscription($store);
 
         $product = Product::factory()->create([
             'store_id' => $store->id,
@@ -64,6 +84,7 @@ class SellerSuggestionsTest extends TestCase
     {
         $seller = User::factory()->create();
         $store = Store::factory()->create(['owner_user_id' => $seller->id]);
+        $this->createSubscription($store);
 
         $this->fake()
             ->queueJson(['topic' => 'free_form'])
@@ -87,6 +108,7 @@ class SellerSuggestionsTest extends TestCase
     {
         $seller = User::factory()->create();
         $store = Store::factory()->create(['owner_user_id' => $seller->id]);
+        $this->createSubscription($store);
 
         $this->fake()
             ->queueJson(['topic' => 'free_form'])
@@ -114,6 +136,7 @@ class SellerSuggestionsTest extends TestCase
     {
         $seller = User::factory()->create();
         $store = Store::factory()->create(['owner_user_id' => $seller->id]);
+        $this->createSubscription($store);
 
         $this->fake()
             ->queueJson(['topic' => 'free_form'])

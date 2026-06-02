@@ -1,0 +1,83 @@
+{
+	"info": {
+		"_postman_id": "b3e8c1f4-3d18-4c28-98e6-12a832c3f1b6",
+		"name": "Advanced Product Filtering",
+		"description": "Endpoints showcasing the advanced product filtering and sorting capabilities.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Public - Advanced Products",
+			"item": [
+				{
+					"name": "Get Filtered Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products?sort_by=lowest_price&min_price=100&max_price=5000&min_review_score=4&category=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"products"
+							],
+							"query": [
+								{
+									"key": "sort_by",
+									"value": "lowest_price",
+									"description": "Allowed values: trending, newest, highest_price, lowest_price, most_seller"
+								},
+								{
+									"key": "min_price",
+									"value": "100"
+								},
+								{
+									"key": "max_price",
+									"value": "5000"
+								},
+								{
+									"key": "min_review_score",
+									"value": "4",
+									"description": "Scale of 0 to 5"
+								},
+								{
+									"key": "category",
+									"value": "1"
+								},
+								{
+									"key": "search",
+									"value": "hotel",
+									"disabled": true
+								},
+								{
+									"key": "featured",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "per_page",
+									"value": "15"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		}
+	]
+}

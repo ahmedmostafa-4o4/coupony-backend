@@ -1,0 +1,220 @@
+{
+  "info": {
+    "name": "Coupony - Staff Management & Invitations",
+    "description": "Postman collection for Store Staff Management and Invitations API endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Store Employees",
+      "item": [
+        {
+          "name": "List Store Employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "employees"]
+            }
+          }
+        },
+        {
+          "name": "Get Specific Employee",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/employees/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "employees", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Employee Role/Permissions",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"store_manager\",\n  \"permissions\": [\n    \"store.products.manage\",\n    \"store.orders.manage\",\n    \"store.claims.manage\",\n    \"store.employees.manage\",\n    \"store.settings.manage\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/employees/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "employees", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Remove Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/employees/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "employees", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Store Employee Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/store-employee-permissions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "store-employee-permissions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Store Invitations (For Store Owners)",
+      "item": [
+        {
+          "name": "List Store Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/invitations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "invitations"],
+              "query": [
+                { "key": "status", "value": "pending", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employee@example.com\",\n  \"role\": \"store_employee\",\n  \"permissions\": [\n    \"store.products.view\",\n    \"store.claims.view\"\n  ],\n  \"address_id\": null,\n  \"message\": \"Welcome to the team!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/invitations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "invitations"]
+            }
+          }
+        },
+        {
+          "name": "Resend Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/invitations/{{invitation_id}}/resend",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "invitations", "{{invitation_id}}", "resend"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stores/{{store_id}}/invitations/{{invitation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stores", "{{store_id}}", "invitations", "{{invitation_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Store Invitations (For Invitee)",
+      "item": [
+        {
+          "name": "List My Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/invitations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "me", "invitations"],
+              "query": [
+                { "key": "status", "value": "pending", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invitations/{{invitation_id}}/accept",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invitations", "{{invitation_id}}", "accept"]
+            }
+          }
+        },
+        {
+          "name": "Decline Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invitations/{{invitation_id}}/decline",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invitations", "{{invitation_id}}", "decline"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

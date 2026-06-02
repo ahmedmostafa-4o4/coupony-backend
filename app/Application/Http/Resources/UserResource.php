@@ -34,6 +34,7 @@ class UserResource extends JsonResource
                 'gender' => $this->profile?->gender,
             ]),
             'is_store_owner' => $this->stores()->exists(),
+            'is_employee' => $this->storeEmployeeAssignments()->exists(),
             'is_onboarding_completed' => $this->isOnboardingCompleted($this->id, $request->header('X-User-Role') ?? $request->input('role') ?? $this->roles?->first()?->name),
 
             'sessions' => $this->whenLoaded('sessions', [
