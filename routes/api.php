@@ -512,4 +512,21 @@ Route::prefix('v1')->group(function () {
 
         return 'done';
     });
+
+    Route::post('/test-notification', function (\Illuminate\Http\Request $request) {
+        $user = $request->user();
+        app(\App\Domain\Notification\Services\NotificationService::class)->send(
+            $user,
+            'test_notification',
+            'Test notification from API',
+            'This is a real-time test notification sent from the HTML tester!',
+            'in_app',
+            ['source' => 'api_tester']
+        );
+
+        return response()->json([
+            'message' => 'Notification queued successfully!',
+            'user_id' => $user->id
+        ]);
+    })->middleware('auth:sanctum')->name('test.notification');
 });

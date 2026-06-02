@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Notification Testing Suite</title>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: #f9f9f9; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #4338ca; }
+        button:disabled { background: #a5b4fc; cursor: not-allowed; }
+        #logs { background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 4px; font-family: monospace; height: 300px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px;}
+        .log-error { color: #ff5555; }
+        .log-success { color: #55ff55; }
+        .log-info { color: #a5b4fc; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>1. Connection Settings</h2>
+        <p>Enter a valid Bearer Token. The system will automatically fetch your User ID and connect to your private channel.</p>
+        <input type="text" id="token" placeholder="Bearer Token (e.g. 1|abcdef...)">
+        <button id="connectBtn" onclick="connect()">Connect to Real-Time Channel</button>
+    </div>
+
+    <div class="card">
+        <h2>2. Actions</h2>
+        <button id="sendBtn" onclick="sendTestNotification()" disabled>Send Test Notification</button>
+        <p style="font-size: 12px; color: #666;">Note: Make sure `php artisan queue:listen` is running in your terminal so the backend actually processes it!</p>
+    </div>
+
+    <div class="card">
+        <h2>Logs</h2>
+        <div id="logs">Waiting to connect...</div>
+    </div>
+
+    <script>
+        // Use the same domain the HTML file is served from (prevents CORS issues entirely)
+        const API_URL = window.location.origin; 
+        const PUSHER_KEY = 'b4bbaf7bfefabd7d2e3c'; // Your exact Pusher Key from .env
+        const PUSHER_CLUSTER = 'eu';
+
+        let pusherInstance = null;
+        let userId = null;
+
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : 'log-info';
+            logs.innerHTML += `\n<span class="${colorClass}">[${time}] ${message}</span>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function connect() {
+            const token = document.getElementById('token').value.trim();
+            if (!token) {
+                return log('Error: Please enter a Bearer token!', 'error');
+            }
+
+            log('Fetching your User Profile to get your ID...');
+            try {
+                // Fetch the authenticated user's profile to get their UUID
+                const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch user. Status: ${response.status}`);
+                }
+
+                const userData = await response.json();
+                userId = userData.data.id;
+                log(`Successfully authenticated! User ID is: ${userId}`, 'success');
+
+                // Initialize Pusher
+                log('Connecting to Pusher...');
+                Pusher.logToConsole = true;
+                
+                pusherInstance = new Pusher(PUSHER_KEY, {
+                    cluster: PUSHER_CLUSTER,
+                    authEndpoint: `${API_URL}/broadcasting/auth`,
+                    auth: {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json'
+                        }
+                    }
+                });
+
+                pusherInstance.connection.bind('state_change', function(states) {
+                    log(`Connection state: ${states.current}`, states.current === 'connected' ? 'success' : 'info');
+                });
+
+                const channelName = `private-users.${userId}`;
+                log(`Subscribing to channel: ${channelName}...`);
+                const channel = pusherInstance.subscribe(channelName);
+
+                channel.bind('pusher:subscription_succeeded', function() {
+                    log('Channel Subscription Succeeded! Ready to receive notifications.', 'success');
+                    document.getElementById('sendBtn').disabled = false;
+                });
+
+                channel.bind('pusher:subscription_error', function(status) {
+                    log(`Channel Subscription Failed! Status: ${status}`, 'error');
+                });
+
+                // Listen for our application's notification event
+                channel.bind('notification.sent', function(data) {
+                    log('\n🔥 REAL-TIME NOTIFICATION RECEIVED! 🔥\n' + JSON.stringify(data, null, 2), 'success');
+                    alert(`New Notification!\nTitle: ${data.notification.title}\nMessage: ${data.notification.message}`);
+                });
+
+            } catch (error) {
+                log(`Connection Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendTestNotification() {
+            const token = document.getElementById('token').value.trim();
+            log('Requesting backend to send a test notification...');
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/test-notification`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log(`Backend queued the notification successfully! (Wait a few seconds for it to arrive...)`, 'success');
+                } else {
+                    log(`Failed to trigger notification: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`Error triggering notification: ${error.message}`, 'error');
+            } finally {
+                setTimeout(() => { document.getElementById('sendBtn').disabled = false; }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
