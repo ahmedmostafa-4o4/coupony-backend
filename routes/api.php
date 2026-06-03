@@ -13,7 +13,8 @@ use App\Application\Http\Controllers\API\V1\Auth\OtpController;
 use App\Application\Http\Controllers\API\V1\Auth\PasswordResetController;
 use App\Application\Http\Controllers\API\V1\Auth\RefreshTokenController;
 use App\Application\Http\Controllers\API\V1\Auth\RegisterController;
-use App\Application\Http\Controllers\API\V1\CategoryController;
+use App\Application\Http\Controllers\API\V1\Admin\CategoryController;
+use App\Application\Http\Controllers\API\V1\Admin\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\API\V1\CustomerBannerController;
 use App\Application\Http\Controllers\API\V1\ExploreController;
@@ -42,7 +43,7 @@ use App\Application\Http\Controllers\API\V1\ProductVariantController;
 use App\Application\Http\Controllers\API\V1\SocialController;
 use App\Application\Http\Controllers\API\V1\StoreAddressController;
 use App\Application\Http\Controllers\API\V1\StoreBannerController;
-use App\Application\Http\Controllers\API\V1\StoreCategoryController;
+
 use App\Application\Http\Controllers\API\V1\StoreCommentController;
 use App\Application\Http\Controllers\API\V1\StoreCommentLikeController;
 use App\Application\Http\Controllers\API\V1\StoreController;
@@ -376,9 +377,14 @@ Route::prefix('v1')->group(function () {
     Route::post('/admin/register', AdminRegisterController::class)->name('admin.register');
 
     Route::prefix('admin')->middleware(['auth:sanctum', UseAuthenticatedUserLocale::class, 'role:admin'])->group(function () {
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::get('/overview', [\App\Application\Http\Controllers\API\V1\Admin\DashboardController::class, 'overview'])->name('overview');
+        });
+
         Route::prefix('categories')->name('categories.')->group(function () {
             Route::get('/', [CategoryController::class, 'index'])->name('index');
             Route::post('/', [CategoryController::class, 'store'])->name('store');
+            Route::get('/{category}', [CategoryController::class, 'show'])->name('show');
             Route::put('/{category}', [CategoryController::class, 'update'])->name('update');
             Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
         });
@@ -387,6 +393,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('store-category')->name('storeCategory.')->group(function () {
             Route::get('/', [StoreCategoryController::class, 'index'])->name('index');
             Route::post('/', [StoreCategoryController::class, 'store'])->name('store');
+            Route::get('/{category}', [StoreCategoryController::class, 'show'])->name('show');
             Route::put('/{category}', [StoreCategoryController::class, 'update'])->name('update');
             Route::delete('/{category}', [StoreCategoryController::class, 'destroy'])->name('destroy');
         });
@@ -476,14 +483,33 @@ Route::prefix('v1')->group(function () {
             Route::post('/notify-all', [NotifyMeController::class, 'notifyAll'])->name('notifyAll');
         });
 
+        // Audit Logs
+        Route::prefix('audits')->name('admin.audits.')->group(function () {
+            Route::get('/', [\App\Application\Http\Controllers\API\V1\Admin\AuditController::class, 'index'])->name('index');
+        });
+
+        // Roles and Permissions
+        Route::prefix('roles')->name('admin.roles.')->group(function () {
+            Route::get('/', [\App\Application\Http\Controllers\API\V1\Admin\RolePermissionController::class, 'roles'])->name('index');
+            Route::post('/', [\App\Application\Http\Controllers\API\V1\Admin\RolePermissionController::class, 'store'])->name('store');
+            Route::get('/permissions', [\App\Application\Http\Controllers\API\V1\Admin\RolePermissionController::class, 'permissions'])->name('permissions');
+            Route::get('/{role}/permissions', [\App\Application\Http\Controllers\API\V1\Admin\RolePermissionController::class, 'rolePermissions'])->name('role_permissions');
+            Route::put('/{role}', [\App\Application\Http\Controllers\API\V1\Admin\RolePermissionController::class, 'update'])->name('update');
+            Route::delete('/{role}', [\App\Application\Http\Controllers\API\V1\Admin\RolePermissionController::class, 'destroy'])->name('destroy');
+        });
+
         // User Management
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->name('index');
+            Route::post('/', [UserManagementController::class, 'store'])->name('store');
             Route::get('/statistics', [UserManagementController::class, 'statistics'])->name('statistics');
             Route::get('/{user}', [UserManagementController::class, 'show'])->name('show');
             Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
             Route::patch('/{user}/status', [UserManagementController::class, 'updateStatus'])->name('status');
+            Route::patch('/{user}/password', [UserManagementController::class, 'updatePassword'])->name('password.update');
             Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+            Route::delete('/{user}/sessions', [UserManagementController::class, 'revokeAllSessions'])->name('sessions.revoke_all');
+            Route::delete('/{user}/sessions/{session}', [UserManagementController::class, 'revokeSession'])->name('sessions.revoke');
         });
     });
 

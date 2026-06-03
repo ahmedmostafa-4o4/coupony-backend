@@ -37,14 +37,17 @@ class UserResource extends JsonResource
             'is_employee' => $this->storeEmployeeAssignments()->exists(),
             'is_onboarding_completed' => $this->isOnboardingCompleted($this->id, $request->header('X-User-Role') ?? $request->input('role') ?? $this->roles?->first()?->name),
 
-            'sessions' => $this->whenLoaded('sessions', [
-                'token' => $this->sessions?->first()?->token,
-                'ip_address' => $this->sessions?->first()?->ip_address,
-                'user_agent' => $this->sessions?->first()?->user_agent,
-                'device_type' => $this->sessions?->first()?->device_type,
-                'expires_at' => $this->sessions?->first()?->expires_at,
-                'last_activity' => $this->sessions?->first()?->last_activity,
-            ]),
+            'last_login_at' => $this->last_login_at?->toISOString(),
+            'last_ip' => $this->last_ip,
+
+            'sessions' => $this->whenLoaded('sessions', fn () => $this->sessions->map(fn ($session) => [
+                'id' => $session->id,
+                'ip_address' => $session->ip_address,
+                'user_agent' => $session->user_agent,
+                'device_type' => $session->device_type,
+                'expires_at' => $session->expires_at?->toISOString(),
+                'last_activity' => $session->last_activity,
+            ])),
 
             'points' => $this->whenLoaded('points', [
                 'balance' => $this->points?->balance,

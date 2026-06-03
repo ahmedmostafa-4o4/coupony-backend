@@ -114,8 +114,8 @@ class CreateOrUpdatePendingProductRevision
             $payload['offer'] = $data->offer();
         }
 
-        if ($payload['offer'] !== null && $payload['variants'] !== []) {
-            $payload['variants'] = $this->pricing->resolve($payload['variants'], $payload['offer']);
+        if ($payload['variants'] !== []) {
+            $payload['variants'] = $this->pricing->resolve($payload['variants'], $payload['offer'] ?? []);
             $payload['product'] = [
                 ...$payload['product'],
                 ...$this->pricing->deriveProductPricingSummary($payload['variants']),

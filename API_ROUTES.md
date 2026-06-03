@@ -71,11 +71,31 @@
 **Prefix:** `/admin`  
 **Middleware:** `auth:sanctum`, `role:admin`
 
+### Dashboard & Analytics
+
+| Method | Endpoint | Name | Description |
+|--------|----------|------|-------------|
+| GET | `/admin/dashboard/overview` | dashboard.overview | Get aggregated platform KPIs, financial stats, and pending operational tasks |
+
 ### Admin Registration
 
 | Method | Endpoint | Name | Description |
 |--------|----------|------|-------------|
 | POST | `/admin/register` | admin.register | Register new admin (Public) |
+
+### User Management
+**Prefix:** `/admin/users`
+
+| Method | Endpoint | Name | Description |
+|--------|----------|------|-------------|
+| GET | `/admin/users` | users.index | List all users (with filters) |
+| GET | `/admin/users/statistics` | users.statistics | Get user counts and statistics |
+| GET | `/admin/users/{user}` | users.show | Get user details (including sessions) |
+| PUT | `/admin/users/{user}` | users.update | Update user profile and roles |
+| PATCH | `/admin/users/{user}/status` | users.status | Update user status (active/suspended) |
+| DELETE | `/admin/users/{user}` | users.destroy | Delete user and all associated data |
+| DELETE | `/admin/users/{user}/sessions` | users.sessions.revoke_all | Revoke all active sessions and tokens for user |
+| DELETE | `/admin/users/{user}/sessions/{session}` | users.sessions.revoke | Revoke a specific active session or token |
 
 ### Store Categories Management
 **Prefix:** `/admin/store-category`

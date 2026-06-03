@@ -584,15 +584,7 @@ class LargeDemoSeeder extends Seeder
             'reviewed_at' => $status === ProductRevisionStatus::PENDING ? null : now()->subDays($index % 20),
             'rejection_reason' => $status === ProductRevisionStatus::REJECTED ? 'Please replace the primary image and clarify the offer terms.' : null,
             'admin_notes' => 'Seeded revision for approval workflow demos.',
-            'payload' => [
-                'title' => $product->title,
-                'category_slugs' => $template['category_slugs'],
-                'variants' => $variants->pluck('sku')->all(),
-                'offer' => [
-                    'type' => $offer->type->value,
-                    'label' => $offer->label,
-                ],
-            ],
+            'payload' => app(\App\Domain\Product\Repositories\ProductRepository::class)->snapshotPayload($product),
             'review_fields' => ['title', 'images', 'variants', 'offer'],
             'requested_changes' => $status === ProductRevisionStatus::REJECTED ? ['images' => 'Use clearer product photos.', 'offer' => 'Clarify redemption conditions.'] : null,
         ]);

@@ -12,7 +12,23 @@ class ResolveVariantOfferPricing
         $offerType = $offer['type'] ?? null;
 
         if ($offerType === null) {
-            throw new InvalidArgumentException('Offer type is required to resolve variant pricing.');
+            return collect($variants)
+                ->map(function (array $variant) {
+                    $originalPrice = round((float) ($variant['original_price'] ?? 0), 2);
+
+                    if ($originalPrice < 0) {
+                        throw new InvalidArgumentException('Original price must be greater than or equal to zero.');
+                    }
+
+                    return [
+                        ...$variant,
+                        'original_price' => $this->formatDecimal($originalPrice),
+                        'price' => $this->formatDecimal($originalPrice),
+                        'compare_at_price' => null,
+                    ];
+                })
+                ->values()
+                ->all();
         }
 
         $this->validateOffer($offerType, $offer);

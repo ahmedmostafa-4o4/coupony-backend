@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Admin;
 
 use App\Domain\Product\Models\Category;
 use App\Domain\User\Models\User;
@@ -29,7 +29,8 @@ class CategoryTest extends TestCase
 
         $response = $this->actingAs($admin, 'sanctum')
             ->post('/api/v1/admin/categories', [
-                'name' => 'Electronics',
+                'name_en' => 'Electronics',
+                'name_ar' => 'إلكترونيات',
                 'description' => 'Devices and accessories',
                 'icon' => UploadedFile::fake()->create('category.png', 50, 'image/png'),
                 'sort_order' => 1,
@@ -37,14 +38,37 @@ class CategoryTest extends TestCase
             ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.name', 'Electronics')
+            ->assertJsonPath('data.name_en', 'Electronics')
             ->assertJsonPath('data.is_active', true)
             ->assertJsonPath('data.icon_url', fn ($value) => is_string($value) && str_contains($value, '/storage/categories/'));
 
         $this->assertDatabaseHas('categories', [
-            'name' => 'Electronics',
+            'name_en' => 'Electronics',
             'slug' => 'electronics',
         ]);
+        
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => Category::class,
+            'event' => 'created',
+        ]);
+    }
+
+    public function test_admin_can_show_category(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        
+        $category = Category::factory()->create([
+            'name' => 'Test Cat',
+            'name_en' => 'Test Cat',
+            'name_ar' => 'Test Cat',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->get("/api/v1/admin/categories/{$category->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.name_en', 'Test Cat');
     }
 
     public function test_admin_can_update_product_category(): void
@@ -53,30 +77,36 @@ class CategoryTest extends TestCase
         $admin->assignRole('admin');
         $parent = Category::factory()->create();
         $category = Category::factory()->create([
-            'name' => 'Restaurants',
+            'name_en' => 'Restaurants',
             'slug' => 'restaurants',
         ]);
 
         $response = $this->actingAs($admin, 'sanctum')
             ->post("/api/v1/admin/categories/{$category->id}", [
                 '_method' => 'PUT',
-                'name' => 'Restaurants & Cafes',
+                'name_en' => 'Restaurants & Cafes',
                 'parent_id' => $parent->id,
                 'icon' => UploadedFile::fake()->create('updated-category.png', 50, 'image/png'),
                 'is_active' => false,
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.name', 'Restaurants & Cafes')
+            ->assertJsonPath('data.name_en', 'Restaurants & Cafes')
             ->assertJsonPath('data.parent_id', $parent->id)
             ->assertJsonPath('data.is_active', false)
             ->assertJsonPath('data.icon_url', fn ($value) => is_string($value) && str_contains($value, '/storage/categories/'));
 
         $this->assertDatabaseHas('categories', [
             'id' => $category->id,
-            'name' => 'Restaurants & Cafes',
+            'name_en' => 'Restaurants & Cafes',
             'parent_id' => $parent->id,
             'is_active' => false,
+        ]);
+        
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => Category::class,
+            'subject_id' => $category->id,
+            'event' => 'updated',
         ]);
     }
 
@@ -111,7 +141,7 @@ class CategoryTest extends TestCase
         $response = $this->actingAs($admin, 'sanctum')
             ->deleteJson("/api/v1/admin/categories/{$parent->id}");
 
-        $response->assertStatus(400);
+        $response->assertStatus(422);
 
         $this->assertDatabaseHas('categories', [
             'id' => $parent->id,
