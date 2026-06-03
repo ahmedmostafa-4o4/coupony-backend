@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        __DIR__.'/../app/Application/Console/Commands',
+    ])
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
         ['middleware' => ['auth:sanctum']]
