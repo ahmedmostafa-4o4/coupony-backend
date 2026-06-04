@@ -243,6 +243,11 @@ class Store extends Model
         return $this->offerClaims();
     }
 
+    public function subscription()
+    {
+        return $this->hasOne(\App\Domain\Subscription\Models\Subscription::class, 'store_id');
+    }
+
     public function hasEmployee(User $user): bool
     {
         return $this->employees()->whereKey($user->id)->exists();

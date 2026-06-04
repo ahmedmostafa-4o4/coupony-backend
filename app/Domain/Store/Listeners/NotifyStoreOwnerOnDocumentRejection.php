@@ -19,7 +19,7 @@ class NotifyStoreOwnerOnDocumentRejection
 
         $this->notificationService->send(
             user: $owner,
-            type: NotificationTypes::STORE_DOCUMENT_REJECTED,
+            type: NotificationTypes::STORE_DOCUMENT_REJECTED->value,
             title: 'Verification Document Rejected',
             message: "Your {$event->verification->document_type} document for store '{$store->name}' has been rejected. Reason: {$event->reason}",
             data: [
@@ -30,7 +30,7 @@ class NotifyStoreOwnerOnDocumentRejection
                 'rejected_by' => $event->admin->id,
                 'rejection_reason' => $event->reason,
             ],
-            channels: ['database', 'email']
+            channel: 'email'
         );
     }
 }

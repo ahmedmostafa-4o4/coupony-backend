@@ -46,6 +46,8 @@ class StoreResource extends JsonResource
             'verifications' => VerificationResource::collection($this->whenLoaded('verifications')),
             'socials' => StoreSocialResource::collection($this->whenLoaded('socials')),
             'hours' => $this->whenLoaded('hours'),
+            'points' => $this->whenLoaded('points'),
+            'subscription' => $this->whenLoaded('subscription'),
         ];
     }
 }

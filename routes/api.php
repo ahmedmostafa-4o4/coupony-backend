@@ -428,15 +428,27 @@ Route::prefix('v1')->group(function () {
             Route::get('/closed', [StoreManagementController::class, 'closed'])->name('closed');
             Route::get('/statistics', [StoreManagementController::class, 'statistics'])->name('statistics');
             Route::get('/{store}', [StoreManagementController::class, 'show'])->name('show');
+            Route::get('/{store}/reviews', [StoreManagementController::class, 'reviews'])->name('reviews');
+            Route::get('/{store}/billing', [StoreManagementController::class, 'billing'])->name('billing');
+            Route::match(['put', 'patch'], '/{store}', [StoreManagementController::class, 'update'])->name('update');
             Route::post('/{store}/approve', [StoreManagementController::class, 'approve'])->name('approve');
             Route::post('/{store}/reject', [StoreManagementController::class, 'reject'])->name('reject');
             Route::post('/{store}/suspend', [StoreManagementController::class, 'suspend'])->name('suspend');
             Route::post('/{store}/close', [StoreManagementController::class, 'close'])->name('close');
 
+            // Store Categories
+            Route::post('/{store}/categories', [StoreManagementController::class, 'attachCategory'])->name('categories.attach');
+            Route::delete('/{store}/categories/{category}', [StoreManagementController::class, 'detachCategory'])->name('categories.detach');
+
             // Verification Documents
             Route::get('/{store}/verifications', [StoreManagementController::class, 'verificationDocuments'])->name('verifications');
+            Route::post('/{store}/verifications', [StoreManagementController::class, 'uploadVerificationDocument'])->name('verifications.upload');
             Route::post('/{store}/verifications/{verification}/approve', [StoreManagementController::class, 'approveDocument'])->name('verifications.approve');
             Route::post('/{store}/verifications/{verification}/reject', [StoreManagementController::class, 'rejectDocument'])->name('verifications.reject');
+
+            // Store Addresses
+            Route::apiResource('{store}/addresses', \App\Application\Http\Controllers\API\V1\Admin\StoreAddressManagementController::class)
+                ->except(['create', 'edit']);
         });
 
         Route::prefix('products')->name('admin.products.')->group(function () {
@@ -556,3 +568,5 @@ Route::prefix('v1')->group(function () {
         ]);
     })->middleware('auth:sanctum')->name('test.notification');
 });
+
+Route::get('/debug-php', function() { return response()->json(['upload_max_filesize' => ini_get('upload_max_filesize'), 'post_max_size' => ini_get('post_max_size'), 'sys_temp_dir' => sys_get_temp_dir()]); });

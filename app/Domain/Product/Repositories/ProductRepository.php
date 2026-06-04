@@ -66,16 +66,21 @@ class ProductRepository
     public function replaceImages(Product $product, array $images): array
     {
         $storedPaths = [];
-        $deletedPaths = $product->images()
-            ->pluck('image_url')
-            ->filter()
-            ->values()
-            ->all();
+        $keptPaths = [];
 
         $records = collect($images)
-            ->map(function (array $image) use ($product, &$storedPaths) {
-                $path = $image['file']->store("products/{$product->id}/images", 'public');
-                $storedPaths[] = $path;
+            ->map(function (array $image) use ($product, &$storedPaths, &$keptPaths) {
+                if (isset($image['file']) && $image['file']) {
+                    $path = $image['file']->store("products/{$product->id}/images", 'public');
+                    $storedPaths[] = $path;
+                } else {
+                    $path = $image['image_url'] ?? null;
+                    if ($path) {
+                        $keptPaths[] = $path;
+                    }
+                }
+
+                if (!$path) return null;
 
                 return [
                     'image_url' => $path,
@@ -84,6 +89,14 @@ class ProductRepository
                     'created_at' => now(),
                 ];
             })
+            ->filter()
+            ->all();
+
+        $deletedPaths = $product->images()
+            ->pluck('image_url')
+            ->diff($keptPaths)
+            ->filter()
+            ->values()
             ->all();
 
         $product->images()->delete();

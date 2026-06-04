@@ -11,16 +11,71 @@ use App\Domain\Store\Actions\RejectStore;
 use App\Domain\Store\Actions\RejectVerificationDocument;
 use App\Domain\Store\Actions\SuspendStore;
 use App\Domain\Store\Enums\StoreStatus;
+use App\Domain\Store\Enums\VerificationDocumentType;
+use App\Domain\Store\Enums\VerificationStatus;
 use App\Domain\Store\Models\Store;
+use App\Domain\Store\Models\StoreCategory;
 use App\Domain\Store\Models\StoreVerification;
+use App\Application\Http\Requests\Admin\StoreManagementUpdateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class StoreManagementController extends Controller
 {
     public function __construct(private ApproveStore $approveStore, private RejectStore $rejectStore, private SuspendStore $suspendStore, private CloseStore $closeStore, private ApproveVerificationDocument $approveVerificationDocument, private RejectVerificationDocument $rejectVerificationDocument
     ) {}
+
+    /**
+     * Update store information
+     */
+    public function update(StoreManagementUpdateRequest $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        try {
+            $store->update(array_filter([
+                'name' => $request->input('name'),
+                'description' => $request->input('description'),
+                'email' => $request->input('email'),
+                'phone' => $request->input('phone'),
+                'tax_id' => $request->input('tax_id'),
+                'subscription_tier' => $request->input('subscription_tier'),
+                'commission_rate' => $request->input('commission_rate'),
+            ], fn($value) => !is_null($value)));
+
+            if ($request->has('description') && is_null($request->input('description'))) {
+                $store->update(['description' => null]);
+            }
+            if ($request->has('tax_id') && is_null($request->input('tax_id'))) {
+                $store->update(['tax_id' => null]);
+            }
+            if ($request->has('subscription_tier') && is_null($request->input('subscription_tier'))) {
+                $store->update(['subscription_tier' => null]);
+            }
+            if ($request->has('commission_rate') && is_null($request->input('commission_rate'))) {
+                $store->update(['commission_rate' => null]);
+            }
+
+            $store->load(['owner.profile', 'categories', 'verifications', 'addresses', 'hours']);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.updated', ['default' => 'Store updated successfully.']),
+                'data' => new StoreResource($store),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Store update failed', [
+                'store_id' => $store->id,
+                'admin_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.update_failed', ['default' => 'Failed to update store.']),
+            ], 500);
+        }
+    }
 
     /**
      * Get all pending store registrations
@@ -136,7 +191,7 @@ class StoreManagementController extends Controller
         $this->applyAuthenticatedLocale($request);
 
         try {
-            $store->load(['owner.profile', 'categories', 'verifications', 'addresses', 'hours']);
+            $store->load(['owner.profile', 'categories', 'verifications', 'addresses', 'hours', 'points']);
 
             return $this->localizedJson([
                 'message' => __('api.admin.stores.details_retrieved'),
@@ -150,6 +205,67 @@ class StoreManagementController extends Controller
 
             return $this->localizedJson([
                 'message' => __('api.admin.stores.details_failed'),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get store reviews (comments)
+     */
+    public function reviews(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        try {
+            $reviews = $store->comments()
+                ->with(['user.profile'])
+                ->latest()
+                ->paginate($request->input('per_page', 15));
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.reviews_retrieved', ['default' => 'Store reviews retrieved successfully.']),
+                'data' => $reviews->items(),
+                'meta' => [
+                    'current_page' => $reviews->currentPage(),
+                    'last_page' => $reviews->lastPage(),
+                    'per_page' => $reviews->perPage(),
+                    'total' => $reviews->total(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve store reviews', [
+                'store_id' => $store->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.reviews_failed', ['default' => 'Failed to retrieve store reviews.']),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get store billing profile (subscription)
+     */
+    public function billing(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        try {
+            $subscription = $store->subscription()->with(['plan'])->first();
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.billing_retrieved', ['default' => 'Store billing profile retrieved successfully.']),
+                'data' => $subscription,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve store billing profile', [
+                'store_id' => $store->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.billing_failed', ['default' => 'Failed to retrieve store billing profile.']),
             ], 500);
         }
     }
@@ -352,6 +468,48 @@ class StoreManagementController extends Controller
     }
 
     /**
+     * Upload a new verification document for a store (Admin action).
+     */
+    public function uploadVerificationDocument(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $request->validate([
+            'document_type' => ['required', Rule::enum(VerificationDocumentType::class)],
+            'document' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240', // Max 10MB
+        ]);
+
+        try {
+            $documentType = $request->input('document_type');
+            $file = $request->file('document');
+
+            $docPath = $file->store("stores/{$store->id}/verifications/{$documentType}", 'public');
+
+            $verification = $store->verifications()->updateOrCreate(
+                ['document_type' => $documentType],
+                [
+                    'document_path' => $docPath,
+                    'status' => VerificationStatus::PENDING->value,
+                ]
+            );
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_uploaded', ['default' => 'Verification document uploaded successfully.']),
+                'data' => $verification,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Admin verification document upload failed', [
+                'store_id' => $store->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->localizedJson([
+                'message' => __('api.admin.stores.document_upload_failed', ['default' => 'Failed to upload verification document.']),
+            ], 500);
+        }
+    }
+
+    /**
      * Get store verification documents
      */
     public function verificationDocuments(Request $request, Store $store): JsonResponse
@@ -475,6 +633,38 @@ class StoreManagementController extends Controller
                 'message' => __('api.admin.stores.document_reject_failed'),
             ], 500);
         }
+    }
+
+    public function attachCategory(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $request->validate([
+            'category_id' => 'required|exists:store_categories,id',
+        ]);
+
+        $store->categories()->syncWithoutDetaching([$request->input('category_id')]);
+
+        $store->load(['owner.profile', 'categories', 'verifications', 'addresses', 'hours']);
+
+        return $this->localizedJson([
+            'message' => __('api.admin.stores.category_attached', ['default' => 'Category attached successfully.']),
+            'data' => new StoreResource($store),
+        ]);
+    }
+
+    public function detachCategory(Request $request, Store $store, StoreCategory $category): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+
+        $store->categories()->detach($category->id);
+
+        $store->load(['owner.profile', 'categories', 'verifications', 'addresses', 'hours']);
+
+        return $this->localizedJson([
+            'message' => __('api.admin.stores.category_detached', ['default' => 'Category detached successfully.']),
+            'data' => new StoreResource($store),
+        ]);
     }
 
     private function listByStatus(Request $request, StoreStatus $status, string $logMessage): JsonResponse

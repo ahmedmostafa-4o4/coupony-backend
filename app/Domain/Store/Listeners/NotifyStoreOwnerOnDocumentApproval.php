@@ -19,7 +19,7 @@ class NotifyStoreOwnerOnDocumentApproval
 
         $this->notificationService->send(
             user: $owner,
-            type: NotificationTypes::STORE_DOCUMENT_APPROVED,
+            type: NotificationTypes::STORE_DOCUMENT_APPROVED->value,
             title: 'Verification Document Approved',
             message: "Your {$event->verification->document_type} document for store '{$store->name}' has been approved.",
             data: [
@@ -30,7 +30,7 @@ class NotifyStoreOwnerOnDocumentApproval
                 'approved_by' => $event->admin->id,
                 'notes' => $event->notes,
             ],
-            channels: ['database', 'email']
+            channel: 'email'
         );
     }
 }

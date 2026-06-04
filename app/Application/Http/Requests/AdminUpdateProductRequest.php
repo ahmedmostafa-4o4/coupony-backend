@@ -21,6 +21,9 @@ class AdminUpdateProductRequest extends FormRequest
 
     public function rules(): array
     {
+        \Illuminate\Support\Facades\Log::info('REQUEST FILES', $this->allFiles());
+        \Illuminate\Support\Facades\Log::info('REQUEST POST', $this->all());
+        
         /** @var Product $product */
         $product = $this->route('product');
 

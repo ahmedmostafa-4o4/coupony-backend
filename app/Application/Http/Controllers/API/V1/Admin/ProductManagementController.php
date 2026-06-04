@@ -20,6 +20,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Log;
 
 class ProductManagementController extends Controller
 {
@@ -29,7 +30,8 @@ class ProductManagementController extends Controller
         private readonly UpdateAdminProduct $updateAdminProduct,
         private readonly DeleteAdminProduct $deleteAdminProduct,
         private readonly ProductRepository $products,
-    ) {}
+    ) {
+    }
 
     public function index(AdminListProductsRequest $request): JsonResponse
     {
@@ -74,7 +76,7 @@ class ProductManagementController extends Controller
                 'Product created successfully.',
                 201
             );
-        } catch (\InvalidArgumentException|\DomainException $throwable) {
+        } catch (\InvalidArgumentException | \DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             return $this->errorResponse('Failed to create product.', 500);
@@ -83,6 +85,7 @@ class ProductManagementController extends Controller
 
     public function update(AdminUpdateProductRequest $request, Product $product): JsonResponse
     {
+        Log::info('FILES', $_FILES);
         $this->applyAuthenticatedLocale($request);
         Gate::authorize('update', $product);
 
@@ -93,10 +96,11 @@ class ProductManagementController extends Controller
                 new ProductResource($updatedProduct),
                 'Product updated successfully.'
             );
-        } catch (\InvalidArgumentException|\DomainException $throwable) {
+        } catch (\InvalidArgumentException | \DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
-            return $this->errorResponse('Failed to update product.', 500);
+            \Illuminate\Support\Facades\Log::error($throwable);
+            return $this->errorResponse('Failed to update product. ' . $throwable->getMessage(), 500);
         }
     }
 
