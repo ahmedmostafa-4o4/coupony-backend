@@ -50,17 +50,4 @@ class AdminNotificationSubscriber
     {
         Notification::send($this->getAdmins(), new NewProductRevisionNotification($event->revision));
     }
-
-    /**
-     * Register the listeners for the subscriber.
-     */
-    public function subscribe($events): array
-    {
-        return [
-            StoreCreated::class => 'handleStoreCreated',
-            StoreLimitReached::class => 'handleStoreLimitReached',
-            SubscriptionStatusChanged::class => 'handleSubscriptionStatusChanged',
-            ProductRevisionSubmitted::class => 'handleProductRevisionSubmitted',
-        ];
-    }
 }
