@@ -337,4 +337,12 @@ class User extends Authenticatable
             'phone_verified_at' => now(),
         ])->save();
     }
+
+    /**
+     * The channels the user receives broadcast notifications on.
+     */
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return $this->hasRole('admin') ? 'admin.notifications' : 'users.'.$this->id;
+    }
 }

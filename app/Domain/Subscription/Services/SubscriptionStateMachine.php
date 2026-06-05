@@ -15,13 +15,13 @@ class SubscriptionStateMachine
      * @var array<string, array<string>>
      */
     private const ALLOWED_TRANSITIONS = [
-        'none' => ['trial', 'active'],
-        'trial' => ['active', 'none'],
-        'active' => ['grace'],
-        'grace' => ['active', 'degraded'],
-        'degraded' => ['active', 'suspended'],
+        'none' => ['trial', 'active', 'archived'],
+        'trial' => ['active', 'none', 'suspended', 'archived'],
+        'active' => ['grace', 'suspended', 'archived'],
+        'grace' => ['active', 'degraded', 'suspended', 'archived'],
+        'degraded' => ['active', 'suspended', 'archived'],
         'suspended' => ['active', 'archived'],
-        'archived' => [],
+        'archived' => ['active'], // allow un-archiving by an admin if needed
     ];
 
     /**

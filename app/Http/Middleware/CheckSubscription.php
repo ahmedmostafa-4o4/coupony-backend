@@ -2,12 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Store\Events\StoreLimitReached;
 use App\Domain\Store\Models\Store;
 use App\Domain\Subscription\Enums\SubscriptionStatus;
 use App\Domain\Subscription\Repositories\SubscriptionRepository;
 use App\Domain\Subscription\Services\EntitlementService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckSubscription
@@ -62,11 +64,11 @@ class CheckSubscription
             ], 403);
         }
 
-        // Handle degraded status: allow reads, block writes that exceed free-tier limits
         if ($status === SubscriptionStatus::DEGRADED) {
             if ($this->isWriteRequest($request)) {
                 // Block write operations that exceed free-tier limits
                 if ($resourceType && $resourceType !== 'null' && ! $this->entitlementService->checkLimit($store, $resourceType)) {
+                    $this->dispatchLimitReached($store, $resourceType);
                     return response()->json([
                         'success' => false,
                         'message' => __('api.subscription.limit_reached'),
@@ -88,6 +90,7 @@ class CheckSubscription
 
         // For active, trial, and grace statuses: check resource limits and feature access
         if ($resourceType && $resourceType !== 'null' && ! $this->entitlementService->checkLimit($store, $resourceType)) {
+            $this->dispatchLimitReached($store, $resourceType);
             return response()->json([
                 'success' => false,
                 'message' => __('api.subscription.limit_reached'),
@@ -104,6 +107,28 @@ class CheckSubscription
         }
 
         return $next($request);
+    }
+
+    private function dispatchLimitReached(Store $store, string $resourceType): void
+    {
+        $key = "limit_reached_{$store->id}_{$resourceType}";
+        // Ensure we only notify admins once every 24 hours per resource type per store
+        RateLimiter::attempt(
+            $key,
+            1,
+            function () use ($store, $resourceType) {
+                $entitlements = $this->entitlementService->getStoreEntitlements($store);
+                $limitInfo = $entitlements->limits[$resourceType] ?? ['limit' => 0, 'usage' => 0];
+
+                event(new StoreLimitReached(
+                    $store,
+                    $resourceType,
+                    $limitInfo['usage'],
+                    $limitInfo['limit']
+                ));
+            },
+            60 * 60 * 24
+        );
     }
 
     /**

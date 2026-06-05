@@ -82,5 +82,8 @@ class EventServiceProvider extends ServiceProvider
         Event::listen(SubscriptionPaymentApproved::class, SendSubscriptionNotification::class);
         Event::listen(SubscriptionPaymentFailed::class, SendSubscriptionNotification::class);
         Event::listen(SubscriptionStatusChanged::class, SendSubscriptionNotification::class);
+
+        // Admin Notifications Subscriber
+        Event::subscribe(\App\Listeners\AdminNotificationSubscriber::class);
     }
 }

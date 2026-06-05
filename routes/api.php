@@ -495,6 +495,24 @@ Route::prefix('v1')->group(function () {
             Route::post('/notify-all', [NotifyMeController::class, 'notifyAll'])->name('notifyAll');
         });
 
+        // Subscription Management (Admin)
+        Route::apiResource('subscription-plans', \App\Application\Http\Controllers\API\V1\Admin\SubscriptionPlanManagementController::class);
+        
+        Route::apiResource('subscriptions', \App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class)->except(['store', 'update', 'destroy']);
+        Route::post('subscriptions/{store}/assign', [\App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class, 'assign'])->name('subscriptions.assign');
+        Route::post('subscriptions/{subscription}/suspend', [\App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class, 'suspend'])->name('subscriptions.suspend');
+        Route::post('subscriptions/{subscription}/cancel', [\App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class, 'cancel'])->name('subscriptions.cancel');
+        
+        Route::apiResource('payment-sessions', \App\Application\Http\Controllers\API\V1\Admin\PaymentSessionManagementController::class)->only(['index', 'show']);
+        Route::post('payment-sessions/{session}/approve', [\App\Application\Http\Controllers\API\V1\Admin\PaymentSessionManagementController::class, 'approve'])->name('payment-sessions.approve');
+        Route::post('payment-sessions/{session}/fail', [\App\Application\Http\Controllers\API\V1\Admin\PaymentSessionManagementController::class, 'fail'])->name('payment-sessions.fail');
+
+        // Admin Notifications
+        Route::get('notifications', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/mark-as-read', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+        
+        Route::get('subscription-analytics', [\App\Application\Http\Controllers\API\V1\Admin\SubscriptionAnalyticsController::class, 'statistics'])->name('subscription-analytics.statistics');
+
         // Audit Logs
         Route::prefix('audits')->name('admin.audits.')->group(function () {
             Route::get('/', [\App\Application\Http\Controllers\API\V1\Admin\AuditController::class, 'index'])->name('index');

@@ -148,9 +148,24 @@ class StoreManagementController extends Controller
                 $query->where('status', $request->input('status'));
             }
 
-            // Search by name
-            if ($request->filled('search')) {
-                $query->where('name', 'like', '%'.$request->input('search').'%');
+            // Search by name (using 'q' parameter mapping from frontend)
+            if ($request->filled('q')) {
+                $query->where('name', 'like', '%'.$request->input('q').'%');
+            }
+
+            // Filter by owner
+            if ($request->filled('owner_user_id')) {
+                $query->where('owner_user_id', $request->input('owner_user_id'));
+            }
+
+            // Filter by verification status
+            if ($request->filled('is_verified')) {
+                $query->where('is_verified', filter_var($request->input('is_verified'), FILTER_VALIDATE_BOOLEAN));
+            }
+
+            // Filter by subscription tier
+            if ($request->filled('subscription_tier')) {
+                $query->where('subscription_tier', $request->input('subscription_tier'));
             }
 
             // Filter by date range
