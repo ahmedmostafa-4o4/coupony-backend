@@ -22,7 +22,9 @@ class OfferClaimFactory extends Factory
             'user_id' => User::factory(),
             'store_id' => Store::factory(),
             'product_id' => Product::factory(),
-            'offer_id' => ProductOffer::factory(),
+            'offer_id' => function (array $attributes) {
+                return ProductOffer::factory()->create(['product_id' => $attributes['product_id']])->id;
+            },
             'status' => OfferClaimStatus::ACTIVE,
             'claim_token' => Str::random(10),
             'qr_code_token' => Str::random(10),

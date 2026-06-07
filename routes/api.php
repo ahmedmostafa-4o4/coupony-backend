@@ -51,7 +51,6 @@ use App\Application\Http\Controllers\API\V1\StoreEmployeeController;
 use App\Application\Http\Controllers\API\V1\StoreFollowController;
 use App\Application\Http\Controllers\API\V1\StoreOfferClaimController;
 use App\Application\Http\Controllers\API\V1\SellerAnalyticsController;
-use App\Application\Http\Controllers\API\V1\StoreProfileViewController;
 use App\Application\Http\Controllers\API\V1\SubscriptionController;
 use App\Application\Http\Controllers\API\V1\UserStoreCategoryController;
 use App\Application\Http\Controllers\API\V1\WebhookController;
@@ -480,6 +479,18 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{travelBanner}', [AdminTravelBannerController::class, 'destroy'])->name('destroy');
         });
 
+        Route::prefix('offer-claims')->name('admin.offer-claims.')->group(function () {
+            Route::get('/', [\App\Application\Http\Controllers\API\V1\Admin\AdminOfferClaimController::class, 'index'])->name('index');
+            Route::get('/{offerClaim}', [\App\Application\Http\Controllers\API\V1\Admin\AdminOfferClaimController::class, 'show'])->name('show');
+            Route::post('/{offerClaim}/cancel', [\App\Application\Http\Controllers\API\V1\Admin\AdminOfferClaimController::class, 'cancel'])->name('cancel');
+        });
+
+        Route::prefix('banner-claims')->name('admin.banner-claims.')->group(function () {
+            Route::get('/', [\App\Application\Http\Controllers\API\V1\Admin\AdminBannerClaimController::class, 'index'])->name('index');
+            Route::get('/{bannerClaim}', [\App\Application\Http\Controllers\API\V1\Admin\AdminBannerClaimController::class, 'show'])->name('show');
+            Route::post('/{bannerClaim}/cancel', [\App\Application\Http\Controllers\API\V1\Admin\AdminBannerClaimController::class, 'cancel'])->name('cancel');
+        });
+
         Route::patch('/product-comments/{comment}/hide', [ProductCommentController::class, 'hide'])->name('admin.product-comments.hide');
         Route::patch('/store-comments/{comment}/hide', [StoreCommentController::class, 'hide'])->name('admin.store-comments.hide');
 
@@ -497,20 +508,34 @@ Route::prefix('v1')->group(function () {
 
         // Subscription Management (Admin)
         Route::apiResource('subscription-plans', \App\Application\Http\Controllers\API\V1\Admin\SubscriptionPlanManagementController::class);
-        
+
         Route::apiResource('subscriptions', \App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class)->except(['store', 'update', 'destroy']);
         Route::post('subscriptions/{store}/assign', [\App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class, 'assign'])->name('subscriptions.assign');
         Route::post('subscriptions/{subscription}/suspend', [\App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class, 'suspend'])->name('subscriptions.suspend');
         Route::post('subscriptions/{subscription}/cancel', [\App\Application\Http\Controllers\API\V1\Admin\StoreSubscriptionManagementController::class, 'cancel'])->name('subscriptions.cancel');
-        
+
         Route::apiResource('payment-sessions', \App\Application\Http\Controllers\API\V1\Admin\PaymentSessionManagementController::class)->only(['index', 'show']);
         Route::post('payment-sessions/{session}/approve', [\App\Application\Http\Controllers\API\V1\Admin\PaymentSessionManagementController::class, 'approve'])->name('payment-sessions.approve');
         Route::post('payment-sessions/{session}/fail', [\App\Application\Http\Controllers\API\V1\Admin\PaymentSessionManagementController::class, 'fail'])->name('payment-sessions.fail');
 
+        // Admin Store Verification Management
+        Route::apiResource('store-verifications', \App\Application\Http\Controllers\API\V1\Admin\StoreVerificationManagementController::class)->only(['index', 'show']);
+        Route::post('store-verifications/{verification}/approve', [\App\Application\Http\Controllers\API\V1\Admin\StoreVerificationManagementController::class, 'approve'])->name('store-verifications.approve');
+        Route::post('store-verifications/{verification}/reject', [\App\Application\Http\Controllers\API\V1\Admin\StoreVerificationManagementController::class, 'reject'])->name('store-verifications.reject');
+
+        // Admin Banner Management
+        Route::apiResource('banners', \App\Application\Http\Controllers\API\V1\Admin\BannerManagementController::class)->only(['index', 'show', 'update', 'destroy']);
+        Route::post('banners/{banner}/approve', [\App\Application\Http\Controllers\API\V1\Admin\BannerManagementController::class, 'approve'])->name('admin.banners.approve');
+        Route::post('banners/{banner}/reject', [\App\Application\Http\Controllers\API\V1\Admin\BannerManagementController::class, 'reject'])->name('admin.banners.reject');
+
         // Admin Notifications
+        Route::get('notifications/broadcasts', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationBroadcastController::class, 'index'])->name('notifications.broadcasts.index');
+        Route::post('notifications/broadcast', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationBroadcastController::class, 'store'])->name('notifications.broadcast.store');
+        Route::get('notifications/broadcasts/{id}', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationBroadcastController::class, 'show'])->name('notifications.broadcasts.show');
+
         Route::get('notifications', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/mark-as-read', [\App\Application\Http\Controllers\API\V1\Admin\AdminNotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
-        
+
         Route::get('subscription-analytics', [\App\Application\Http\Controllers\API\V1\Admin\SubscriptionAnalyticsController::class, 'statistics'])->name('subscription-analytics.statistics');
 
         // Audit Logs
@@ -540,6 +565,14 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
             Route::delete('/{user}/sessions', [UserManagementController::class, 'revokeAllSessions'])->name('sessions.revoke_all');
             Route::delete('/{user}/sessions/{session}', [UserManagementController::class, 'revokeSession'])->name('sessions.revoke');
+        });
+
+        // Bulk Import Management
+        Route::prefix('imports')->name('admin.imports.')->group(function () {
+            Route::post('/stores', [\App\Application\Http\Controllers\API\V1\Admin\AdminImportController::class, 'importStores'])->name('stores');
+            Route::post('/products', [\App\Application\Http\Controllers\API\V1\Admin\AdminImportController::class, 'importProducts'])->name('products');
+            Route::get('/stores/template', [\App\Application\Http\Controllers\API\V1\Admin\AdminImportController::class, 'storeTemplate'])->name('stores.template');
+            Route::get('/products/template', [\App\Application\Http\Controllers\API\V1\Admin\AdminImportController::class, 'productTemplate'])->name('products.template');
         });
     });
 
@@ -587,4 +620,5 @@ Route::prefix('v1')->group(function () {
     })->middleware('auth:sanctum')->name('test.notification');
 });
 
-Route::get('/debug-php', function() { return response()->json(['upload_max_filesize' => ini_get('upload_max_filesize'), 'post_max_size' => ini_get('post_max_size'), 'sys_temp_dir' => sys_get_temp_dir()]); });
+Route::get('/debug-php', function () {
+    return response()->json(['upload_max_filesize' => ini_get('upload_max_filesize'), 'post_max_size' => ini_get('post_max_size'), 'sys_temp_dir' => sys_get_temp_dir()]); });

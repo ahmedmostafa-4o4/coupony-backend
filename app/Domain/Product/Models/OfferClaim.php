@@ -24,6 +24,7 @@ class OfferClaim extends Model
         'product_id',
         'offer_id',
         'status',
+        'cancellation_reason',
         'claim_token',
         'qr_code_token',
         'offer_snapshot',

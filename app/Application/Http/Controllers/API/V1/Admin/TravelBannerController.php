@@ -97,7 +97,7 @@ class TravelBannerController extends Controller
     {
         $query = Product::query()
             ->active()
-            ->with(['images', 'offer'])
+            ->with(['images', 'offer', 'store', 'categories'])
             ->withCount('likes');
 
         if ($request->filled('category_id')) {
@@ -147,12 +147,34 @@ class TravelBannerController extends Controller
                 return [
                     'id' => $product->id,
                     'title' => $product->title,
+                    'short_description' => $product->short_description,
                     'base_price' => $product->base_price,
+                    'compare_at_price' => $product->compare_at_price,
+                    'status' => $product->status,
                     'rating_avg' => $product->rating_avg,
                     'favorites_count' => $product->favorites_count,
                     'likes_count' => $product->likes_count,
                     'image' => $product->images->firstWhere('is_primary', true)?->image_url,
                     'has_offer' => $product->offer !== null,
+                    'offer' => $product->offer ? [
+                        'id' => $product->offer->id,
+                        'discount_value' => $product->offer->type?->value === 'percentage' 
+                            ? $product->offer->percentage_value 
+                            : $product->offer->fixed_amount,
+                        'discount_type' => $product->offer->type?->value ?? $product->offer->type,
+                        'start_date' => $product->offer->starts_at,
+                        'end_date' => $product->offer->ends_at,
+                    ] : null,
+                    'store' => $product->store ? [
+                        'id' => $product->store->id,
+                        'name' => $product->store->name,
+                    ] : null,
+                    'categories' => $product->categories->map(function ($category) {
+                        return [
+                            'id' => $category->id,
+                            'name' => $category->name,
+                        ];
+                    }),
                 ];
             }),
             'meta' => [

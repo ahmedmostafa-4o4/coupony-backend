@@ -4,6 +4,7 @@ namespace App\Application\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Application\Http\Resources\PublicStoreResource;
 
 class VerificationResource extends JsonResource
 {
@@ -20,6 +21,7 @@ class VerificationResource extends JsonResource
 
             'document_type' => $this->document_type,
             'document_path' => $this->document_path,
+            'document_url' => $this->document_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->document_path) : null,
 
             'status' => $this->status,
 
@@ -28,9 +30,10 @@ class VerificationResource extends JsonResource
 
             'rejection_reason' => $this->rejection_reason,
 
+            'store' => new PublicStoreResource($this->whenLoaded('store')),
+
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
-
     }
 }

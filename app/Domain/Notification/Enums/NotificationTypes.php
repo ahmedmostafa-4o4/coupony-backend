@@ -9,6 +9,8 @@ enum NotificationTypes: string
     case OFFER_REDEEMED = 'offer_redeemed';
     case POINTS_EARNED = 'points_earned';
     case NEW_OFFER = 'new_offer';
+    case OFFER_CLAIM_CANCELLED = 'offer_claim_cancelled';
+    case BANNER_CLAIM_CANCELLED = 'banner_claim_cancelled';
 
     // Seller notification types
     case NEW_OFFER_CLAIM = 'new_offer_claim';
@@ -25,6 +27,10 @@ enum NotificationTypes: string
     case EMPLOYEE_INVITATION_ACCEPTED = 'employee_invitation_accepted';
     case EMPLOYEE_INVITATION_REJECTED = 'employee_invitation_rejected';
     case NEW_FOLLOWER = 'new_follower';
+
+    // Banner notification types
+    case BANNER_APPROVED = 'banner_approved';
+    case BANNER_REJECTED = 'banner_rejected';
 
     // Shared types
     case SYSTEM = 'system';

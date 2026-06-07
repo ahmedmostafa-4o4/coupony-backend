@@ -24,6 +24,7 @@ class BannerClaim extends Model
         'user_id',
         'store_id',
         'status',
+        'cancellation_reason',
         'claim_token',
         'qr_code_token',
         'claim_snapshot',

@@ -21,8 +21,12 @@ class NotificationSent implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
+        $channelName = method_exists($this->user, 'receivesBroadcastNotificationsOn') 
+            ? $this->user->receivesBroadcastNotificationsOn() 
+            : 'users.'.$this->user->id;
+
         return [
-            new PrivateChannel('users.'.$this->user->id),
+            new PrivateChannel($channelName),
         ];
     }
 
