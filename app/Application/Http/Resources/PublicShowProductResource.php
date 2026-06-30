@@ -38,12 +38,13 @@ class PublicShowProductResource extends JsonResource
             'primary_image_url' => $this->whenLoaded('images', function () {
                 $primaryImage = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
 
-                if (! $primaryImage) {
+                if (!$primaryImage) {
                     return null;
                 }
 
                 return ProductImageResource::make($primaryImage)->resolve()['url'];
             }),
+            'images' => ProductImageResource::collection($this->whenLoaded('images')),
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
             'offer' => ProductOfferResource::make($this->whenLoaded('offer')),
