@@ -258,6 +258,44 @@ class ProductTest extends TestCase
             ->assertJsonPath('message', __('api.product.not_found'));
     }
 
+    public function test_public_show_returns_localized_offer_terms_and_claim_state(): void
+    {
+        $customer = $this->customer();
+        $store = Store::factory()->create();
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'terms_en' => ['English condition'],
+            'terms_ar' => ['شرط عربي'],
+            'branch_only' => true,
+            'max_claims_per_user' => 2,
+            'max_total_claims' => 3,
+        ]);
+
+        OfferClaim::query()->create([
+            'user_id' => $customer->id,
+            'store_id' => $store->id,
+            'product_id' => $product->id,
+            'offer_id' => $product->offer->id,
+            'claim_token' => 'claim-token-product-detail',
+            'qr_code_token' => 'qr-token-product-detail',
+            'offer_snapshot' => ['offer' => ['type' => 'fixed']],
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $response = $this->withHeader('Accept-Language', 'ar')
+            ->actingAs($customer, 'sanctum')
+            ->getJson("/api/v1/products/{$product->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.offer.terms.0', 'شرط عربي')
+            ->assertJsonPath('data.offer.branch_only', true)
+            ->assertJsonPath('data.offer.max_claims_per_user', 2)
+            ->assertJsonPath('data.offer.max_total_claims', 3)
+            ->assertJsonPath('data.offer.remaining_claims', 1)
+            ->assertJsonPath('data.offer.remaining_total_claims', 2)
+            ->assertJsonPath('data.offer.already_claimed', true);
+    }
+
     public function test_product_resource_matches_final_contract(): void
     {
         $seller = $this->seller();

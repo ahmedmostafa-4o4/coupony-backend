@@ -9,12 +9,14 @@ use App\Domain\Product\Enums\ProductOfferTargetRole;
 use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Events\OfferClaimCreated;
+use App\Domain\Product\Exceptions\OfferClaimLimitException;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\User\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CreateOfferClaim
@@ -55,6 +57,8 @@ class CreateOfferClaim
             throw new \DomainException('This offer is no longer claimable.');
         }
 
+        $this->ensureClaimLimitsAreAvailable($offer, $user);
+
         $snapshot = [
             'claimed_at' => $now->toIso8601String(),
             'product' => [
@@ -64,14 +68,25 @@ class CreateOfferClaim
                 'slug' => $product->slug,
                 'currency' => $product->currency,
             ],
+            'store' => [
+                'id' => $product->store?->id,
+                'name' => $product->store?->name,
+                'logo_url' => $this->publicStorageUrl($product->store?->logo_url),
+            ],
             'offer' => [
                 'id' => $offer->id,
                 'type' => $offer->type?->value ?? $offer->type,
                 'status' => $offer->status?->value ?? $offer->status,
                 'label' => $offer->label,
+                'terms' => $this->localizedTerms($offer),
+                'terms_en' => $this->normalizedTerms($offer->terms_en),
+                'terms_ar' => $this->normalizedTerms($offer->terms_ar),
+                'branch_only' => (bool) $offer->branch_only,
                 'starts_at' => $offer->starts_at?->toIso8601String(),
                 'ends_at' => $offer->ends_at?->toIso8601String(),
                 'claim_expiration_minutes' => $offer->claim_expiration_minutes,
+                'max_claims_per_user' => $offer->max_claims_per_user,
+                'max_total_claims' => $offer->max_total_claims,
                 'fixed_amount' => $offer->fixed_amount,
                 'percentage_value' => $offer->percentage_value,
                 'max_discount' => $offer->max_discount,
@@ -118,6 +133,57 @@ class CreateOfferClaim
         OfferClaimCreated::dispatch($claim, $product, $user);
 
         return $claim;
+    }
+
+    private function ensureClaimLimitsAreAvailable(ProductOffer $offer, User $user): void
+    {
+        $baseQuery = OfferClaim::query()
+            ->where('offer_id', $offer->id)
+            ->where('status', '!=', OfferClaimStatus::CANCELLED->value);
+
+        if ($offer->max_claims_per_user !== null) {
+            $userClaims = (clone $baseQuery)
+                ->where('user_id', $user->id)
+                ->count();
+
+            if ($userClaims >= (int) $offer->max_claims_per_user) {
+                throw new OfferClaimLimitException('Claim limit reached.', 'claim_limit_reached');
+            }
+        }
+
+        if ($offer->max_total_claims !== null && $baseQuery->count() >= (int) $offer->max_total_claims) {
+            throw new OfferClaimLimitException('Offer claims exhausted.', 'offer_claims_exhausted');
+        }
+    }
+
+    private function localizedTerms(ProductOffer $offer): array
+    {
+        $isArabic = str_starts_with(strtolower(app()->getLocale()), 'ar');
+        $preferred = $isArabic ? $offer->terms_ar : $offer->terms_en;
+        $fallback = $isArabic ? $offer->terms_en : $offer->terms_ar;
+
+        return $this->normalizedTerms($preferred ?: $fallback ?: []);
+    }
+
+    private function normalizedTerms(?array $terms): array
+    {
+        return collect($terms ?? [])
+            ->filter(fn ($term) => is_string($term) && $term !== '')
+            ->values()
+            ->all();
+    }
+
+    private function publicStorageUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 
     private function resolveStandardSelections(Product $product, array $selectedVariantIds): array

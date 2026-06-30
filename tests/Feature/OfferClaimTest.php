@@ -147,6 +147,106 @@ class OfferClaimTest extends TestCase
         $this->assertSame('20.00', data_get($claim->offer_snapshot, 'offer.percentage_value'));
     }
 
+    public function test_claim_creation_snapshots_coupon_terms_limits_and_store_logo(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $store->update(['logo_url' => 'stores/logo.png']);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'type' => ProductOfferType::FIXED,
+            'fixed_amount' => 25,
+            'terms_en' => ['English term'],
+            'terms_ar' => ['شرط عربي'],
+            'branch_only' => true,
+            'max_claims_per_user' => 2,
+            'max_total_claims' => 10,
+        ]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeader('Accept-Language', 'ar')
+            ->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.offer_snapshot.offer.terms.0', 'شرط عربي')
+            ->assertJsonPath('data.offer_snapshot.offer.terms_en.0', 'English term')
+            ->assertJsonPath('data.offer_snapshot.offer.branch_only', true)
+            ->assertJsonPath('data.offer_snapshot.offer.max_claims_per_user', 2)
+            ->assertJsonPath('data.offer_snapshot.offer.max_total_claims', 10)
+            ->assertJsonPath('data.offer_snapshot.store.id', $store->id)
+            ->assertJsonPath('data.store.id', $store->id);
+
+        $this->assertStringContainsString('/storage/stores/logo.png', $response->json('data.offer_snapshot.store.logo_url'));
+    }
+
+    public function test_claim_creation_rejects_per_user_claim_limit(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'type' => ProductOfferType::FIXED,
+            'fixed_amount' => 25,
+            'max_claims_per_user' => 1,
+        ]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ])
+            ->assertCreated();
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('reason', 'claim_limit_reached');
+    }
+
+    public function test_claim_creation_rejects_global_claim_limit(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $otherCustomer = $this->customer();
+        $store = $this->storeFor($seller);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'type' => ProductOfferType::FIXED,
+            'fixed_amount' => 25,
+            'max_total_claims' => 1,
+        ]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ])
+            ->assertCreated();
+
+        $this->actingAs($otherCustomer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('reason', 'offer_claims_exhausted');
+    }
+
     public function test_claim_creation_sends_notifications_to_customer_store_owner_and_employees(): void
     {
         $seller = $this->seller();

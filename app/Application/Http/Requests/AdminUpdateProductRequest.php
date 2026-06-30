@@ -23,7 +23,7 @@ class AdminUpdateProductRequest extends FormRequest
     {
         \Illuminate\Support\Facades\Log::info('REQUEST FILES', $this->allFiles());
         \Illuminate\Support\Facades\Log::info('REQUEST POST', $this->all());
-        
+
         /** @var Product $product */
         $product = $this->route('product');
 
@@ -82,11 +82,18 @@ class AdminUpdateProductRequest extends FormRequest
             'offer.type' => ['required_with:offer', Rule::in(ProductOfferType::values())],
             'offer.status' => ['nullable', Rule::in(ProductOfferStatus::values())],
             'offer.label' => ['nullable', 'string', 'max:255'],
+            'offer.terms_en' => ['nullable', 'array'],
+            'offer.terms_en.*' => ['string', 'max:500'],
+            'offer.terms_ar' => ['nullable', 'array'],
+            'offer.terms_ar.*' => ['string', 'max:500'],
+            'offer.branch_only' => ['nullable', 'boolean'],
             'offer.starts_at' => ['nullable', 'date'],
             'offer.ends_at' => ['nullable', 'date', 'after:offer.starts_at'],
             'offer.duration_days' => ['nullable', 'integer', 'min:1'],
             'offer.duration_hours' => ['nullable', 'integer', 'min:1'],
             'offer.claim_expiration_minutes' => ['nullable', 'integer', 'min:1'],
+            'offer.max_claims_per_user' => ['nullable', 'integer', 'min:1'],
+            'offer.max_total_claims' => ['nullable', 'integer', 'min:1'],
             'offer.fixed_amount' => ['nullable', 'numeric', 'gt:0'],
             'offer.percentage_value' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'offer.max_discount' => ['nullable', 'numeric', 'gt:0'],

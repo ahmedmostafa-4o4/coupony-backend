@@ -4,6 +4,7 @@ namespace App\Application\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class OfferClaimResource extends JsonResource
 {
@@ -19,6 +20,7 @@ class OfferClaimResource extends JsonResource
             'claim_token' => $this->claim_token,
             'qr_code_token' => $this->qr_code_token,
             'offer_snapshot' => $this->offer_snapshot,
+            'store' => $this->storeData(),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'redeemed_at' => $this->redeemed_at?->toIso8601String(),
             'redeemed_by' => $this->redeemed_by,
@@ -26,5 +28,37 @@ class OfferClaimResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function storeData(): ?array
+    {
+        $snapshotStore = data_get($this->offer_snapshot, 'store');
+
+        if (is_array($snapshotStore)) {
+            return $snapshotStore;
+        }
+
+        if (! $this->relationLoaded('store') || ! $this->store) {
+            return null;
+        }
+
+        return [
+            'id' => $this->store->id,
+            'name' => $this->store->name,
+            'logo_url' => $this->publicStorageUrl($this->store->logo_url),
+        ];
+    }
+
+    private function publicStorageUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

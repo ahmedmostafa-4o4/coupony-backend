@@ -80,7 +80,9 @@ class ProductRepository
                     }
                 }
 
-                if (!$path) return null;
+                if (! $path) {
+                    return null;
+                }
 
                 return [
                     'image_url' => $path,
@@ -158,9 +160,14 @@ class ProductRepository
             'type' => $attributes['type'],
             'status' => $attributes['status'] ?? ProductOfferStatus::ACTIVE,
             'label' => $attributes['label'] ?? null,
+            'terms_en' => $attributes['terms_en'] ?? null,
+            'terms_ar' => $attributes['terms_ar'] ?? null,
+            'branch_only' => (bool) ($attributes['branch_only'] ?? false),
             'duration_days' => $attributes['duration_days'] ?? null,
             'duration_hours' => $attributes['duration_hours'] ?? null,
             'claim_expiration_minutes' => $attributes['claim_expiration_minutes'] ?? null,
+            'max_claims_per_user' => $attributes['max_claims_per_user'] ?? null,
+            'max_total_claims' => $attributes['max_total_claims'] ?? null,
             'fixed_amount' => $attributes['fixed_amount'] ?? null,
             'percentage_value' => $attributes['percentage_value'] ?? null,
             'max_discount' => $attributes['max_discount'] ?? null,
@@ -430,9 +437,14 @@ class ProductRepository
                 'type' => $offer->type?->value ?? $offer->type,
                 'status' => $offer->status?->value ?? $offer->status,
                 'label' => $offer->label,
+                'terms_en' => $offer->terms_en,
+                'terms_ar' => $offer->terms_ar,
+                'branch_only' => $offer->branch_only,
                 'duration_days' => $offer->duration_days,
                 'duration_hours' => $offer->duration_hours,
                 'claim_expiration_minutes' => $offer->claim_expiration_minutes,
+                'max_claims_per_user' => $offer->max_claims_per_user,
+                'max_total_claims' => $offer->max_total_claims,
                 'fixed_amount' => $offer->fixed_amount,
                 'percentage_value' => $offer->percentage_value,
                 'max_discount' => $offer->max_discount,
@@ -763,6 +775,7 @@ class ProductRepository
                     filled($filters['sort_by'] ?? null),
                     function (Builder $query) use ($filters) {
                         $order = strtolower($filters['sort_order'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
                         return match ($filters['sort_by']) {
                             'trending' => $query->orderByDesc('favorites_count'),
                             'highest_price' => $query->orderByDesc('base_price'),
@@ -812,6 +825,7 @@ class ProductRepository
                     filled($filters['sort_by'] ?? null),
                     function (Builder $query) use ($filters) {
                         $order = strtolower($filters['sort_order'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
                         return match ($filters['sort_by']) {
                             'trending' => $query->orderByDesc('favorites_count'),
                             'highest_price' => $query->orderByDesc('base_price'),

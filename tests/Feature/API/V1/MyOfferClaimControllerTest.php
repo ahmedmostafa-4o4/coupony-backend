@@ -17,14 +17,14 @@ class MyOfferClaimControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createClaim(User $user, Store $store = null, Product $product = null, string $status = 'active', string $token = null): OfferClaim
+    private function createClaim(User $user, ?Store $store = null, ?Product $product = null, string $status = 'active', ?string $token = null): OfferClaim
     {
         $token = $token ?? Str::random(10);
         $store = $store ?? Store::factory()->create();
         $product = $product ?? clone Product::factory()->create(['store_id' => $store->id]);
-        
+
         $offer = ProductOffer::where('product_id', $product->id)->first();
-        if (!$offer) {
+        if (! $offer) {
             $offer = ProductOffer::factory()->create(['product_id' => $product->id]);
         }
 
@@ -60,10 +60,10 @@ class MyOfferClaimControllerTest extends TestCase
                 'success',
                 'data' => [
                     '*' => [
-                        'id', 'status', 'claim_token'
-                    ]
+                        'id', 'status', 'claim_token',
+                    ],
                 ],
-                'meta'
+                'meta',
             ])
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $claim1->id);
@@ -107,23 +107,119 @@ class MyOfferClaimControllerTest extends TestCase
     public function it_can_filter_claims_by_category(): void
     {
         $user = User::factory()->create();
-        
+
         $category = Category::factory()->create();
-        
+
         $store = Store::factory()->create();
         $product1 = clone Product::factory()->create(['store_id' => $store->id]);
         $product1->categories()->attach($category->id);
-        
+
         $product2 = clone Product::factory()->create(['store_id' => $store->id]);
 
         $claim1 = $this->createClaim($user, $store, $product1);
         $this->createClaim($user, $store, $product2);
 
-        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?category=' . $category->id);
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?category='.$category->id);
 
         $response->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.product_id', $claim1->product_id);
+    }
+
+    #[Test]
+    public function it_can_filter_claims_by_subcategory(): void
+    {
+        $user = User::factory()->create();
+        $parent = Category::factory()->create(['slug' => 'food']);
+        $subcategory = Category::factory()->create(['parent_id' => $parent->id, 'slug' => 'pizza']);
+        $store = Store::factory()->create();
+        $product1 = clone Product::factory()->create(['store_id' => $store->id]);
+        $product1->categories()->attach($subcategory->id);
+        $product2 = clone Product::factory()->create(['store_id' => $store->id]);
+
+        $claim1 = $this->createClaim($user, $store, $product1);
+        $this->createClaim($user, $store, $product2);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?subcategory='.$subcategory->id);
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $claim1->id);
+    }
+
+    #[Test]
+    public function it_can_filter_claims_by_category_slug_or_parent_slug(): void
+    {
+        $user = User::factory()->create();
+        $parent = Category::factory()->create([
+            'name' => 'Restaurants',
+            'name_en' => 'Restaurants',
+            'slug' => 'restaurants',
+        ]);
+        $subcategory = Category::factory()->create([
+            'name' => 'Burgers',
+            'name_en' => 'Burgers',
+            'parent_id' => $parent->id,
+            'slug' => 'burgers',
+        ]);
+        $parent->update(['slug' => 'restaurants']);
+        $subcategory->update(['slug' => 'burgers']);
+        $store = Store::factory()->create();
+        $product1 = clone Product::factory()->create(['store_id' => $store->id]);
+        $product1->categories()->attach($subcategory->id);
+        $product2 = clone Product::factory()->create(['store_id' => $store->id]);
+
+        $claim1 = $this->createClaim($user, $store, $product1);
+        $this->createClaim($user, $store, $product2);
+
+        $parentResponse = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?category_slug=restaurants');
+        $childResponse = $this->actingAs($user)->getJson('/api/v1/me/offer-claims?category_slug=burgers');
+
+        $childResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $claim1->id);
+
+        $parentResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $claim1->id);
+    }
+
+    #[Test]
+    public function it_can_sort_claims_by_supported_sort_options(): void
+    {
+        $user = User::factory()->create();
+        $older = $this->createClaim($user, null, null, 'active');
+        $older->forceFill([
+            'offer_snapshot' => ['offer' => ['fixed_amount' => 5]],
+            'expires_at' => now()->addDays(3),
+            'created_at' => now()->subDays(2),
+        ])->save();
+
+        $newerHigherDiscount = $this->createClaim($user, null, null, 'active');
+        $newerHigherDiscount->forceFill([
+            'offer_snapshot' => ['offer' => ['fixed_amount' => 50]],
+            'expires_at' => now()->addDays(5),
+            'created_at' => now()->subDay(),
+        ])->save();
+
+        $expiresSoon = $this->createClaim($user, null, null, 'active');
+        $expiresSoon->forceFill([
+            'offer_snapshot' => ['offer' => ['fixed_amount' => 10]],
+            'expires_at' => now()->addHour(),
+            'created_at' => now(),
+        ])->save();
+
+        $this->actingAs($user)->getJson('/api/v1/me/offer-claims?sort_by=newest')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $expiresSoon->id);
+
+        $this->actingAs($user)->getJson('/api/v1/me/offer-claims?sort_by=expires_soon')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $expiresSoon->id);
+
+        $this->actingAs($user)->getJson('/api/v1/me/offer-claims?sort_by=status_then_discount')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $newerHigherDiscount->id);
     }
 
     #[Test]

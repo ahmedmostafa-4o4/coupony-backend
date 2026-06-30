@@ -6,6 +6,7 @@ use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\CreateOfferClaimRequest;
 use App\Application\Http\Resources\OfferClaimResource;
 use App\Domain\Product\Actions\CreateOfferClaim;
+use App\Domain\Product\Exceptions\OfferClaimLimitException;
 use App\Domain\Product\Models\Product;
 use Illuminate\Http\JsonResponse;
 
@@ -25,6 +26,12 @@ class OfferClaimController extends Controller
                 'message' => 'Offer claim created successfully.',
                 'data' => new OfferClaimResource($claim),
             ], 201);
+        } catch (OfferClaimLimitException $exception) {
+            return $this->localizedJson([
+                'success' => false,
+                'message' => $exception->getMessage(),
+                'reason' => $exception->reason,
+            ], 422);
         } catch (\DomainException $exception) {
             return $this->localizedJson([
                 'success' => false,

@@ -22,11 +22,16 @@ class ProductOffer extends Model
         'type',
         'status',
         'label',
+        'terms_en',
+        'terms_ar',
+        'branch_only',
         'starts_at',
         'ends_at',
         'duration_days',
         'duration_hours',
         'claim_expiration_minutes',
+        'max_claims_per_user',
+        'max_total_claims',
         'fixed_amount',
         'percentage_value',
         'max_discount',
@@ -41,11 +46,16 @@ class ProductOffer extends Model
         return [
             'type' => ProductOfferType::class,
             'status' => ProductOfferStatus::class,
+            'terms_en' => 'array',
+            'terms_ar' => 'array',
+            'branch_only' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'duration_days' => 'integer',
             'duration_hours' => 'integer',
             'claim_expiration_minutes' => 'integer',
+            'max_claims_per_user' => 'integer',
+            'max_total_claims' => 'integer',
             'fixed_amount' => 'decimal:2',
             'percentage_value' => 'decimal:2',
             'max_discount' => 'decimal:2',
@@ -66,6 +76,7 @@ class ProductOffer extends Model
             }
 
             $offer->status ??= ProductOfferStatus::ACTIVE;
+            $offer->branch_only ??= false;
             $offer->allow_mix_buy_variants ??= false;
             $offer->allow_mix_reward_variants ??= false;
         });
