@@ -75,6 +75,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/products', [ProductController::class, 'publicIndex'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'publicShow'])->name('products.show');
     Route::get('/products/{product}/comments', [ProductCommentController::class, 'index'])->name('products.comments.index');
+    Route::get('/stores/{store}/products/{product}/images', [ProductImageController::class, 'index'])->name('products.images.index');
+
     // Route::get('/stores', [StoreController::class, 'publicIndex'])->name('stores.index');
     Route::get('/public-stores', [StoreController::class, 'publicIndex'])->name('public.stores.index');
 
@@ -216,7 +218,6 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{product}/variants/{variant}', [ProductVariantController::class, 'update'])->name('variants.update');
                 Route::delete('/{product}/variants/{variant}', [ProductVariantController::class, 'destroy'])->name('variants.destroy');
                 Route::put('/{product}/variants/{variant}/attributes', [ProductVariantController::class, 'replaceAttributes'])->name('variants.attributes.update');
-                Route::get('/{product}/images', [ProductImageController::class, 'index'])->name('images.index');
                 Route::post('/{product}/images', [ProductImageController::class, 'store'])->name('images.store');
                 Route::patch('/{product}/images/reorder', [ProductImageController::class, 'reorder'])->name('images.reorder');
                 Route::patch('/{product}/images/{image}/primary', [ProductImageController::class, 'setPrimary'])->name('images.primary');
@@ -621,4 +622,5 @@ Route::prefix('v1')->group(function () {
 });
 
 Route::get('/debug-php', function () {
-    return response()->json(['upload_max_filesize' => ini_get('upload_max_filesize'), 'post_max_size' => ini_get('post_max_size'), 'sys_temp_dir' => sys_get_temp_dir()]); });
+    return response()->json(['upload_max_filesize' => ini_get('upload_max_filesize'), 'post_max_size' => ini_get('post_max_size'), 'sys_temp_dir' => sys_get_temp_dir()]);
+});
