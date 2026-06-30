@@ -37,7 +37,8 @@ class StoreController extends Controller
         private readonly UpdateStore $updateStoreAction,
         private readonly UpdateStoreProfile $updateStoreProfileAction,
         private readonly UpdateVerificationDocument $updateVerificationDocumentAction
-    ) {}
+    ) {
+    }
 
     /**
      * Create a new store.
@@ -225,25 +226,25 @@ class StoreController extends Controller
             if (filled($validated['search'] ?? null)) {
                 $query->where(function ($builder) use ($validated) {
                     $builder
-                        ->where('name', 'like', '%'.$validated['search'].'%')
-                        ->orWhere('description', 'like', '%'.$validated['search'].'%')
+                        ->where('name', 'like', '%' . $validated['search'] . '%')
+                        ->orWhere('description', 'like', '%' . $validated['search'] . '%')
                         ->orWhereHas('categories', function ($catBuilder) use ($validated) {
-                            $catBuilder->where('name', 'like', '%'.$validated['search'].'%');
+                            $catBuilder->where('name', 'like', '%' . $validated['search'] . '%');
                         })
                         ->orWhereHas('addresses', function ($addrBuilder) use ($validated) {
-                            $addrBuilder->where('city', 'like', '%'.$validated['search'].'%')
-                                ->orWhere('address_line_1', 'like', '%'.$validated['search'].'%');
+                            $addrBuilder->where('city', 'like', '%' . $validated['search'] . '%')
+                                ->orWhere('address_line1', 'like', '%' . $validated['search'] . '%');
                         });
                 });
             }
 
             if (filled($validated['category_id'] ?? null)) {
-                $query->whereHas('categories', fn ($builder) => $builder->whereKey($validated['category_id']));
+                $query->whereHas('categories', fn($builder) => $builder->whereKey($validated['category_id']));
             }
 
             if (filled($validated['city'] ?? null)) {
                 $query->whereHas('addresses', function ($builder) use ($validated) {
-                    $builder->where('city', 'like', '%'.$validated['city'].'%');
+                    $builder->where('city', 'like', '%' . $validated['city'] . '%');
                 });
             }
 
