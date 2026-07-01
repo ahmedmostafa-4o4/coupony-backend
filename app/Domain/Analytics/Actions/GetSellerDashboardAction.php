@@ -8,6 +8,7 @@ use App\Domain\Analytics\Services\PercentageNormalizer;
 use App\Domain\Analytics\Services\PeriodResolver;
 use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Product\Enums\ProductOfferStatus;
+use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Product\Models\ProductView;
@@ -25,17 +26,28 @@ class GetSellerDashboardAction
     /**
      * Execute the seller dashboard action.
      *
-     * @param Store $store The seller's store
-     * @param string $period The period filter
+     * @param  Store  $store  The seller's store
+     * @param  string  $period  The period filter
      * @return array The dashboard data
      */
     public function execute(Store $store, string $period): array
     {
         $cacheKey = "seller_analytics:{$store->id}:{$period}";
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($store, $period) {
+        $dashboard = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($store, $period) {
             return $this->computeDashboard($store, $period);
         });
+
+        $dashboard['offer_distribution'] = array_map(function (array $distribution): array {
+            $type = $distribution['type'];
+
+            return [
+                ...$distribution,
+                'label' => ProductOfferType::tryFrom($type)?->label() ?? $type,
+            ];
+        }, $dashboard['offer_distribution']);
+
+        return $dashboard;
     }
 
     /**
@@ -62,12 +74,17 @@ class GetSellerDashboardAction
     private function computeMonthlyGoal(Store $store): array
     {
         $goal = $store->monthly_goal;
-
-        $currentMonthRedemptions = OfferClaim::where('store_id', $store->id)
-            ->where('status', OfferClaimStatus::REDEEMED)
-            ->where('redeemed_at', '>=', now()->startOfMonth())
-            ->where('redeemed_at', '<=', now())
-            ->count();
+        $now = now();
+        $currentMonthRedemptions = $this->countRedemptions(
+            $store,
+            $now->copy()->startOfMonth(),
+            $now,
+        );
+        $previousMonthRedemptions = $this->countRedemptions(
+            $store,
+            $now->copy()->subMonthNoOverflow()->startOfMonth(),
+            $now->copy()->subMonthNoOverflow()->endOfMonth(),
+        );
 
         $achievementPercent = 0.0;
         if ($goal !== null && $goal > 0) {
@@ -78,7 +95,16 @@ class GetSellerDashboardAction
             'goal' => $goal,
             'current' => $currentMonthRedemptions,
             'achievement_percent' => $achievementPercent,
+            'growth_percent' => GrowthCalculator::calculate($currentMonthRedemptions, $previousMonthRedemptions),
         ];
+    }
+
+    private function countRedemptions(Store $store, $start, $end): int
+    {
+        return OfferClaim::where('store_id', $store->id)
+            ->where('status', OfferClaimStatus::REDEEMED)
+            ->whereBetween('redeemed_at', [$start, $end])
+            ->count();
     }
 
     /**
@@ -227,8 +253,8 @@ class GetSellerDashboardAction
         $topOffers = $query
             ->join('product_offers', 'offer_claims.offer_id', '=', 'product_offers.id')
             ->join('products', 'offer_claims.product_id', '=', 'products.id')
-            ->selectRaw('products.title as product_title, product_offers.type as offer_type, product_offers.label as offer_label, COUNT(offer_claims.id) as usage_count')
-            ->groupBy('offer_claims.offer_id', 'products.title', 'product_offers.type', 'product_offers.label')
+            ->selectRaw('offer_claims.product_id, products.title as product_title, product_offers.type as offer_type, product_offers.label as offer_label, COUNT(offer_claims.id) as usage_count')
+            ->groupBy('offer_claims.offer_id', 'offer_claims.product_id', 'products.title', 'product_offers.type', 'product_offers.label')
             ->orderByDesc('usage_count')
             ->limit(10)
             ->get();
@@ -237,12 +263,28 @@ class GetSellerDashboardAction
             return [];
         }
 
-        return $topOffers->map(function ($offer) {
+        $viewQuery = ProductView::whereIn('product_id', $topOffers->pluck('product_id'));
+
+        if ($currentStart !== null) {
+            $viewQuery->where('created_at', '>=', $currentStart);
+        }
+
+        if ($currentEnd !== null) {
+            $viewQuery->where('created_at', '<=', $currentEnd);
+        }
+
+        $viewsByProduct = $viewQuery
+            ->selectRaw('product_id, COUNT(*) as views')
+            ->groupBy('product_id')
+            ->pluck('views', 'product_id');
+
+        return $topOffers->map(function ($offer) use ($viewsByProduct) {
             return [
                 'product_title' => $offer->product_title,
                 'offer_type' => $offer->offer_type,
                 'offer_label' => $offer->offer_label,
                 'usage_count' => (int) $offer->usage_count,
+                'views' => (int) ($viewsByProduct[$offer->product_id] ?? 0),
             ];
         })->toArray();
     }

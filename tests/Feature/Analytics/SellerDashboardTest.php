@@ -11,6 +11,7 @@ use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\User\Models\User;
+use Carbon\Carbon;
 use Faker\Factory as Faker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -64,7 +65,7 @@ class SellerDashboardTest extends TestCase
 
         $this->seedOfferClaims($store, $user, $usageCounts);
 
-        $action = new GetSellerDashboardAction();
+        $action = new GetSellerDashboardAction;
         $result = $action->execute($store, 'all');
 
         $topOffers = $result['top_performing_offers'];
@@ -77,8 +78,8 @@ class SellerDashboardTest extends TestCase
             $this->assertGreaterThanOrEqual(
                 $topOffers[$i]['usage_count'],
                 $topOffers[$i - 1]['usage_count'],
-                "Top offers not sorted in descending order: index " . ($i - 1) .
-                " (usage_count={$topOffers[$i - 1]['usage_count']}) should be >= index {$i}" .
+                'Top offers not sorted in descending order: index '.($i - 1).
+                " (usage_count={$topOffers[$i - 1]['usage_count']}) should be >= index {$i}".
                 " (usage_count={$topOffers[$i]['usage_count']})"
             );
         }
@@ -94,7 +95,7 @@ class SellerDashboardTest extends TestCase
 
         $this->seedOfferClaims($store, $user, $usageCounts);
 
-        $action = new GetSellerDashboardAction();
+        $action = new GetSellerDashboardAction;
         $result = $action->execute($store, 'all');
 
         $topOffers = $result['top_performing_offers'];
@@ -103,7 +104,7 @@ class SellerDashboardTest extends TestCase
         $this->assertLessThanOrEqual(
             10,
             count($topOffers),
-            'Top performing offers should contain at most 10 items, got ' . count($topOffers)
+            'Top performing offers should contain at most 10 items, got '.count($topOffers)
         );
     }
 
@@ -133,8 +134,8 @@ class SellerDashboardTest extends TestCase
                     'product_id' => $product->id,
                     'offer_id' => $offer->id,
                     'status' => OfferClaimStatus::REDEEMED,
-                    'claim_token' => "claim-{$index}-{$c}-" . uniqid(),
-                    'qr_code_token' => "qr-{$index}-{$c}-" . uniqid(),
+                    'claim_token' => "claim-{$index}-{$c}-".uniqid(),
+                    'qr_code_token' => "qr-{$index}-{$c}-".uniqid(),
                     'offer_snapshot' => ['offer' => ['type' => 'fixed']],
                     'redeemed_at' => now()->subDays(rand(0, 5)),
                 ]);
@@ -196,7 +197,7 @@ class SellerDashboardTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'monthly_goal' => ['goal', 'current', 'achievement_percent'],
+                'monthly_goal' => ['goal', 'current', 'achievement_percent', 'growth_percent'],
                 'new_followers' => ['count', 'growth_percent'],
                 'store_visits' => ['count', 'growth_percent'],
                 'offer_distribution',
@@ -321,6 +322,7 @@ class SellerDashboardTest extends TestCase
         $this->assertNull($data['monthly_goal']['goal']);
         $this->assertEquals(0, $data['monthly_goal']['current']);
         $this->assertEquals(0.0, $data['monthly_goal']['achievement_percent']);
+        $this->assertEquals(0.0, $data['monthly_goal']['growth_percent']);
 
         // new_followers should be 0 with 0.0 growth
         $this->assertEquals(0, $data['new_followers']['count']);
@@ -408,7 +410,7 @@ class SellerDashboardTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson("/api/v1/stores/{$store->id}/analytics?period=" . urlencode($invalidPeriod));
+            ->getJson("/api/v1/stores/{$store->id}/analytics?period=".urlencode($invalidPeriod));
 
         $response->assertStatus(422);
     }
@@ -508,8 +510,8 @@ class SellerDashboardTest extends TestCase
                     'product_id' => $product->id,
                     'offer_id' => $offer->id,
                     'status' => OfferClaimStatus::REDEEMED,
-                    'claim_token' => 'claim-shape-' . uniqid(),
-                    'qr_code_token' => 'qr-shape-' . uniqid(),
+                    'claim_token' => 'claim-shape-'.uniqid(),
+                    'qr_code_token' => 'qr-shape-'.uniqid(),
                     'offer_snapshot' => ['offer' => ['type' => 'fixed']],
                     'redeemed_at' => now()->subDays(rand(0, 3)),
                 ]);
@@ -535,6 +537,7 @@ class SellerDashboardTest extends TestCase
         $this->assertArrayHasKey('goal', $data['monthly_goal']);
         $this->assertArrayHasKey('current', $data['monthly_goal']);
         $this->assertArrayHasKey('achievement_percent', $data['monthly_goal']);
+        $this->assertArrayHasKey('growth_percent', $data['monthly_goal']);
 
         // Assert new_followers structure
         $this->assertArrayHasKey('count', $data['new_followers']);
@@ -553,6 +556,7 @@ class SellerDashboardTest extends TestCase
         foreach ($data['offer_distribution'] as $item) {
             $this->assertArrayHasKey('type', $item);
             $this->assertArrayHasKey('percentage', $item);
+            $this->assertArrayHasKey('label', $item);
         }
 
         // Assert peak_redemption_times has exactly 28 buckets
@@ -573,7 +577,90 @@ class SellerDashboardTest extends TestCase
             $this->assertArrayHasKey('offer_type', $offer);
             $this->assertArrayHasKey('offer_label', $offer);
             $this->assertArrayHasKey('usage_count', $offer);
+            $this->assertArrayHasKey('views', $offer);
         }
+    }
+
+    public function test_offer_distribution_labels_follow_request_locale(): void
+    {
+        Cache::flush();
+        $user = User::factory()->create();
+        $store = Store::factory()->create(['owner_user_id' => $user->id]);
+        Product::factory()->create(['store_id' => $store->id])
+            ->offer->update(['type' => ProductOfferType::FIXED]);
+
+        $this->actingAs($user, 'sanctum')
+            ->withHeader('Accept-Language', 'en')
+            ->getJson("/api/v1/stores/{$store->id}/analytics")
+            ->assertJsonPath('offer_distribution.0.label', 'Fixed Discount');
+
+        $this->actingAs($user, 'sanctum')
+            ->withHeader('Accept-Language', 'ar')
+            ->getJson("/api/v1/stores/{$store->id}/analytics")
+            ->assertJsonPath('offer_distribution.0.label', 'خصم ثابت');
+    }
+
+    public function test_top_offer_views_match_period_without_inflating_usage_count(): void
+    {
+        Cache::flush();
+        Carbon::setTestNow('2026-07-01 12:00:00');
+        $user = User::factory()->create();
+        $store = Store::factory()->create(['owner_user_id' => $user->id]);
+        $product = Product::factory()->create(['store_id' => $store->id]);
+
+        foreach (range(1, 2) as $index) {
+            OfferClaim::create([
+                'user_id' => $user->id,
+                'store_id' => $store->id,
+                'product_id' => $product->id,
+                'offer_id' => $product->offer->id,
+                'status' => OfferClaimStatus::REDEEMED,
+                'claim_token' => "period-claim-{$index}",
+                'qr_code_token' => "period-qr-{$index}",
+                'offer_snapshot' => [],
+                'redeemed_at' => now(),
+            ]);
+        }
+
+        foreach ([now(), now()->subHours(2), now()->subDays(2)] as $viewedAt) {
+            $view = ProductView::create(['product_id' => $product->id]);
+            $view->forceFill(['created_at' => $viewedAt, 'updated_at' => $viewedAt])->save();
+        }
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/analytics?period=today");
+
+        $response->assertOk()
+            ->assertJsonPath('top_performing_offers.0.usage_count', 2)
+            ->assertJsonPath('top_performing_offers.0.views', 2);
+    }
+
+    public function test_monthly_goal_growth_compares_calendar_months(): void
+    {
+        Cache::flush();
+        Carbon::setTestNow('2026-07-15 12:00:00');
+        $user = User::factory()->create();
+        $store = Store::factory()->create(['owner_user_id' => $user->id]);
+        $product = Product::factory()->create(['store_id' => $store->id]);
+
+        foreach ([now(), now(), now()->subMonthNoOverflow()] as $index => $redeemedAt) {
+            OfferClaim::create([
+                'user_id' => $user->id,
+                'store_id' => $store->id,
+                'product_id' => $product->id,
+                'offer_id' => $product->offer->id,
+                'status' => OfferClaimStatus::REDEEMED,
+                'claim_token' => "growth-claim-{$index}",
+                'qr_code_token' => "growth-qr-{$index}",
+                'offer_snapshot' => [],
+                'redeemed_at' => $redeemedAt,
+            ]);
+        }
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/analytics?period=today")
+            ->assertJsonPath('monthly_goal.current', 2)
+            ->assertJsonPath('monthly_goal.growth_percent', 100);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

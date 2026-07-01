@@ -65,7 +65,7 @@ The calculation uses the existing `GrowthCalculator` so its rounding and zero-ba
 
 ## Caching and Errors
 
-The existing 15-minute seller dashboard cache remains unchanged. The new fields are computed inside the cached dashboard payload and introduce no new request parameters or error responses.
+The existing 15-minute seller dashboard cache remains unchanged. Aggregate values are cached, while localized offer labels are applied after cache retrieval so responses honor each request's locale. The new fields introduce no request parameters or error responses.
 
 No database migration or persisted analytics summary is required.
 

@@ -12,4 +12,9 @@ enum ProductOfferType: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public function label(): string
+    {
+        return __("analytics.offer_types.{$this->value}");
+    }
 }

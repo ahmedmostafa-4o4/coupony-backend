@@ -63,7 +63,8 @@ Returns aggregated store-level analytics including monthly goal progress, follow
   "monthly_goal": {
     "goal": 100,
     "current": 45,
-    "achievement_percent": 45.0
+    "achievement_percent": 45.0,
+    "growth_percent": 12.5
   },
   "new_followers": {
     "count": 23,
@@ -74,9 +75,9 @@ Returns aggregated store-level analytics including monthly goal progress, follow
     "growth_percent": -3.4
   },
   "offer_distribution": [
-    { "type": "fixed", "percentage": 50.0 },
-    { "type": "percentage", "percentage": 33.3 },
-    { "type": "buy_x_get_y", "percentage": 16.7 }
+    { "type": "fixed", "percentage": 50.0, "label": "Fixed Discount" },
+    { "type": "percentage", "percentage": 33.3, "label": "Percentage Off" },
+    { "type": "buy_x_get_y", "percentage": 16.7, "label": "Buy X Get Y" }
   ],
   "peak_redemption_times": [
     { "day": "monday", "time_window": "morning", "count": 12 },
@@ -89,7 +90,8 @@ Returns aggregated store-level analytics including monthly goal progress, follow
       "product_title": "Premium Coffee",
       "offer_type": "percentage",
       "offer_label": "20% Off",
-      "usage_count": 145
+      "usage_count": 145,
+      "views": 320
     }
   ]
 }
@@ -102,13 +104,18 @@ Returns aggregated store-level analytics including monthly goal progress, follow
 | `monthly_goal.goal` | int \| null | The seller's monthly target (null if not set) |
 | `monthly_goal.current` | int | Redemptions this month |
 | `monthly_goal.achievement_percent` | float | Progress percentage (0.0 if no goal set) |
+| `monthly_goal.growth_percent` | float | Current calendar-month redemptions compared with the previous calendar month |
 | `new_followers.count` | int | New followers in the selected period |
 | `new_followers.growth_percent` | float | Growth vs previous period (rounded to 1 decimal) |
 | `store_visits.count` | int | Total product views in the period |
 | `store_visits.growth_percent` | float | Growth vs previous period |
 | `offer_distribution` | array | Active offers grouped by type (percentages sum to 100.0) |
+| `offer_distribution[].label` | string | Localized display label selected by `Accept-Language` |
 | `peak_redemption_times` | array | Always exactly 28 buckets (7 days × 4 time windows) |
 | `top_performing_offers` | array | Top 10 offers sorted by usage_count descending |
+| `top_performing_offers[].views` | int | Views of the offer's product in the selected period |
+
+Chart colors are presentation data owned by Flutter. Map `offer_distribution[].type` to the app's design-system colors; the API does not return `colorValue`.
 
 ---
 
@@ -262,7 +269,7 @@ When omitted, defaults to `all`.
 The API always returns a complete response structure, even for new stores with no data. You never need conditional parsing logic.
 
 **Dashboard zero-data:**
-- `monthly_goal`: `{ goal: null, current: 0, achievement_percent: 0.0 }`
+- `monthly_goal`: `{ goal: null, current: 0, achievement_percent: 0.0, growth_percent: 0.0 }`
 - `new_followers`: `{ count: 0, growth_percent: 0.0 }`
 - `store_visits`: `{ count: 0, growth_percent: 0.0 }`
 - `offer_distribution`: `[]` (empty array)
@@ -534,11 +541,13 @@ class MonthlyGoal {
   final int? goal;
   final int current;
   final double achievementPercent;
+  final double growthPercent;
 
   MonthlyGoal.fromJson(Map<String, dynamic> json)
       : goal = json['goal'],
         current = json['current'],
-        achievementPercent = (json['achievement_percent'] as num).toDouble();
+        achievementPercent = (json['achievement_percent'] as num).toDouble(),
+        growthPercent = (json['growth_percent'] as num).toDouble();
 
   bool get hasGoal => goal != null;
   double get progress => hasGoal ? (current / goal!).clamp(0.0, 1.0) : 0.0;
@@ -559,24 +568,12 @@ class GrowthMetric {
 class OfferDistributionItem {
   final String type;
   final double percentage;
+  final String label;
 
   OfferDistributionItem.fromJson(Map<String, dynamic> json)
       : type = json['type'],
-        percentage = (json['percentage'] as num).toDouble();
-
-  /// Human-readable label for the offer type
-  String get label {
-    switch (type) {
-      case 'fixed':
-        return 'Fixed Discount';
-      case 'percentage':
-        return 'Percentage Off';
-      case 'buy_x_get_y':
-        return 'Buy X Get Y';
-      default:
-        return type;
-    }
-  }
+        percentage = (json['percentage'] as num).toDouble(),
+        label = json['label'];
 }
 
 class HeatmapBucket {
@@ -607,12 +604,14 @@ class TopOffer {
   final String offerType;
   final String offerLabel;
   final int usageCount;
+  final int views;
 
   TopOffer.fromJson(Map<String, dynamic> json)
       : productTitle = json['product_title'],
         offerType = json['offer_type'],
         offerLabel = json['offer_label'],
-        usageCount = json['usage_count'];
+        usageCount = json['usage_count'],
+        views = json['views'];
 }
 
 // ─── Product Analytics ───────────────────────────────────────────────────────
