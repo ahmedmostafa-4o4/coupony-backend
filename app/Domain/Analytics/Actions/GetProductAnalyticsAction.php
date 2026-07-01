@@ -125,6 +125,7 @@ class GetProductAnalyticsAction
             'total_interactions' => $totalInteractions,
             'engagement_rate' => $engagementRate,
             'trend' => $trend,
+            'trends' => $this->computeTrendPresets($product, $start, $end),
             'action_breakdown' => [
                 'likes' => $likes,
                 'comments' => $comments,
@@ -132,6 +133,102 @@ class GetProductAnalyticsAction
                 'shares' => $shares,
             ],
         ];
+    }
+
+    private function computeTrendPresets(Product $product, ?Carbon $start, ?Carbon $end): array
+    {
+        return [
+            'days' => $this->computeDailyTrendPreset($product),
+            'months' => $this->computeMonthlyTrendPreset($product),
+            'peak_times' => $this->computePeakTimeTrendPreset($product, $start, $end),
+        ];
+    }
+
+    private function computeDailyTrendPreset(Product $product): array
+    {
+        $start = Carbon::now()->subDays(6)->startOfDay();
+        $buckets = [];
+
+        for ($index = 0; $index < 7; $index++) {
+            $bucketStart = $start->copy()->addDays($index);
+            $bucketEnd = $bucketStart->copy()->endOfDay();
+
+            $buckets[] = [
+                'index' => $index,
+                'date' => $bucketStart->format('Y-m-d'),
+                'count' => $this->countInteractionsBetween($product, $bucketStart, $bucketEnd),
+            ];
+        }
+
+        return $buckets;
+    }
+
+    private function computeMonthlyTrendPreset(Product $product): array
+    {
+        $start = Carbon::now()->subMonthsNoOverflow(5)->startOfMonth();
+        $buckets = [];
+
+        for ($index = 0; $index < 6; $index++) {
+            $bucketStart = $start->copy()->addMonthsNoOverflow($index)->startOfMonth();
+            $bucketEnd = $bucketStart->copy()->endOfMonth();
+
+            $buckets[] = [
+                'index' => $index,
+                'month' => $bucketStart->format('Y-m'),
+                'count' => $this->countInteractionsBetween($product, $bucketStart, $bucketEnd),
+            ];
+        }
+
+        return $buckets;
+    }
+
+    private function computePeakTimeTrendPreset(Product $product, ?Carbon $start, ?Carbon $end): array
+    {
+        $effectiveStart = ($start ?? $product->created_at ?? Carbon::now())->copy()->startOfDay();
+        $effectiveEnd = ($end ?? Carbon::now())->copy()->endOfDay();
+        $timestamps = $this->interactionTimestampsBetween($product, $effectiveStart, $effectiveEnd);
+
+        $buckets = [
+            ['label' => 'night', 'start_hour' => 0, 'end_hour' => 6],
+            ['label' => 'morning', 'start_hour' => 6, 'end_hour' => 12],
+            ['label' => 'afternoon', 'start_hour' => 12, 'end_hour' => 18],
+            ['label' => 'evening', 'start_hour' => 18, 'end_hour' => 24],
+        ];
+
+        return array_map(function (array $bucket, int $index) use ($timestamps): array {
+            $count = $timestamps->filter(function (Carbon $timestamp) use ($bucket): bool {
+                $hour = $timestamp->hour;
+
+                return $hour >= $bucket['start_hour'] && $hour < $bucket['end_hour'];
+            })->count();
+
+            return [
+                'index' => $index,
+                'label' => $bucket['label'],
+                'start_hour' => $bucket['start_hour'],
+                'end_hour' => $bucket['end_hour'],
+                'count' => $count,
+            ];
+        }, $buckets, array_keys($buckets));
+    }
+
+    private function countInteractionsBetween(Product $product, Carbon $start, Carbon $end): int
+    {
+        return array_sum(array_map(
+            fn (string $model): int => $this->countInPeriod($model, 'product_id', $product->id, $start, $end),
+            [ProductLike::class, ProductComment::class, ProductFavorite::class, ProductShare::class],
+        ));
+    }
+
+    private function interactionTimestampsBetween(Product $product, Carbon $start, Carbon $end)
+    {
+        return collect([ProductLike::class, ProductComment::class, ProductFavorite::class, ProductShare::class])
+            ->flatMap(fn (string $model) => $model::query()
+                ->where('product_id', $product->id)
+                ->where('created_at', '>=', $start)
+                ->where('created_at', '<=', $end)
+                ->pluck('created_at')
+                ->map(fn ($timestamp) => Carbon::parse($timestamp)));
     }
 
     /**

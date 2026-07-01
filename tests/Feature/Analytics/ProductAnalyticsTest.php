@@ -3,6 +3,8 @@
 namespace Tests\Feature\Analytics;
 
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductComment;
+use App\Domain\Product\Models\ProductFavorite;
 use App\Domain\Product\Models\ProductLike;
 use App\Domain\Product\Models\ProductShare;
 use App\Domain\Product\Models\ProductView;
@@ -107,7 +109,17 @@ class ProductAnalyticsTest extends TestCase
         $response->assertJsonStructure([
             'header' => ['views', 'likes', 'comments', 'saves'],
             'overview' => ['impressions', 'reached_accounts', 'profile_visits', 'new_followers', 'traffic_sources'],
-            'engagement' => ['total_interactions', 'engagement_rate', 'trend', 'action_breakdown' => ['likes', 'comments', 'saves', 'shares']],
+            'engagement' => [
+                'total_interactions',
+                'engagement_rate',
+                'trend',
+                'trends' => [
+                    'days',
+                    'months',
+                    'peak_times',
+                ],
+                'action_breakdown' => ['likes', 'comments', 'saves', 'shares'],
+            ],
             'audience' => ['followers_percent', 'non_followers_percent', 'age_groups', 'gender_groups'],
         ]);
 
@@ -301,5 +313,76 @@ class ProductAnalyticsTest extends TestCase
 
         $this->assertNotNull($trendPoint);
         $this->assertSame(1, $trendPoint['count']);
+    }
+
+    public function test_product_analytics_includes_multi_series_trend_presets(): void
+    {
+        Cache::flush();
+        Carbon::setTestNow('2026-07-01 12:00:00');
+
+        $user = User::factory()->create();
+        $store = Store::factory()->create(['owner_user_id' => $user->id]);
+        $product = Product::factory()->create([
+            'store_id' => $store->id,
+            'created_at' => Carbon::parse('2026-01-01 00:00:00'),
+        ]);
+
+        ProductLike::create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ])->forceFill([
+            'created_at' => Carbon::parse('2026-07-01 08:00:00'),
+            'updated_at' => Carbon::parse('2026-07-01 08:00:00'),
+        ])->save();
+
+        ProductComment::create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'body' => 'Great product',
+        ])->forceFill([
+            'created_at' => Carbon::parse('2026-07-01 13:00:00'),
+            'updated_at' => Carbon::parse('2026-07-01 13:00:00'),
+        ])->save();
+
+        ProductFavorite::create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+        ])->forceFill([
+            'created_at' => Carbon::parse('2026-07-01 19:00:00'),
+            'updated_at' => Carbon::parse('2026-07-01 19:00:00'),
+        ])->save();
+
+        ProductShare::create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'platform' => 'copy_link',
+        ])->forceFill([
+            'created_at' => Carbon::parse('2026-07-01 02:00:00'),
+            'updated_at' => Carbon::parse('2026-07-01 02:00:00'),
+        ])->save();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/analytics/products/{$product->id}?period=last_7_days");
+
+        $response->assertOk()
+            ->assertJsonCount(7, 'engagement.trends.days')
+            ->assertJsonCount(6, 'engagement.trends.months')
+            ->assertJsonCount(4, 'engagement.trends.peak_times')
+            ->assertJsonPath('engagement.trends.peak_times.0.label', 'night')
+            ->assertJsonPath('engagement.trends.peak_times.0.count', 1)
+            ->assertJsonPath('engagement.trends.peak_times.1.label', 'morning')
+            ->assertJsonPath('engagement.trends.peak_times.1.count', 1)
+            ->assertJsonPath('engagement.trends.peak_times.2.label', 'afternoon')
+            ->assertJsonPath('engagement.trends.peak_times.2.count', 1)
+            ->assertJsonPath('engagement.trends.peak_times.3.label', 'evening')
+            ->assertJsonPath('engagement.trends.peak_times.3.count', 1);
+
+        $today = collect($response->json('engagement.trends.days'))->firstWhere('date', '2026-07-01');
+        $this->assertSame(6, $today['index']);
+        $this->assertSame(4, $today['count']);
+
+        $currentMonth = collect($response->json('engagement.trends.months'))->firstWhere('month', '2026-07');
+        $this->assertSame(5, $currentMonth['index']);
+        $this->assertSame(4, $currentMonth['count']);
     }
 }

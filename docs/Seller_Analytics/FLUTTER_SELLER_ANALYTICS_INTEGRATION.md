@@ -219,6 +219,22 @@ When both `start_date` and `end_date` are provided, the explicit date range take
       { "date": "2025-01-15", "count": 12 },
       { "date": "2025-01-16", "count": 18 }
     ],
+    "trends": {
+      "days": [
+        { "index": 0, "date": "2026-06-25", "count": 2 },
+        { "index": 6, "date": "2026-07-01", "count": 4 }
+      ],
+      "months": [
+        { "index": 0, "month": "2026-02", "count": 44 },
+        { "index": 5, "month": "2026-07", "count": 31 }
+      ],
+      "peak_times": [
+        { "index": 0, "label": "night", "start_hour": 0, "end_hour": 6, "count": 5 },
+        { "index": 1, "label": "morning", "start_hour": 6, "end_hour": 12, "count": 10 },
+        { "index": 2, "label": "afternoon", "start_hour": 12, "end_hour": 18, "count": 18 },
+        { "index": 3, "label": "evening", "start_hour": 18, "end_hour": 24, "count": 24 }
+      ]
+    },
     "action_breakdown": {
       "likes": 230,
       "comments": 45,
@@ -262,7 +278,10 @@ When both `start_date` and `end_date` are provided, the explicit date range take
 | overview | traffic_sources | array | Source breakdown (sums to 100.0) |
 | engagement | total_interactions | int | likes + comments + saves + shares |
 | engagement | engagement_rate | float | (interactions / impressions) × 100, rounded to 2 decimals |
-| engagement | trend | array | Daily or monthly data points |
+| engagement | trend | array | Backward-compatible daily or monthly data points selected by the requested period |
+| engagement | trends.days | array | Exactly 7 daily buckets ending today; counts likes + comments + saves + shares |
+| engagement | trends.months | array | Exactly 6 monthly buckets ending with the current month; counts likes + comments + saves + shares |
+| engagement | trends.peak_times | array | Exactly 4 time-of-day buckets for the requested period/date range |
 | engagement | action_breakdown | object | Individual action counts |
 | audience | followers_percent | float | % of interactors who follow the store |
 | audience | non_followers_percent | float | % of interactors who don't follow |
@@ -309,6 +328,9 @@ The API always returns a complete response structure, even for new stores with n
 - `header`: all counts are `0`
 - `overview`: all counts are `0`, `traffic_sources` is `[]`
 - `engagement`: `total_interactions: 0`, `engagement_rate: 0.0`, `trend: []`
+- `engagement.trends.days`: 7 buckets with `count: 0`
+- `engagement.trends.months`: 6 buckets with `count: 0`
+- `engagement.trends.peak_times`: 4 buckets with `count: 0`
 - `audience`: `followers_percent: 50.0`, `non_followers_percent: 50.0`, 7 equal age groups, `gender_groups: []`
 
 ---
@@ -703,6 +725,7 @@ class ProductEngagement {
   final int totalInteractions;
   final double engagementRate;
   final List<TrendPoint> trend;
+  final ProductTrendPresets trends;
   final ActionBreakdown actionBreakdown;
 
   ProductEngagement.fromJson(Map<String, dynamic> json)
@@ -711,6 +734,7 @@ class ProductEngagement {
         trend = (json['trend'] as List)
             .map((e) => TrendPoint.fromJson(e))
             .toList(),
+        trends = ProductTrendPresets.fromJson(json['trends']),
         actionBreakdown = ActionBreakdown.fromJson(json['action_breakdown']);
 }
 
@@ -720,6 +744,49 @@ class TrendPoint {
 
   TrendPoint.fromJson(Map<String, dynamic> json)
       : date = json['date'],
+        count = json['count'];
+}
+
+class ProductTrendPresets {
+  final List<IndexedTrendPoint> days;
+  final List<IndexedTrendPoint> months;
+  final List<PeakTimeTrendPoint> peakTimes;
+
+  ProductTrendPresets.fromJson(Map<String, dynamic> json)
+      : days = (json['days'] as List)
+            .map((e) => IndexedTrendPoint.fromJson(e))
+            .toList(),
+        months = (json['months'] as List)
+            .map((e) => IndexedTrendPoint.fromJson(e))
+            .toList(),
+        peakTimes = (json['peak_times'] as List)
+            .map((e) => PeakTimeTrendPoint.fromJson(e))
+            .toList();
+}
+
+class IndexedTrendPoint {
+  final int index;
+  final String label;
+  final int count;
+
+  IndexedTrendPoint.fromJson(Map<String, dynamic> json)
+      : index = json['index'],
+        label = json['date'] ?? json['month'],
+        count = json['count'];
+}
+
+class PeakTimeTrendPoint {
+  final int index;
+  final String label;
+  final int startHour;
+  final int endHour;
+  final int count;
+
+  PeakTimeTrendPoint.fromJson(Map<String, dynamic> json)
+      : index = json['index'],
+        label = json['label'],
+        startHour = json['start_hour'],
+        endHour = json['end_hour'],
         count = json['count'];
 }
 
@@ -933,11 +1000,17 @@ All percentage arrays (`offer_distribution`, `traffic_sources`, `age_groups`, `g
 
 ### Trend Chart
 
-The `trend` array in product engagement uses:
+The legacy `engagement.trend` array in product engagement uses:
 - **Daily grouping** for periods ≤ 30 days (`today`, `last_7_days`, `this_month`)
 - **Monthly grouping** for periods > 30 days (`this_year`, `all`)
 
 The `date` field format is `YYYY-MM-DD` for daily and `YYYY-MM` for monthly.
+
+For instant tab switching in the product analytics UI, prefer `engagement.trends`:
+
+- `days`: 7 indexed daily buckets ending today.
+- `months`: 6 indexed monthly buckets ending with the current month.
+- `peak_times`: 4 indexed time-of-day buckets for the selected request period.
 
 ---
 
