@@ -3,6 +3,7 @@
 namespace App\Application\Http\Controllers\API\V1;
 
 use App\Application\Http\Controllers\Controller;
+use App\Domain\Analytics\Services\AnalyticsCache;
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductShare;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,9 @@ class ProductShareController extends Controller
             'user_id' => $request->user()->id,
             'platform' => $validated['platform'] ?? null,
         ]);
+
+        AnalyticsCache::invalidateProduct($product->id);
+        AnalyticsCache::invalidateSeller($product->store_id);
 
         return response()->json(['message' => 'Share recorded.'], 201);
     }

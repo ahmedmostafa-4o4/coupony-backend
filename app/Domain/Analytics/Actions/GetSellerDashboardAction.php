@@ -2,15 +2,19 @@
 
 namespace App\Domain\Analytics\Actions;
 
+use App\Domain\Analytics\Services\AnalyticsCache;
 use App\Domain\Analytics\Services\GrowthCalculator;
 use App\Domain\Analytics\Services\HeatmapBuilder;
 use App\Domain\Analytics\Services\PercentageNormalizer;
 use App\Domain\Analytics\Services\PeriodResolver;
 use App\Domain\Product\Enums\OfferClaimStatus;
+use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductOfferStatus;
 use App\Domain\Product\Enums\ProductOfferType;
+use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\ProductOffer;
+use App\Domain\Product\Models\ProductShare;
 use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreFollowers;
@@ -30,12 +34,13 @@ class GetSellerDashboardAction
      * @param  string  $period  The period filter
      * @return array The dashboard data
      */
-    public function execute(Store $store, string $period): array
+    public function execute(Store $store, string $period, ?string $startDate = null, ?string $endDate = null): array
     {
-        $cacheKey = "seller_analytics:{$store->id}:{$period}";
+        $rangeKey = PeriodResolver::cacheKey($period, $startDate, $endDate);
+        $cacheKey = AnalyticsCache::sellerKey($store->id, $rangeKey);
 
-        $dashboard = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($store, $period) {
-            return $this->computeDashboard($store, $period);
+        $dashboard = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($store, $period, $startDate, $endDate) {
+            return $this->computeDashboard($store, $period, $startDate, $endDate);
         });
 
         $dashboard['offer_distribution'] = array_map(function (array $distribution): array {
@@ -53,11 +58,15 @@ class GetSellerDashboardAction
     /**
      * Compute all dashboard metrics.
      */
-    private function computeDashboard(Store $store, string $period): array
+    private function computeDashboard(Store $store, string $period, ?string $startDate, ?string $endDate): array
     {
-        [$currentStart, $currentEnd, $previousStart, $previousEnd] = PeriodResolver::resolve($period);
+        [$currentStart, $currentEnd, $previousStart, $previousEnd] = PeriodResolver::resolve($period, $startDate, $endDate);
 
         return [
+            'active_offers_count' => $this->countActiveOffers($store),
+            'used_coupons_count' => $this->countRedemptionsInRange($store, $currentStart, $currentEnd),
+            'shares_count' => $this->countSharesInRange($store, $currentStart, $currentEnd),
+            'coupon_revenue' => $this->couponRevenueInRange($store, $currentStart, $currentEnd),
             'monthly_goal' => $this->computeMonthlyGoal($store),
             'new_followers' => $this->computeNewFollowers($store, $currentStart, $currentEnd, $previousStart, $previousEnd),
             'store_visits' => $this->computeStoreVisits($store, $currentStart, $currentEnd, $previousStart, $previousEnd),
@@ -65,6 +74,67 @@ class GetSellerDashboardAction
             'peak_redemption_times' => $this->computePeakRedemptionTimes($store, $currentStart, $currentEnd),
             'top_performing_offers' => $this->computeTopPerformingOffers($store, $currentStart, $currentEnd),
         ];
+    }
+
+    private function countActiveOffers(Store $store): int
+    {
+        return ProductOffer::query()
+            ->where('status', ProductOfferStatus::ACTIVE)
+            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->whereHas('product', fn ($query) => $query
+                ->where('store_id', $store->id)
+                ->where('status', ProductStatus::ACTIVE)
+                ->where('approval_status', ProductApprovalStatus::APPROVED))
+            ->count();
+    }
+
+    private function countRedemptionsInRange(Store $store, $start, $end): int
+    {
+        return $this->redeemedClaimsInRange($store, $start, $end)->count();
+    }
+
+    private function countSharesInRange(Store $store, $start, $end): int
+    {
+        $query = ProductShare::whereHas('product', fn ($productQuery) => $productQuery->where('store_id', $store->id));
+        $this->applyRange($query, 'created_at', $start, $end);
+
+        return $query->count();
+    }
+
+    private function couponRevenueInRange(Store $store, $start, $end): array
+    {
+        $query = $this->redeemedClaimsInRange($store, $start, $end)
+            ->whereNotNull('revenue_amount')
+            ->whereNotNull('revenue_currency')
+            ->selectRaw('revenue_currency, SUM(revenue_amount) as amount, COUNT(*) as recorded_redemptions')
+            ->groupBy('revenue_currency')
+            ->orderBy('revenue_currency');
+
+        return $query->get()->map(fn ($revenue) => [
+            'amount' => number_format((float) $revenue->amount, 2, '.', ''),
+            'currency' => $revenue->revenue_currency,
+            'recorded_redemptions' => (int) $revenue->recorded_redemptions,
+        ])->all();
+    }
+
+    private function redeemedClaimsInRange(Store $store, $start, $end)
+    {
+        $query = OfferClaim::where('store_id', $store->id)
+            ->where('status', OfferClaimStatus::REDEEMED);
+        $this->applyRange($query, 'redeemed_at', $start, $end);
+
+        return $query;
+    }
+
+    private function applyRange($query, string $column, $start, $end): void
+    {
+        if ($start !== null) {
+            $query->where($column, '>=', $start);
+        }
+        if ($end !== null) {
+            $query->where($column, '<=', $end);
+        }
     }
 
     /**

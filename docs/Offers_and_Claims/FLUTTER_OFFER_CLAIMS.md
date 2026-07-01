@@ -91,15 +91,25 @@ Retrieves details of a specific store claim.
   ```
 
 ### 6. Redeem Claim (Store Employee/Owner)
-Redeems an offer claim using a QR code token.
+Redeems an offer claim using a QR code token. Revenue is calculated automatically from the claim snapshot when `revenue_amount` and `currency` are omitted.
 - **Endpoint:** `POST /api/v1/stores/{store}/offer-claims/redeem`
 - **Auth:** Required (Sanctum), Requires Store Employee Permission `redeemClaims`
 - **Body:**
   ```json
   {
-    "qr_code_token": "string"
+    "qr_code_token": "string",
+    "revenue_amount": 125.75,
+    "currency": "EGP"
   }
   ```
+  - `qr_code_token`: Required.
+  - `revenue_amount`: Optional manual override, numeric, min `0`, max `999999999999.99`. Required if `currency` is present.
+  - `currency`: Optional manual override ISO 4217 currency code, uppercase 3 letters. Required if `revenue_amount` is present.
+
+If no manual override is sent:
+- Standard offers (`fixed`, `percentage`) use the sum of selected variant prices. If the product has no selected variants, the product `base_price` is used.
+- Buy X Get Y offers use only `selected_buy_variants`; reward/free variants are not counted as revenue.
+- Currency comes from the selected variant, falling back to the product currency.
 - **Response:**
   ```json
   {
@@ -132,6 +142,8 @@ class OfferClaimModel {
   final ClaimProductModel? product;
   final StoreModel? store;
   final int usageCount;
+  final String? revenueAmount;
+  final String? revenueCurrency;
   
   // Example factory parsing
   factory OfferClaimModel.fromJson(Map<String, dynamic> json) {
@@ -147,6 +159,8 @@ class OfferClaimModel {
           ? null
           : ClaimProductModel.fromJson(json['product']),
       usageCount: json['usage_count'],
+      revenueAmount: json['revenue_amount'],
+      revenueCurrency: json['revenue_currency'],
     );
   }
 }
@@ -172,4 +186,4 @@ class ClaimProductModel {
 }
 ```
 
-`customer` and `product` may be `null` only for older claims whose related records were deleted. `usage_count` is the current total of redeemed claims for the offer, not a claim-time snapshot.
+`customer` and `product` may be `null` only for older claims whose related records were deleted. `usage_count` is the current total of redeemed claims for the offer, not a claim-time snapshot. `revenue_amount` and `revenue_currency` are automatically captured during redemption unless the seller/employee sends manual override values.

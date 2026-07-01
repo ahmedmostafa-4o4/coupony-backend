@@ -46,6 +46,7 @@ class StoreOfferClaimController extends Controller
         return $this->localizedJson([
             'success' => true,
             'data' => OfferClaimResource::collection($claims->getCollection())->resolve($request),
+            'summary' => $this->claimsSummary($store),
             'meta' => [
                 'current_page' => $claims->currentPage(),
                 'last_page' => $claims->lastPage(),
@@ -79,7 +80,11 @@ class StoreOfferClaimController extends Controller
             $claim = $this->redeemOfferClaim->execute(
                 $store,
                 $request->string('qr_code_token')->toString(),
-                $request->user()
+                $request->user(),
+                $request->filled('revenue_amount') ? [
+                    'amount' => $request->input('revenue_amount'),
+                    'currency' => $request->string('currency')->toString(),
+                ] : [],
             );
 
             return $this->localizedJson([
@@ -98,5 +103,39 @@ class StoreOfferClaimController extends Controller
                 'message' => 'Unable to redeem the offer claim.',
             ], 500);
         }
+    }
+
+    private function claimsSummary(Store $store): array
+    {
+        $redeemedClaims = OfferClaim::query()
+            ->where('store_id', $store->id)
+            ->where('status', OfferClaimStatus::REDEEMED);
+
+        $revenue = OfferClaim::query()
+            ->where('store_id', $store->id)
+            ->where('status', OfferClaimStatus::REDEEMED)
+            ->whereNotNull('revenue_amount')
+            ->whereNotNull('revenue_currency')
+            ->selectRaw('revenue_currency, SUM(revenue_amount) as amount, COUNT(*) as recorded_redemptions')
+            ->groupBy('revenue_currency')
+            ->orderBy('revenue_currency')
+            ->get()
+            ->map(fn ($row) => [
+                'amount' => number_format((float) $row->amount, 2, '.', ''),
+                'currency' => $row->revenue_currency,
+                'recorded_redemptions' => (int) $row->recorded_redemptions,
+            ])
+            ->all();
+
+        return [
+            'all_claims' => OfferClaim::query()
+                ->where('store_id', $store->id)
+                ->count(),
+            'total_usage' => (clone $redeemedClaims)->count(),
+            'this_month_usage' => (clone $redeemedClaims)
+                ->whereBetween('redeemed_at', [now()->startOfMonth(), now()->endOfMonth()])
+                ->count(),
+            'total_revenue' => $revenue,
+        ];
     }
 }

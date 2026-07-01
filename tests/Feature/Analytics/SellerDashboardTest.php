@@ -3,10 +3,12 @@
 namespace Tests\Feature\Analytics;
 
 use App\Domain\Analytics\Actions\GetSellerDashboardAction;
+use App\Domain\Analytics\Services\AnalyticsCache;
 use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductShare;
 use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreFollowers;
@@ -200,6 +202,10 @@ class SellerDashboardTest extends TestCase
                 'monthly_goal' => ['goal', 'current', 'achievement_percent', 'growth_percent'],
                 'new_followers' => ['count', 'growth_percent'],
                 'store_visits' => ['count', 'growth_percent'],
+                'active_offers_count',
+                'used_coupons_count',
+                'shares_count',
+                'coupon_revenue',
                 'offer_distribution',
                 'peak_redemption_times',
                 'top_performing_offers',
@@ -282,7 +288,7 @@ class SellerDashboardTest extends TestCase
         $response1->assertStatus(200);
 
         // Verify cache key exists
-        $cacheKey = "seller_analytics:{$store->id}:all";
+        $cacheKey = AnalyticsCache::sellerKey($store->id, 'all');
         $this->assertTrue(Cache::has($cacheKey));
 
         // Second request - should return cached data
@@ -366,7 +372,7 @@ class SellerDashboardTest extends TestCase
     public static function invalidPeriodStringsProvider(): array
     {
         $faker = Faker::create();
-        $validPeriods = ['all', 'today', 'last_7_days', 'this_month', 'this_year'];
+        $validPeriods = ['all', 'today', 'last_7_days', 'last_30_days', 'this_month', 'this_year'];
         $datasets = [];
 
         for ($i = 0; $i < 55; $i++) {
@@ -384,7 +390,7 @@ class SellerDashboardTest extends TestCase
         $edgeCases = [
             'ALL', 'Today', 'LAST_7_DAYS', 'This_Month', 'THIS_YEAR',
             'last7days', 'last-7-days', 'this-month', 'this-year',
-            'yesterday', 'last_30_days', 'last_month', 'last_year',
+            'yesterday', 'last_month', 'last_year',
             '', ' ', 'null', '0', '-1', 'true', 'false',
         ];
 
@@ -431,7 +437,7 @@ class SellerDashboardTest extends TestCase
     public static function storesWithRandomDataPresenceProvider(): array
     {
         $faker = Faker::create();
-        $validPeriods = ['all', 'today', 'last_7_days', 'this_month', 'this_year'];
+        $validPeriods = ['all', 'today', 'last_7_days', 'last_30_days', 'this_month', 'this_year'];
         $datasets = [];
 
         for ($i = 0; $i < 25; $i++) {
@@ -529,6 +535,10 @@ class SellerDashboardTest extends TestCase
         $this->assertArrayHasKey('monthly_goal', $data);
         $this->assertArrayHasKey('new_followers', $data);
         $this->assertArrayHasKey('store_visits', $data);
+        $this->assertArrayHasKey('active_offers_count', $data);
+        $this->assertArrayHasKey('used_coupons_count', $data);
+        $this->assertArrayHasKey('shares_count', $data);
+        $this->assertArrayHasKey('coupon_revenue', $data);
         $this->assertArrayHasKey('offer_distribution', $data);
         $this->assertArrayHasKey('peak_redemption_times', $data);
         $this->assertArrayHasKey('top_performing_offers', $data);
@@ -550,6 +560,11 @@ class SellerDashboardTest extends TestCase
         $this->assertArrayHasKey('growth_percent', $data['store_visits']);
         $this->assertIsInt($data['store_visits']['count']);
         $this->assertIsNumeric($data['store_visits']['growth_percent']);
+
+        $this->assertIsInt($data['active_offers_count']);
+        $this->assertIsInt($data['used_coupons_count']);
+        $this->assertIsInt($data['shares_count']);
+        $this->assertIsArray($data['coupon_revenue']);
 
         // Assert offer_distribution is an array
         $this->assertIsArray($data['offer_distribution']);
@@ -598,6 +613,58 @@ class SellerDashboardTest extends TestCase
             ->withHeader('Accept-Language', 'ar')
             ->getJson("/api/v1/stores/{$store->id}/analytics")
             ->assertJsonPath('offer_distribution.0.label', 'خصم ثابت');
+    }
+
+    public function test_dashboard_returns_period_scoped_coupon_share_and_revenue_totals(): void
+    {
+        Cache::flush();
+        Carbon::setTestNow('2026-07-01 12:00:00');
+        $user = User::factory()->create();
+        $store = Store::factory()->create(['owner_user_id' => $user->id]);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+
+        foreach ([
+            ['redeemed_at' => '2026-06-10 10:00:00', 'amount' => '120.50', 'currency' => 'EGP'],
+            ['redeemed_at' => '2026-06-20 10:00:00', 'amount' => '30.00', 'currency' => 'EGP'],
+            ['redeemed_at' => '2026-05-20 10:00:00', 'amount' => '999.00', 'currency' => 'EGP'],
+        ] as $index => $claimData) {
+            OfferClaim::create([
+                'user_id' => $user->id,
+                'store_id' => $store->id,
+                'product_id' => $product->id,
+                'offer_id' => $product->offer->id,
+                'status' => OfferClaimStatus::REDEEMED,
+                'claim_token' => "range-claim-{$index}",
+                'qr_code_token' => "range-qr-{$index}",
+                'offer_snapshot' => [],
+                'redeemed_at' => Carbon::parse($claimData['redeemed_at']),
+                'revenue_amount' => $claimData['amount'],
+                'revenue_currency' => $claimData['currency'],
+            ]);
+        }
+
+        foreach (['2026-06-15 10:00:00', '2026-05-20 10:00:00'] as $index => $sharedAt) {
+            $share = ProductShare::create([
+                'product_id' => $product->id,
+                'user_id' => $user->id,
+                'platform' => 'copy_link',
+            ]);
+            $share->forceFill([
+                'created_at' => Carbon::parse($sharedAt),
+                'updated_at' => Carbon::parse($sharedAt),
+            ])->save();
+        }
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/analytics?start_date=2026-06-01&end_date=2026-06-30&period=all");
+
+        $response->assertOk()
+            ->assertJsonPath('active_offers_count', 1)
+            ->assertJsonPath('used_coupons_count', 2)
+            ->assertJsonPath('shares_count', 1)
+            ->assertJsonPath('coupon_revenue.0.amount', '150.50')
+            ->assertJsonPath('coupon_revenue.0.currency', 'EGP')
+            ->assertJsonPath('coupon_revenue.0.recorded_redemptions', 2);
     }
 
     public function test_top_offer_views_match_period_without_inflating_usage_count(): void

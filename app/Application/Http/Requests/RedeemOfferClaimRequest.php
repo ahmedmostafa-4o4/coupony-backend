@@ -15,6 +15,8 @@ class RedeemOfferClaimRequest extends FormRequest
     {
         return [
             'qr_code_token' => ['required', 'string', 'max:100'],
+            'revenue_amount' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99', 'required_with:currency'],
+            'currency' => ['nullable', 'string', 'regex:/^[A-Z]{3}$/', 'required_with:revenue_amount'],
         ];
     }
 }

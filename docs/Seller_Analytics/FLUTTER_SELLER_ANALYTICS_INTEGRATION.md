@@ -47,15 +47,20 @@ The `{storeId}` is the UUID of the store you want to view analytics for. The aut
 
 ```
 GET /api/v1/stores/{storeId}/analytics?period={period}
+GET /api/v1/stores/{storeId}/analytics?start_date={YYYY-MM-DD}&end_date={YYYY-MM-DD}
 ```
 
-Returns aggregated store-level analytics including monthly goal progress, follower growth, store visits, offer distribution, peak redemption heatmap, and top performing offers.
+Returns aggregated store-level analytics including monthly goal progress, follower growth, store visits, offer distribution, peak redemption heatmap, top performing offers, store-wide coupon/share totals, active offer count, and coupon revenue.
 
 **Query Parameters:**
 
 | Param | Type | Required | Default | Values |
 |-------|------|----------|---------|--------|
-| `period` | string | No | `all` | `all`, `today`, `last_7_days`, `this_month`, `this_year` |
+| `period` | string | No | `all` | `all`, `today`, `last_7_days`, `last_30_days`, `this_month`, `this_year` |
+| `start_date` | string | No | - | `YYYY-MM-DD`; must be sent with `end_date` |
+| `end_date` | string | No | - | `YYYY-MM-DD`; must be sent with `start_date` |
+
+When both `start_date` and `end_date` are provided, the explicit date range takes precedence over `period`.
 
 **Response (200):**
 ```json
@@ -74,6 +79,12 @@ Returns aggregated store-level analytics including monthly goal progress, follow
     "count": 1250,
     "growth_percent": -3.4
   },
+  "active_offers_count": 18,
+  "used_coupons_count": 145,
+  "shares_count": 34,
+  "coupon_revenue": [
+    { "amount": "12500.75", "currency": "EGP", "recorded_redemptions": 120 }
+  ],
   "offer_distribution": [
     { "type": "fixed", "percentage": 50.0, "label": "Fixed Discount" },
     { "type": "percentage", "percentage": 33.3, "label": "Percentage Off" },
@@ -109,6 +120,13 @@ Returns aggregated store-level analytics including monthly goal progress, follow
 | `new_followers.growth_percent` | float | Growth vs previous period (rounded to 1 decimal) |
 | `store_visits.count` | int | Total product views in the period |
 | `store_visits.growth_percent` | float | Growth vs previous period |
+| `active_offers_count` | int | Current count of claimable offers for active, approved products |
+| `used_coupons_count` | int | Redeemed claims in the selected period or explicit date range |
+| `shares_count` | int | Product shares for the store in the selected period or explicit date range |
+| `coupon_revenue` | array | Redeemed-claim revenue grouped by currency for the selected period |
+| `coupon_revenue[].amount` | string | Decimal amount formatted to 2 places |
+| `coupon_revenue[].currency` | string | ISO 4217 currency code captured at redemption |
+| `coupon_revenue[].recorded_redemptions` | int | Number of redeemed claims that had revenue captured for that currency |
 | `offer_distribution` | array | Active offers grouped by type (percentages sum to 100.0) |
 | `offer_distribution[].label` | string | Localized display label selected by `Accept-Language` |
 | `peak_redemption_times` | array | Always exactly 28 buckets (7 days × 4 time windows) |
@@ -151,6 +169,7 @@ Sets or updates the seller's monthly redemption goal. Invalidates the cached das
 
 ```
 GET /api/v1/stores/{storeId}/analytics/products/{productId}?period={period}
+GET /api/v1/stores/{storeId}/analytics/products/{productId}?start_date={YYYY-MM-DD}&end_date={YYYY-MM-DD}
 ```
 
 Returns detailed analytics for a specific product. The product must belong to the seller's store.
@@ -165,7 +184,11 @@ Returns detailed analytics for a specific product. The product must belong to th
 
 | Param | Type | Required | Default | Values |
 |-------|------|----------|---------|--------|
-| `period` | string | No | `all` | `all`, `today`, `last_7_days`, `this_month`, `this_year` |
+| `period` | string | No | `all` | `all`, `today`, `last_7_days`, `last_30_days`, `this_month`, `this_year` |
+| `start_date` | string | No | - | `YYYY-MM-DD`; must be sent with `end_date` |
+| `end_date` | string | No | - | `YYYY-MM-DD`; must be sent with `start_date` |
+
+When both `start_date` and `end_date` are provided, the explicit date range takes precedence over `period`.
 
 **Response (200):**
 ```json
@@ -257,8 +280,10 @@ All analytics endpoints accept an optional `period` query parameter:
 | `all` | Store/product creation → now | No comparison (growth = 0.0) |
 | `today` | Today 00:00 → now | Yesterday |
 | `last_7_days` | Past 7 days | Previous 7 days (days 8-14) |
+| `last_30_days` | Past 30 days | Previous 30 days (days 31-60) |
 | `this_month` | Month start → now | Previous month |
 | `this_year` | Year start → now | Previous year |
+| `start_date` + `end_date` | Explicit inclusive date range | Previous range with the same duration |
 
 When omitted, defaults to `all`.
 
@@ -272,6 +297,10 @@ The API always returns a complete response structure, even for new stores with n
 - `monthly_goal`: `{ goal: null, current: 0, achievement_percent: 0.0, growth_percent: 0.0 }`
 - `new_followers`: `{ count: 0, growth_percent: 0.0 }`
 - `store_visits`: `{ count: 0, growth_percent: 0.0 }`
+- `active_offers_count`: `0`
+- `used_coupons_count`: `0`
+- `shares_count`: `0`
+- `coupon_revenue`: `[]` (empty array)
 - `offer_distribution`: `[]` (empty array)
 - `peak_redemption_times`: 28 buckets all with `count: 0`
 - `top_performing_offers`: `[]` (empty array)

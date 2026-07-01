@@ -2,6 +2,7 @@
 
 namespace App\Domain\Analytics\Actions;
 
+use App\Domain\Analytics\Services\AnalyticsCache;
 use App\Domain\Analytics\Services\PercentageNormalizer;
 use App\Domain\Analytics\Services\PeriodResolver;
 use App\Domain\Product\Models\Product;
@@ -36,21 +37,22 @@ class GetProductAnalyticsAction
     /**
      * Execute the product analytics action.
      */
-    public function execute(Product $product, string $period): array
+    public function execute(Product $product, string $period, ?string $startDate = null, ?string $endDate = null): array
     {
-        $cacheKey = "product_analytics:{$product->id}:{$period}";
+        $rangeKey = PeriodResolver::cacheKey($period, $startDate, $endDate);
+        $cacheKey = AnalyticsCache::productKey($product->id, $rangeKey);
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($product, $period) {
-            return $this->computeAnalytics($product, $period);
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($product, $period, $startDate, $endDate) {
+            return $this->computeAnalytics($product, $period, $startDate, $endDate);
         });
     }
 
     /**
      * Compute all analytics sections for the product.
      */
-    private function computeAnalytics(Product $product, string $period): array
+    private function computeAnalytics(Product $product, string $period, ?string $startDate, ?string $endDate): array
     {
-        [$currentStart, $currentEnd, $previousStart, $previousEnd] = PeriodResolver::resolve($period);
+        [$currentStart, $currentEnd, $previousStart, $previousEnd] = PeriodResolver::resolve($period, $startDate, $endDate);
 
         return [
             'header' => $this->computeHeader($product, $currentStart, $currentEnd),
@@ -230,13 +232,27 @@ class GetProductAnalyticsAction
      */
     private function getAgeBucket(int $age): ?string
     {
-        if ($age >= 13 && $age <= 17) return '13-17';
-        if ($age >= 18 && $age <= 24) return '18-24';
-        if ($age >= 25 && $age <= 34) return '25-34';
-        if ($age >= 35 && $age <= 44) return '35-44';
-        if ($age >= 45 && $age <= 54) return '45-54';
-        if ($age >= 55 && $age <= 64) return '55-64';
-        if ($age >= 65) return '65+';
+        if ($age >= 13 && $age <= 17) {
+            return '13-17';
+        }
+        if ($age >= 18 && $age <= 24) {
+            return '18-24';
+        }
+        if ($age >= 25 && $age <= 34) {
+            return '25-34';
+        }
+        if ($age >= 35 && $age <= 44) {
+            return '35-44';
+        }
+        if ($age >= 45 && $age <= 54) {
+            return '45-54';
+        }
+        if ($age >= 55 && $age <= 64) {
+            return '55-64';
+        }
+        if ($age >= 65) {
+            return '65+';
+        }
 
         return null; // Under 13
     }
@@ -441,10 +457,16 @@ class GetProductAnalyticsAction
             ->selectRaw("{$dateExpression} as date_key, COUNT(*) as cnt")
             ->groupBy('date_key');
 
+        $sharesQuery = ProductShare::where('product_id', $product->id)
+            ->where('created_at', '>=', $effectiveStart)
+            ->where('created_at', '<=', $effectiveEnd)
+            ->selectRaw("{$dateExpression} as date_key, COUNT(*) as cnt")
+            ->groupBy('date_key');
+
         // Merge results
         $interactionsByDate = collect();
 
-        foreach ([$likesQuery, $commentsQuery, $savesQuery] as $query) {
+        foreach ([$likesQuery, $commentsQuery, $savesQuery, $sharesQuery] as $query) {
             $results = $query->get();
             foreach ($results as $row) {
                 $current = $interactionsByDate->get($row->date_key, 0);

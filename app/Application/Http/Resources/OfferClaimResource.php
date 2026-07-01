@@ -27,6 +27,8 @@ class OfferClaimResource extends JsonResource
             'expires_at' => $this->expires_at?->toIso8601String(),
             'redeemed_at' => $this->redeemed_at?->toIso8601String(),
             'redeemed_by' => $this->redeemed_by,
+            'revenue_amount' => $this->revenue_amount,
+            'revenue_currency' => $this->revenue_currency,
             'is_expired' => $this->isExpired(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

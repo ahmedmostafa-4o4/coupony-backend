@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Notification\Models\Notification;
 use App\Domain\Notification\Services\NotificationService;
+use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductOfferTargetRole;
 use App\Domain\Product\Enums\ProductOfferType;
@@ -90,11 +91,15 @@ class OfferClaimTest extends TestCase
         $redeemResponse = $this->actingAs($employee, 'sanctum')
             ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
                 'qr_code_token' => $claim->qr_code_token,
+                'revenue_amount' => 125.75,
+                'currency' => 'EGP',
             ]);
 
         $redeemResponse->assertOk()
             ->assertJsonPath('data.status', 'redeemed')
-            ->assertJsonPath('data.redeemed_by', $employee->id);
+            ->assertJsonPath('data.redeemed_by', $employee->id)
+            ->assertJsonPath('data.revenue_amount', '125.75')
+            ->assertJsonPath('data.revenue_currency', 'EGP');
 
         $this->assertDatabaseHas('product_variants', [
             'id' => $variant->id,
@@ -105,6 +110,128 @@ class OfferClaimTest extends TestCase
             'id' => $product->id,
             'redemption_count' => 1,
         ]);
+        $this->assertDatabaseHas('offer_claims', [
+            'id' => $claim->id,
+            'revenue_amount' => 125.75,
+            'revenue_currency' => 'EGP',
+        ]);
+    }
+
+    public function test_redeem_requires_revenue_amount_and_currency_together(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $employee = $this->employeeFor($store);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'is_active' => true,
+        ]);
+
+        $claimResponse = $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ]);
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claimResponse->json('data.qr_code_token'),
+                'revenue_amount' => 125.75,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['currency']);
+    }
+
+    public function test_redeem_automatically_captures_standard_variant_revenue_when_not_provided(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $employee = $this->employeeFor($store);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'price' => 88.50,
+            'currency' => 'EGP',
+            'is_active' => true,
+        ]);
+
+        $claimResponse = $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'variant_ids' => [$variant->id],
+            ]);
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claimResponse->json('data.qr_code_token'),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.revenue_amount', '88.50')
+            ->assertJsonPath('data.revenue_currency', 'EGP');
+    }
+
+    public function test_buy_x_get_y_revenue_counts_paid_buy_variants_only(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $employee = $this->employeeFor($store);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $product->offer()->update([
+            'type' => ProductOfferType::BUY_X_GET_Y,
+            'buy_qty' => 2,
+            'get_qty' => 1,
+            'allow_mix_buy_variants' => true,
+        ]);
+        $buyVariantA = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'price' => 40,
+            'currency' => 'EGP',
+            'is_active' => true,
+        ]);
+        $buyVariantB = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'price' => 60,
+            'currency' => 'EGP',
+            'is_active' => true,
+        ]);
+        $rewardVariant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'price' => 999,
+            'currency' => 'EGP',
+            'is_active' => true,
+        ]);
+
+        ProductOfferVariantTarget::query()->create([
+            'offer_id' => $product->offer->id,
+            'variant_id' => $buyVariantA->id,
+            'role' => ProductOfferTargetRole::BUY,
+        ]);
+        ProductOfferVariantTarget::query()->create([
+            'offer_id' => $product->offer->id,
+            'variant_id' => $buyVariantB->id,
+            'role' => ProductOfferTargetRole::BUY,
+        ]);
+        ProductOfferVariantTarget::query()->create([
+            'offer_id' => $product->offer->id,
+            'variant_id' => $rewardVariant->id,
+            'role' => ProductOfferTargetRole::REWARD,
+        ]);
+
+        $claimResponse = $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/v1/products/{$product->id}/claims", [
+                'buy_variant_ids' => [$buyVariantA->id, $buyVariantB->id],
+                'reward_variant_ids' => [$rewardVariant->id],
+            ]);
+
+        $this->actingAs($employee, 'sanctum')
+            ->postJson("/api/v1/stores/{$store->id}/offer-claims/redeem", [
+                'qr_code_token' => $claimResponse->json('data.qr_code_token'),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.revenue_amount', '100.00')
+            ->assertJsonPath('data.revenue_currency', 'EGP');
     }
 
     public function test_customer_can_create_percentage_claim_with_immutable_snapshot(): void
@@ -579,6 +706,70 @@ class OfferClaimTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $claimId)
             ->assertJsonPath('data.store_id', $store->id);
+    }
+
+    public function test_store_claims_list_includes_store_wide_summary(): void
+    {
+        $seller = $this->seller();
+        $customer = $this->customer();
+        $store = $this->storeFor($seller);
+        $otherStore = $this->storeFor($this->seller());
+        $employee = $this->employeeFor($store);
+        $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        $offerId = $product->offer()->firstOrFail()->id;
+        $otherProduct = Product::factory()->active()->approved()->create(['store_id' => $otherStore->id]);
+        $otherOfferId = $otherProduct->offer()->firstOrFail()->id;
+
+        OfferClaim::factory()->create([
+            'user_id' => $customer->id,
+            'store_id' => $store->id,
+            'product_id' => $product->id,
+            'offer_id' => $offerId,
+            'status' => OfferClaimStatus::REDEEMED,
+            'redeemed_at' => now(),
+            'revenue_amount' => 125.75,
+            'revenue_currency' => 'EGP',
+        ]);
+
+        OfferClaim::factory()->create([
+            'user_id' => $customer->id,
+            'store_id' => $store->id,
+            'product_id' => $product->id,
+            'offer_id' => $offerId,
+            'status' => OfferClaimStatus::REDEEMED,
+            'redeemed_at' => now()->subMonth(),
+            'revenue_amount' => 10,
+            'revenue_currency' => 'EGP',
+        ]);
+
+        OfferClaim::factory()->create([
+            'user_id' => $customer->id,
+            'store_id' => $store->id,
+            'product_id' => $product->id,
+            'offer_id' => $offerId,
+            'status' => OfferClaimStatus::ACTIVE,
+        ]);
+
+        OfferClaim::factory()->create([
+            'store_id' => $otherStore->id,
+            'product_id' => $otherProduct->id,
+            'offer_id' => $otherOfferId,
+            'status' => OfferClaimStatus::REDEEMED,
+            'redeemed_at' => now(),
+            'revenue_amount' => 999,
+            'revenue_currency' => 'EGP',
+        ]);
+
+        $this->actingAs($employee, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/offer-claims?per_page=1")
+            ->assertOk()
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('summary.all_claims', 3)
+            ->assertJsonPath('summary.total_usage', 2)
+            ->assertJsonPath('summary.this_month_usage', 1)
+            ->assertJsonPath('summary.total_revenue.0.amount', '135.75')
+            ->assertJsonPath('summary.total_revenue.0.currency', 'EGP')
+            ->assertJsonPath('summary.total_revenue.0.recorded_redemptions', 2);
     }
 
     public function test_redemption_fails_for_employee_of_different_store_and_allows_store_owner(): void

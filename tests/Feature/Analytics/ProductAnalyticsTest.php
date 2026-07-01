@@ -4,10 +4,12 @@ namespace Tests\Feature\Analytics;
 
 use App\Domain\Product\Models\Product;
 use App\Domain\Product\Models\ProductLike;
+use App\Domain\Product\Models\ProductShare;
 use App\Domain\Product\Models\ProductView;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreFollowers;
 use App\Domain\User\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -264,5 +266,40 @@ class ProductAnalyticsTest extends TestCase
         // When no one interacted with the product, defaults to 50/50
         $this->assertEquals(50.0, $data['audience']['followers_percent']);
         $this->assertEquals(50.0, $data['audience']['non_followers_percent']);
+    }
+
+    public function test_product_shares_are_included_in_action_breakdown_and_trend(): void
+    {
+        Cache::flush();
+        Carbon::setTestNow('2026-07-01 12:00:00');
+        $user = User::factory()->create();
+        $store = Store::factory()->create(['owner_user_id' => $user->id]);
+        $product = Product::factory()->create([
+            'store_id' => $store->id,
+            'created_at' => now()->subDays(3),
+        ]);
+
+        $share = ProductShare::create([
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'platform' => 'copy_link',
+        ]);
+        $share->forceFill([
+            'created_at' => Carbon::parse('2026-06-30 10:00:00'),
+            'updated_at' => Carbon::parse('2026-06-30 10:00:00'),
+        ])->save();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/v1/stores/{$store->id}/analytics/products/{$product->id}?period=last_7_days");
+
+        $response->assertOk()
+            ->assertJsonPath('engagement.total_interactions', 1)
+            ->assertJsonPath('engagement.action_breakdown.shares', 1);
+
+        $trendPoint = collect($response->json('engagement.trend'))
+            ->firstWhere('date', '2026-06-30');
+
+        $this->assertNotNull($trendPoint);
+        $this->assertSame(1, $trendPoint['count']);
     }
 }

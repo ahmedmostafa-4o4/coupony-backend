@@ -3,6 +3,7 @@
 namespace Tests\Feature\Analytics;
 
 use App\Domain\Analytics\Actions\UpdateMonthlyGoalAction;
+use App\Domain\Analytics\Services\AnalyticsCache;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
 use Faker\Factory as Faker;
@@ -33,7 +34,7 @@ class UpdateMonthlyGoalTest extends TestCase
     {
         $store = Store::factory()->active()->create();
 
-        $action = new UpdateMonthlyGoalAction();
+        $action = new UpdateMonthlyGoalAction;
         $returnValue = $action->execute($store, $goal);
 
         // Property: return value equals the submitted goal
@@ -188,26 +189,26 @@ class UpdateMonthlyGoalTest extends TestCase
         $user = User::factory()->create();
         $store = Store::factory()->active()->create(['owner_user_id' => $user->id]);
 
-        // Pre-populate cache for all period variants
-        $periods = ['all', 'today', 'last_7_days', 'this_month', 'this_year'];
+        // Pre-populate cache entries for normal and custom-date ranges.
+        $periods = ['all', 'today', 'last_7_days', 'last_30_days', 'this_month', 'this_year', 'custom:2026-06-01:2026-06-30'];
         foreach ($periods as $period) {
-            Cache::put("seller_analytics:{$store->id}:{$period}", ['cached' => true], 900);
+            Cache::put(AnalyticsCache::sellerKey($store->id, $period), ['cached' => true], 900);
         }
 
         // Verify cache is set
         foreach ($periods as $period) {
-            $this->assertTrue(Cache::has("seller_analytics:{$store->id}:{$period}"));
+            $this->assertTrue(Cache::has(AnalyticsCache::sellerKey($store->id, $period)));
         }
 
         // Update the goal
         $this->actingAs($user, 'sanctum')
             ->patchJson("/api/v1/stores/{$store->id}/analytics/monthly-goal", ['goal' => 200]);
 
-        // Verify cache is invalidated for all periods
+        // Verify future reads move to a fresh versioned cache key.
         foreach ($periods as $period) {
             $this->assertFalse(
-                Cache::has("seller_analytics:{$store->id}:{$period}"),
-                "Cache for period '{$period}' should be invalidated after goal update"
+                Cache::has(AnalyticsCache::sellerKey($store->id, $period)),
+                "Versioned cache for period '{$period}' should miss after goal update"
             );
         }
     }

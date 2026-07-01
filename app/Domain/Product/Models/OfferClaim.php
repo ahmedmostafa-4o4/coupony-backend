@@ -32,6 +32,8 @@ class OfferClaim extends Model
         'expires_at',
         'redeemed_at',
         'redeemed_by',
+        'revenue_amount',
+        'revenue_currency',
     ];
 
     protected function casts(): array
@@ -41,6 +43,7 @@ class OfferClaim extends Model
             'offer_snapshot' => 'array',
             'expires_at' => 'datetime',
             'redeemed_at' => 'datetime',
+            'revenue_amount' => 'decimal:2',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

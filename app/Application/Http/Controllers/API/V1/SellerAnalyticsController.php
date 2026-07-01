@@ -33,7 +33,9 @@ class SellerAnalyticsController extends Controller
 
         $data = $this->getSellerDashboardAction->execute(
             $store,
-            $request->validated('period')
+            $request->validated('period'),
+            $request->validated('start_date'),
+            $request->validated('end_date'),
         );
 
         return response()->json($data);
@@ -77,7 +79,9 @@ class SellerAnalyticsController extends Controller
 
         $data = $this->getProductAnalyticsAction->execute(
             $product,
-            $request->validated('period')
+            $request->validated('period'),
+            $request->validated('start_date'),
+            $request->validated('end_date'),
         );
 
         return response()->json($data);
