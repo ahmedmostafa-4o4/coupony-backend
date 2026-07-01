@@ -35,8 +35,9 @@ class MyOfferClaimController extends Controller
         ]);
 
         $query = OfferClaim::query()
+            ->withRedeemedUsageCount()
             ->where('user_id', $request->user()->id)
-            ->with(['store', 'product', 'offer'])
+            ->with(['user.profile', 'store', 'product.images', 'offer'])
             ->when(
                 filled($validated['status'] ?? null),
                 fn (Builder $q) => $q->where('status', $validated['status'])

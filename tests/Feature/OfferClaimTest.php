@@ -10,6 +10,7 @@ use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductImage;
 use App\Domain\Product\Models\ProductOfferVariantTarget;
 use App\Domain\Product\Models\ProductVariant;
 use App\Domain\Store\Enums\StorePermission;
@@ -154,6 +155,11 @@ class OfferClaimTest extends TestCase
         $store = $this->storeFor($seller);
         $store->update(['logo_url' => 'stores/logo.png']);
         $product = Product::factory()->active()->approved()->create(['store_id' => $store->id]);
+        ProductImage::query()->create([
+            'product_id' => $product->id,
+            'image_url' => 'products/perfume.jpg',
+            'is_primary' => true,
+        ]);
         $product->offer()->update([
             'type' => ProductOfferType::FIXED,
             'fixed_amount' => 25,
@@ -180,10 +186,15 @@ class OfferClaimTest extends TestCase
             ->assertJsonPath('data.offer_snapshot.offer.branch_only', true)
             ->assertJsonPath('data.offer_snapshot.offer.max_claims_per_user', 2)
             ->assertJsonPath('data.offer_snapshot.offer.max_total_claims', 10)
+            ->assertJsonPath('data.offer_snapshot.customer.id', $customer->id)
+            ->assertJsonPath('data.offer_snapshot.customer.name', $customer->full_name)
+            ->assertJsonPath('data.customer.name', $customer->full_name)
+            ->assertJsonPath('data.product.id', $product->id)
             ->assertJsonPath('data.offer_snapshot.store.id', $store->id)
             ->assertJsonPath('data.store.id', $store->id);
 
         $this->assertStringContainsString('/storage/stores/logo.png', $response->json('data.offer_snapshot.store.logo_url'));
+        $this->assertStringContainsString('/storage/products/perfume.jpg', $response->json('data.product.image_url'));
     }
 
     public function test_claim_creation_rejects_per_user_claim_limit(): void

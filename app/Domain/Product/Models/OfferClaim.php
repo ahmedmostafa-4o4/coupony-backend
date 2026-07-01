@@ -5,6 +5,7 @@ namespace App\Domain\Product\Models;
 use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -84,5 +85,16 @@ class OfferClaim extends Model
     public function isExpired(): bool
     {
         return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    public function scopeWithRedeemedUsageCount(Builder $query): Builder
+    {
+        return $query->addSelect([
+            'usage_count' => self::query()
+                ->from('offer_claims as redeemed_claims')
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('redeemed_claims.offer_id', 'offer_claims.offer_id')
+                ->where('redeemed_claims.status', OfferClaimStatus::REDEEMED->value),
+        ]);
     }
 }

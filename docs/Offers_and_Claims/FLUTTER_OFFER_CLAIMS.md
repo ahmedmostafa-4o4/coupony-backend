@@ -128,9 +128,10 @@ class OfferClaimModel {
   final DateTime? redeemedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final ProductModel? product;
+  final ClaimCustomerModel? customer;
+  final ClaimProductModel? product;
   final StoreModel? store;
-  // ... any nested representations
+  final int usageCount;
   
   // Example factory parsing
   factory OfferClaimModel.fromJson(Map<String, dynamic> json) {
@@ -139,8 +140,36 @@ class OfferClaimModel {
       status: json['status'],
       claimToken: json['claim_token'],
       qrCodeToken: json['qr_code_token'],
-      // ... parse dates and nested relationships
+      customer: json['customer'] == null
+          ? null
+          : ClaimCustomerModel.fromJson(json['customer']),
+      product: json['product'] == null
+          ? null
+          : ClaimProductModel.fromJson(json['product']),
+      usageCount: json['usage_count'],
     );
   }
 }
+
+class ClaimCustomerModel {
+  final String id;
+  final String? name;
+
+  ClaimCustomerModel.fromJson(Map<String, dynamic> json)
+      : id = json['id'],
+        name = json['name'];
+}
+
+class ClaimProductModel {
+  final String id;
+  final String title;
+  final String? imageUrl;
+
+  ClaimProductModel.fromJson(Map<String, dynamic> json)
+      : id = json['id'],
+        title = json['title'],
+        imageUrl = json['image_url'];
+}
 ```
+
+`customer` and `product` may be `null` only for older claims whose related records were deleted. `usage_count` is the current total of redeemed claims for the offer, not a claim-time snapshot.

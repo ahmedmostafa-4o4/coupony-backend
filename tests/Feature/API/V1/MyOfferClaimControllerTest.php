@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\API\V1;
 
+use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
+use App\Domain\Product\Models\ProductImage;
 use App\Domain\Product\Models\ProductOffer;
 use App\Domain\Store\Models\Store;
 use App\Domain\User\Models\User;
@@ -67,6 +69,37 @@ class MyOfferClaimControllerTest extends TestCase
             ])
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $claim1->id);
+    }
+
+    #[Test]
+    public function it_returns_legacy_display_fallbacks_and_redeemed_offer_usage(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $store = Store::factory()->create();
+        $product = clone Product::factory()->create(['store_id' => $store->id, 'title' => 'Legacy Product']);
+        ProductImage::query()->create([
+            'product_id' => $product->id,
+            'image_url' => 'products/legacy.jpg',
+            'is_primary' => true,
+        ]);
+
+        $claim = $this->createClaim($user, $store, $product);
+        $redeemedClaim = $this->createClaim($otherUser, $store, $product, OfferClaimStatus::REDEEMED->value);
+        $redeemedClaim->update(['offer_id' => $claim->offer_id]);
+        $this->createClaim($otherUser, $store, $product, OfferClaimStatus::CANCELLED->value)
+            ->update(['offer_id' => $claim->offer_id]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/me/offer-claims');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.customer.id', $user->id)
+            ->assertJsonPath('data.0.customer.name', $user->full_name)
+            ->assertJsonPath('data.0.product.id', $product->id)
+            ->assertJsonPath('data.0.product.title', 'Legacy Product')
+            ->assertJsonPath('data.0.usage_count', 1);
+
+        $this->assertStringContainsString('/storage/products/legacy.jpg', $response->json('data.0.product.image_url'));
     }
 
     #[Test]

@@ -25,9 +25,11 @@ class CreateOfferClaim
     {
         $product = $product->load([
             'store',
+            'images',
             'offer.targets.variant',
             'variants.attributes',
         ]);
+        $user->loadMissing('profile');
 
         if (
             $product->status !== ProductStatus::ACTIVE
@@ -67,6 +69,13 @@ class CreateOfferClaim
                 'title' => $product->title,
                 'slug' => $product->slug,
                 'currency' => $product->currency,
+                'image_url' => $this->publicStorageUrl(
+                    $product->images->firstWhere('is_primary', true)?->image_url
+                ),
+            ],
+            'customer' => [
+                'id' => $user->id,
+                'name' => $user->full_name,
             ],
             'store' => [
                 'id' => $product->store?->id,
@@ -132,7 +141,9 @@ class CreateOfferClaim
 
         OfferClaimCreated::dispatch($claim, $product, $user);
 
-        return $claim;
+        return OfferClaim::query()
+            ->withRedeemedUsageCount()
+            ->findOrFail($claim->id);
     }
 
     private function ensureClaimLimitsAreAvailable(ProductOffer $offer, User $user): void

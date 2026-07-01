@@ -32,7 +32,9 @@ class StoreOfferClaimController extends Controller
         ]);
 
         $claims = OfferClaim::query()
+            ->withRedeemedUsageCount()
             ->where('store_id', $store->id)
+            ->with(['user.profile', 'store', 'product.images', 'offer'])
             ->when(
                 filled($validated['status'] ?? null),
                 fn ($query) => $query->where('status', $validated['status'])
@@ -83,7 +85,7 @@ class StoreOfferClaimController extends Controller
             return $this->localizedJson([
                 'success' => true,
                 'message' => 'Offer claim redeemed successfully.',
-                'data' => new OfferClaimResource($claim),
+                'data' => new OfferClaimResource($this->products->loadOfferClaim($claim)),
             ]);
         } catch (\DomainException $exception) {
             return $this->localizedJson([

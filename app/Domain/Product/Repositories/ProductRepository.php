@@ -269,7 +269,10 @@ class ProductRepository
 
     public function loadOfferClaim(OfferClaim $claim): OfferClaim
     {
-        return $claim->load(['user', 'store', 'product', 'offer', 'redeemedBy']);
+        return OfferClaim::query()
+            ->withRedeemedUsageCount()
+            ->with(['user.profile', 'store', 'product.images', 'offer', 'redeemedBy'])
+            ->findOrFail($claim->id);
     }
 
     public function nextRevisionNumber(Product $product): int

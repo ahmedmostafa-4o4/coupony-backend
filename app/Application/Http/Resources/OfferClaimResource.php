@@ -20,7 +20,10 @@ class OfferClaimResource extends JsonResource
             'claim_token' => $this->claim_token,
             'qr_code_token' => $this->qr_code_token,
             'offer_snapshot' => $this->offer_snapshot,
+            'customer' => $this->customerData(),
+            'product' => $this->productData(),
             'store' => $this->storeData(),
+            'usage_count' => (int) ($this->usage_count ?? 0),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'redeemed_at' => $this->redeemed_at?->toIso8601String(),
             'redeemed_by' => $this->redeemed_by,
@@ -46,6 +49,47 @@ class OfferClaimResource extends JsonResource
             'id' => $this->store->id,
             'name' => $this->store->name,
             'logo_url' => $this->publicStorageUrl($this->store->logo_url),
+        ];
+    }
+
+    private function customerData(): ?array
+    {
+        $snapshotCustomer = data_get($this->offer_snapshot, 'customer');
+
+        if (is_array($snapshotCustomer)) {
+            return $snapshotCustomer;
+        }
+
+        if (! $this->relationLoaded('user') || ! $this->user) {
+            return null;
+        }
+
+        return [
+            'id' => $this->user->id,
+            'name' => $this->user->full_name,
+        ];
+    }
+
+    private function productData(): ?array
+    {
+        $snapshotProduct = data_get($this->offer_snapshot, 'product');
+
+        if (is_array($snapshotProduct)) {
+            return $snapshotProduct;
+        }
+
+        if (! $this->relationLoaded('product') || ! $this->product) {
+            return null;
+        }
+
+        $primaryImage = $this->product->relationLoaded('images')
+            ? $this->product->images->firstWhere('is_primary', true)
+            : null;
+
+        return [
+            'id' => $this->product->id,
+            'title' => $this->product->title,
+            'image_url' => $this->publicStorageUrl($primaryImage?->image_url),
         ];
     }
 

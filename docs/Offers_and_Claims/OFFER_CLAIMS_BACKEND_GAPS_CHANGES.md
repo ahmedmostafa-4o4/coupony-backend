@@ -96,6 +96,25 @@ New claims also snapshot store display data:
 
 `OfferClaimResource` now returns `store` data directly. It prefers `offer_snapshot.store` and falls back to the loaded `store` relationship for older claims.
 
+Claims also expose the remaining coupon-card display data:
+
+```json
+{
+  "customer": {
+    "id": "user-id",
+    "name": "Ahmed Mohamed"
+  },
+  "product": {
+    "id": "product-id",
+    "title": "Luxury Men's Perfume",
+    "image_url": "https://example.test/storage/products/perfume.jpg"
+  },
+  "usage_count": 47
+}
+```
+
+New claims snapshot `customer` and `product.image_url`. Older claims fall back to the current user profile and primary product image. `usage_count` is live and counts only redeemed claims with the same `offer_id`.
+
 ## My Coupons Query Parameters
 
 `GET /api/v1/me/offer-claims` now supports:
@@ -116,6 +135,7 @@ Focused tests were added or updated for:
 
 - Localized offer terms and remaining claim state on product detail.
 - Claim snapshots for terms, limits, branch-only flag, and store logo.
+- Customer name, primary product image, and redeemed offer usage on claim responses.
 - Per-user and global claim limit failures.
 - `/me/offer-claims` subcategory filtering.
 - `/me/offer-claims` category slug filtering.
