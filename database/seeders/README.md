@@ -1,210 +1,59 @@
 # Database Seeders
 
-This directory contains all database seeders for the Coupony application.
+The default `php artisan db:seed` path is production-safe reference seeding. It does not delete application data and does not create demo sellers, customers, stores, products, claims, or notifications.
 
-## Available Seeders
+## Default Production Seeders
 
-### 1. RoleAndPermissionSeeder
-Creates all roles and permissions for the application using Spatie Permission package.
+`DatabaseSeeder` runs these seeders:
 
-**Roles Created:**
-- `admin` - Full system access
-- `seller` - Approved store owners
-- `seller_pending` - Pending store owners
-- `customer` - Regular customers
-- `store_manager` - Store managers
-- `store_employee` - In-store scanning and redemption employees
+- `RoleAndPermissionSeeder` - syncs canonical roles and store permissions.
+- `AdminUserSeeder` - creates or updates one admin account from environment values.
+- `StoreCategorySeeder` - creates the predefined store categories.
+- `ProductCategorySeeder` - creates the product category tree.
+- `SocialSeeder` - creates supported social platforms.
+- `SubscriptionPlanSeeder` - creates the active subscription plans.
 
-**Permissions Created:**
-- User management (view, create, edit, delete)
-- Store management (view, create, edit, delete, approve, reject)
-- Category management (view, create, edit, delete)
-- Order management (view, create, edit, delete)
-- Report management (view, generate)
+Set `ADMIN_PASSWORD` in the environment before running the default seeder when the admin account does not already exist:
 
-### 2. UserSeeder
-Creates test users with different roles.
+```dotenv
+ADMIN_EMAIL=admin@coupony.com
+ADMIN_PASSWORD=change-me
+```
 
-**Users Created:**
-- 1 Admin user: `admin@coupony.com` / `password`
-- 5 Seller users: `seller1-5@example.com` / `password`
-  - 3 approved sellers (role: seller)
-  - 2 pending sellers (role: seller_pending)
-- 20 Customer users (randomly generated)
+Optional admin environment values:
 
-Each user includes:
-- Profile (first name, last name, date of birth, gender)
-- User preferences (language, currency, notifications)
+- `ADMIN_EMAIL`, default `admin@coupony.com`
+- `ADMIN_PHONE`
+- `ADMIN_FIRST_NAME`, default `Admin`
+- `ADMIN_LAST_NAME`, default `User`
 
-### 3. StoreCategorySeeder
-Creates 15 predefined store categories.
+Run the production reference seed set:
 
-**Categories:**
-- Electronics
-- Fashion & Clothing
-- Food & Beverages
-- Home & Garden
-- Beauty & Health
-- Sports & Outdoors
-- Books & Media
-- Toys & Games
-- Automotive
-- Jewelry & Accessories
-- Pet Supplies
-- Office Supplies
-- Baby & Kids
-- Furniture
-- Grocery
-
-### 4. StoreSeeder
-Creates stores for sellers with different statuses.
-
-**Stores Created:**
-- Active stores for approved sellers (3 stores)
-- Pending stores for pending sellers (2 stores)
-- Rejected stores (2 stores)
-
-Each store includes:
-- Store information (name, description, contact)
-- Random categories (1-3 categories)
-- Address with coordinates
-- Store hours (7 days)
-- Verification documents (4 documents)
-
-### 5. NotificationSeeder
-Creates sample notifications for users.
-
-**Notifications Created:**
-- Welcome notification for each user
-- 2-5 random notifications per user (first 10 users)
-
-Notification types:
-- Welcome
-- Info
-- Success
-- Promotion
-- Reminder
-
-### 6. ProductCategorySeeder
-Creates a reusable product catalog tree for the Product module.
-
-**Categories Created:**
-- Electronics
-- Fashion
-- Food & Beverages
-- Home & Garden
-- Beauty & Health
-- Sports & Outdoors
-
-Each top-level category also includes child categories such as `Smartphones`, `Audio`, `Footwear`, `Restaurant Deals`, and `Skincare`.
-
-### 7. ProductSeeder
-Creates sample products for active stores using the Product module tables.
-
-**Products Created Per Active Store:**
-- 5 products per active store
-- Mix of `active`, `draft`, and `inactive` product statuses
-- Linked product categories
-- Product images
-- Product variants
-- Variant attributes
-
-## Running Seeders
-
-### Run All Seeders
 ```bash
 php artisan db:seed
 ```
 
-### Run Specific Seeder
+## Specific Seeders
+
+Run one reference seeder when you only need to refresh a single lookup set:
+
 ```bash
 php artisan db:seed --class=RoleAndPermissionSeeder
-php artisan db:seed --class=UserSeeder
+php artisan db:seed --class=AdminUserSeeder
 php artisan db:seed --class=StoreCategorySeeder
 php artisan db:seed --class=ProductCategorySeeder
-php artisan db:seed --class=StoreSeeder
-php artisan db:seed --class=ProductSeeder
-php artisan db:seed --class=NotificationSeeder
+php artisan db:seed --class=SocialSeeder
+php artisan db:seed --class=SubscriptionPlanSeeder
 ```
 
-### Fresh Migration with Seeding
-```bash
-php artisan migrate:fresh --seed
-```
+## Demo Seeders
 
-## Seeding Order
+Demo seeders are still available for local development, but they are not part of `DatabaseSeeder`.
 
-The seeders must be run in the following order due to dependencies:
+- `UserSeeder`
+- `StoreSeeder`
+- `ProductSeeder`
+- `NotificationSeeder`
+- `LargeDemoSeeder`
 
-1. **RoleAndPermissionSeeder** - Creates roles first
-2. **UserSeeder** - Creates users and assigns roles
-3. **StoreCategorySeeder** - Creates categories
-4. **ProductCategorySeeder** - Creates product categories
-5. **StoreSeeder** - Creates stores (requires users and categories)
-6. **ProductSeeder** - Creates products (requires stores and product categories)
-7. **NotificationSeeder** - Creates notifications (requires users)
-
-This order is automatically handled by `DatabaseSeeder.php`.
-
-## Test Credentials
-
-After seeding, you can use these credentials for testing:
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@coupony.com | password |
-| Seller (Approved) | seller1@example.com | password |
-| Seller (Approved) | seller2@example.com | password |
-| Seller (Approved) | seller3@example.com | password |
-| Seller (Pending) | seller4@example.com | password |
-| Seller (Pending) | seller5@example.com | password |
-
-## Database Statistics After Seeding
-
-- **Users:** 26 (1 admin + 5 sellers + 20 customers)
-- **Roles:** 6
-- **Permissions:** ~20
-- **Store Categories:** 15
-- **Product Categories:** 16
-- **Stores:** 7 (3 active + 2 pending + 2 rejected)
-- **Products:** 15 sample products across active stores
-- **Store Hours:** 49 (7 per store)
-- **Store Verifications:** 28 (4 per store)
-- **Notifications:** ~40-50 (varies)
-
-## Notes
-
-- All passwords are hashed using bcrypt
-- Faker is used to generate realistic test data
-- UUIDs are automatically generated for applicable models
-- Timestamps are set to realistic values
-- All seeders include progress messages for better visibility
-
-## Customization
-
-You can customize the number of records created by modifying the seeder files:
-
-```php
-// In UserSeeder.php
-User::factory()->count(20)->create() // Change 20 to desired number
-
-// In StoreSeeder.php
-foreach ($sellers as $seller) // Modify loop logic
-```
-
-## Troubleshooting
-
-### "Please run UserSeeder first!"
-This means you're trying to run a seeder that depends on users. Run seeders in order or use `php artisan db:seed` to run all.
-
-### Foreign Key Constraint Errors
-Make sure migrations are run before seeding:
-```bash
-php artisan migrate:fresh --seed
-```
-
-### Duplicate Entry Errors
-If you see duplicate entry errors, the database might already have data. Use:
-```bash
-php artisan migrate:fresh --seed
-```
+Do not run demo seeders against production data.
