@@ -22,11 +22,11 @@ class ImportProductsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.required' => 'Please upload a ZIP file.',
-            'file.mimes' => 'The file must be a ZIP archive.',
-            'file.max' => 'The file must not exceed 50MB.',
-            'store_id.required' => 'A store ID is required to link the imported products.',
-            'store_id.exists' => 'The specified store does not exist.',
+            'file.required' => __('validation.custom.import_products.file_required'),
+            'file.mimes' => __('validation.custom.import_products.file_mimes'),
+            'file.max' => __('validation.custom.import_products.file_max'),
+            'store_id.required' => __('validation.custom.import_products.store_required'),
+            'store_id.exists' => __('validation.custom.import_products.store_exists'),
         ];
     }
 }

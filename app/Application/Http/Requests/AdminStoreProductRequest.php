@@ -119,15 +119,15 @@ class AdminStoreProductRequest extends FormRequest
                 $stockQty = $variant['stock_qty'] ?? null;
 
                 if ($inventoryMode === InventoryMode::TRACKED->value && $stockQty === null) {
-                    $validator->errors()->add("variants.{$index}.stock_qty", 'The stock qty field is required when inventory mode is tracked.');
+                    $validator->errors()->add("variants.{$index}.stock_qty", __('validation.custom.product.variant_stock_required_when_tracked'));
                 }
 
                 if ($inventoryMode === InventoryMode::UNLIMITED->value && array_key_exists('stock_qty', $variant) && $stockQty !== null) {
-                    $validator->errors()->add("variants.{$index}.stock_qty", 'The stock qty field must be empty when inventory mode is unlimited.');
+                    $validator->errors()->add("variants.{$index}.stock_qty", __('validation.custom.product.variant_stock_empty_when_unlimited'));
                 }
 
                 if ($inventoryMode === InventoryMode::UNLIMITED->value && array_key_exists('low_stock_threshold', $variant) && $variant['low_stock_threshold'] !== null) {
-                    $validator->errors()->add("variants.{$index}.low_stock_threshold", 'The low stock threshold field must be empty when inventory mode is unlimited.');
+                    $validator->errors()->add("variants.{$index}.low_stock_threshold", __('validation.custom.product.variant_low_stock_threshold_empty_when_unlimited'));
                 }
             }
 
@@ -136,20 +136,20 @@ class AdminStoreProductRequest extends FormRequest
             $variantSkus = $preparedVariantSkus;
 
             if ($offerType === ProductOfferType::FIXED->value && empty($offer['fixed_amount'])) {
-                $validator->errors()->add('offer.fixed_amount', 'The fixed amount field is required when offer type is fixed.');
+                $validator->errors()->add('offer.fixed_amount', __('validation.custom.product.offer_fixed_amount_required'));
             }
 
             if ($offerType === ProductOfferType::PERCENTAGE->value && empty($offer['percentage_value'])) {
-                $validator->errors()->add('offer.percentage_value', 'The percentage value field is required when offer type is percentage.');
+                $validator->errors()->add('offer.percentage_value', __('validation.custom.product.offer_percentage_value_required'));
             }
 
             if ($offerType === ProductOfferType::BUY_X_GET_Y->value) {
                 if (empty($offer['buy_qty'])) {
-                    $validator->errors()->add('offer.buy_qty', 'The buy qty field is required when offer type is buy_x_get_y.');
+                    $validator->errors()->add('offer.buy_qty', __('validation.custom.product.offer_buy_qty_required'));
                 }
 
                 if (empty($offer['get_qty'])) {
-                    $validator->errors()->add('offer.get_qty', 'The get qty field is required when offer type is buy_x_get_y.');
+                    $validator->errors()->add('offer.get_qty', __('validation.custom.product.offer_get_qty_required'));
                 }
 
                 $buySkus = collect($offer['buy_variant_skus'] ?? [])
@@ -160,19 +160,19 @@ class AdminStoreProductRequest extends FormRequest
                     ->filter();
 
                 if ($buySkus->isEmpty()) {
-                    $validator->errors()->add('offer.buy_variant_skus', 'The buy variant skus field is required when offer type is buy_x_get_y.');
+                    $validator->errors()->add('offer.buy_variant_skus', __('validation.custom.product.offer_buy_variant_skus_required'));
                 }
 
                 if ($rewardSkus->isEmpty()) {
-                    $validator->errors()->add('offer.reward_variant_skus', 'The reward variant skus field is required when offer type is buy_x_get_y.');
+                    $validator->errors()->add('offer.reward_variant_skus', __('validation.custom.product.offer_reward_variant_skus_required'));
                 }
 
                 if ($buySkus->diff($variantSkus)->isNotEmpty()) {
-                    $validator->errors()->add('offer.buy_variant_skus', 'The selected buy variant skus must exist in the product variants.');
+                    $validator->errors()->add('offer.buy_variant_skus', __('validation.custom.product.offer_buy_variant_skus_exist'));
                 }
 
                 if ($rewardSkus->diff($variantSkus)->isNotEmpty()) {
-                    $validator->errors()->add('offer.reward_variant_skus', 'The selected reward variant skus must exist in the product variants.');
+                    $validator->errors()->add('offer.reward_variant_skus', __('validation.custom.product.offer_reward_variant_skus_exist'));
                 }
             }
         });

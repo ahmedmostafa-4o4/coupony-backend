@@ -109,11 +109,13 @@ class ProcessWebhookAction
             }
 
             // Transition subscription to active via StateMachine
-            $subscription = $this->stateMachine->transition(
-                $subscription,
-                SubscriptionStatus::ACTIVE,
-                'Payment confirmed via webhook'
-            );
+            if ($subscription->status !== SubscriptionStatus::ACTIVE) {
+                $subscription = $this->stateMachine->transition(
+                    $subscription,
+                    SubscriptionStatus::ACTIVE,
+                    'Payment confirmed via webhook'
+                );
+            }
 
             // Update plan and billing cycle if changed
             $subscription->update([
@@ -121,6 +123,7 @@ class ProcessWebhookAction
                 'billing_cycle' => $session->billing_cycle,
                 'current_period_start' => now(),
                 'current_period_end' => $this->calculatePeriodEnd($session->billing_cycle->value),
+                'cancelled_at' => null,
             ]);
 
             // Create subscription history entry with active status

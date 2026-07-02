@@ -243,4 +243,43 @@ class ConfirmPaymentActionTest extends TestCase
             $this->assertLessThanOrEqual(366, $diffInDays);
         });
     }
+
+    public function test_paid_session_updates_already_active_subscription_plan_and_clears_cancellation(): void
+    {
+        Event::fake([SubscriptionPaymentApproved::class]);
+
+        $store = Store::factory()->create();
+        $oldPlan = SubscriptionPlan::factory()->create();
+        $newPlan = SubscriptionPlan::factory()->create([
+            'price_yearly' => 999.99,
+        ]);
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $oldPlan->id,
+            'status' => SubscriptionStatus::ACTIVE,
+            'billing_cycle' => 'monthly',
+            'current_period_start' => now()->subMonth(),
+            'current_period_end' => now()->addDay(),
+            'cancelled_at' => now()->subDay(),
+        ]);
+
+        $session = PaymentSession::create([
+            'store_id' => $store->id,
+            'plan_id' => $newPlan->id,
+            'billing_cycle' => 'yearly',
+            'amount' => 999.99,
+            'currency' => 'EGP',
+            'status' => PaymentSessionStatus::PAID,
+            'expires_at' => now()->addMinutes(30),
+            'paid_at' => now(),
+        ]);
+
+        $subscription = $this->action->execute($store, $session->id);
+
+        $this->assertEquals(SubscriptionStatus::ACTIVE, $subscription->status);
+        $this->assertEquals($newPlan->id, $subscription->plan_id);
+        $this->assertEquals('yearly', $subscription->billing_cycle->value);
+        $this->assertNull($subscription->cancelled_at);
+    }
 }

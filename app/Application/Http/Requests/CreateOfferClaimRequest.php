@@ -44,18 +44,18 @@ class CreateOfferClaimRequest extends FormRequest
                 $rewardVariantIds = $this->input('reward_variant_ids', []);
 
                 if (count($buyVariantIds) !== (int) $offer->buy_qty) {
-                    $validator->errors()->add('buy_variant_ids', 'The buy variant ids field must contain exactly the configured buy quantity.');
+                    $validator->errors()->add('buy_variant_ids', __('validation.custom.product.claim_buy_variant_ids_quantity'));
                 }
 
                 if (count($rewardVariantIds) !== (int) $offer->get_qty) {
-                    $validator->errors()->add('reward_variant_ids', 'The reward variant ids field must contain exactly the configured reward quantity.');
+                    $validator->errors()->add('reward_variant_ids', __('validation.custom.product.claim_reward_variant_ids_quantity'));
                 }
 
                 return;
             }
 
             if ($product->variants->isNotEmpty() && count($this->input('variant_ids', [])) === 0) {
-                $validator->errors()->add('variant_ids', 'The variant ids field is required when the product has variants.');
+                $validator->errors()->add('variant_ids', __('validation.custom.product.claim_variant_ids_required'));
             }
         });
     }

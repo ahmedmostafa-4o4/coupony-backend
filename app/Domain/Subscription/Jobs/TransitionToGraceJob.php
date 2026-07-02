@@ -12,12 +12,27 @@ class TransitionToGraceJob extends Command
 {
     protected $signature = 'subscription:transition-to-grace';
 
-    protected $description = 'Transition active subscriptions past their renewal date to grace status';
+    protected $description = 'Transition expired subscriptions through grace or cancellation';
 
     public function handle(TransitionSubscriptionAction $transitionAction): int
     {
-        $subscriptions = Subscription::where('status', SubscriptionStatus::ACTIVE)
-            ->where('current_period_end', '<', now())
+        $subscriptions = Subscription::where(function ($query) {
+            $query->where(function ($activeQuery) {
+                $activeQuery->where('status', SubscriptionStatus::ACTIVE)
+                    ->where('current_period_end', '<', now());
+            })->orWhere(function ($cancelledQuery) {
+                $cancelledQuery->whereNotNull('cancelled_at')
+                    ->whereIn('status', [
+                        SubscriptionStatus::GRACE,
+                        SubscriptionStatus::DEGRADED,
+                    ])
+                    ->where('current_period_end', '<', now());
+            })->orWhere(function ($cancelledTrialQuery) {
+                $cancelledTrialQuery->whereNotNull('cancelled_at')
+                    ->where('status', SubscriptionStatus::TRIAL)
+                    ->where('trial_ends_at', '<', now());
+            });
+        })
             ->with('plan')
             ->get();
 
@@ -27,12 +42,26 @@ class TransitionToGraceJob extends Command
         foreach ($subscriptions as $subscription) {
             // Idempotency: skip if already transitioned (re-check fresh status)
             $fresh = $subscription->fresh();
-            if ($fresh->status !== SubscriptionStatus::ACTIVE) {
+            if ($fresh->status !== SubscriptionStatus::ACTIVE
+                && ! ($fresh->cancelled_at !== null && $fresh->status->canCancelAtPeriodEnd())) {
                 $skipped++;
+
                 continue;
             }
 
             try {
+                if ($fresh->cancelled_at !== null) {
+                    $transitionAction->execute(
+                        $fresh,
+                        SubscriptionStatus::ARCHIVED,
+                        'Subscription cancelled at period end'
+                    );
+
+                    $transitioned++;
+
+                    continue;
+                }
+
                 // Set grace_period_end based on plan's grace_period_days
                 $gracePeriodDays = $fresh->plan?->grace_period_days
                     ?? config('subscription.default_grace_period_days', 7);
@@ -59,7 +88,7 @@ class TransitionToGraceJob extends Command
             'total_found' => $subscriptions->count(),
         ]);
 
-        $this->info("Transitioned {$transitioned} subscriptions to grace. Skipped {$skipped}.");
+        $this->info("Processed {$transitioned} expired subscriptions. Skipped {$skipped}.");
 
         return self::SUCCESS;
     }

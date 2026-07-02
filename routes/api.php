@@ -262,6 +262,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('/stores/{store}/subscription')->name('stores.subscription.')->group(function () {
             Route::post('/initiate-payment', [SubscriptionController::class, 'initiatePayment'])->name('initiate-payment');
             Route::post('/confirm-payment', [SubscriptionController::class, 'confirmPayment'])->name('confirm-payment');
+            Route::post('/cancel', [SubscriptionController::class, 'cancel'])->name('cancel');
             Route::get('/overview', [SubscriptionController::class, 'overview'])->name('overview');
             Route::get('/status', [SubscriptionController::class, 'status'])->name('status');
             Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
@@ -309,6 +310,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('stores/{store}/subscription')->name('stores.subscription.')->group(function () {
             Route::post('/initiate-payment', [SubscriptionController::class, 'initiatePayment'])->name('initiate-payment');
             Route::post('/confirm-payment', [SubscriptionController::class, 'confirmPayment'])->name('confirm-payment');
+            Route::post('/cancel', [SubscriptionController::class, 'cancel'])->name('cancel');
             Route::get('/overview', [SubscriptionController::class, 'overview'])->name('overview');
             Route::get('/status', [SubscriptionController::class, 'status'])->name('status');
             Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');

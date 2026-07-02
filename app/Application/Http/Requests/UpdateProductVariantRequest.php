@@ -65,15 +65,15 @@ class UpdateProductVariantRequest extends FormRequest
                 : $this->route('variant')->low_stock_threshold;
 
             if ($inventoryMode === InventoryMode::TRACKED->value && $stockQty === null) {
-                $validator->errors()->add('stock_qty', 'The stock qty field is required when inventory mode is tracked.');
+                $validator->errors()->add('stock_qty', __('validation.custom.product.variant_stock_required_when_tracked'));
             }
 
             if ($inventoryMode === InventoryMode::UNLIMITED->value && $stockQty !== null) {
-                $validator->errors()->add('stock_qty', 'The stock qty field must be empty when inventory mode is unlimited.');
+                $validator->errors()->add('stock_qty', __('validation.custom.product.variant_stock_empty_when_unlimited'));
             }
 
             if ($inventoryMode === InventoryMode::UNLIMITED->value && $lowStockThreshold !== null) {
-                $validator->errors()->add('low_stock_threshold', 'The low stock threshold field must be empty when inventory mode is unlimited.');
+                $validator->errors()->add('low_stock_threshold', __('validation.custom.product.variant_low_stock_threshold_empty_when_unlimited'));
             }
         });
     }

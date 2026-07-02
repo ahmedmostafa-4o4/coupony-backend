@@ -230,6 +230,22 @@ return [
         ],
         'product' => [
             'compare_at_price' => 'The compare at price must be greater than or equal to the base price.',
+            'offer_duration_required' => 'At least one of duration_days or duration_hours is required.',
+            'variant_stock_required_when_tracked' => 'The stock qty field is required when inventory mode is tracked.',
+            'variant_stock_empty_when_unlimited' => 'The stock qty field must be empty when inventory mode is unlimited.',
+            'variant_low_stock_threshold_empty_when_unlimited' => 'The low stock threshold field must be empty when inventory mode is unlimited.',
+            'offer_required_when_variants_replaced' => 'The offer field is required when variants are replaced.',
+            'offer_fixed_amount_required' => 'The fixed amount field is required when offer type is fixed.',
+            'offer_percentage_value_required' => 'The percentage value field is required when offer type is percentage.',
+            'offer_buy_qty_required' => 'The buy qty field is required when offer type is buy_x_get_y.',
+            'offer_get_qty_required' => 'The get qty field is required when offer type is buy_x_get_y.',
+            'offer_buy_variant_skus_required' => 'The buy variant skus field is required when offer type is buy_x_get_y.',
+            'offer_reward_variant_skus_required' => 'The reward variant skus field is required when offer type is buy_x_get_y.',
+            'offer_buy_variant_skus_exist' => 'The selected buy variant skus must exist in the product variants.',
+            'offer_reward_variant_skus_exist' => 'The selected reward variant skus must exist in the product variants.',
+            'claim_buy_variant_ids_quantity' => 'The buy variant ids field must contain exactly the configured buy quantity.',
+            'claim_reward_variant_ids_quantity' => 'The reward variant ids field must contain exactly the configured reward quantity.',
+            'claim_variant_ids_required' => 'The variant ids field is required when the product has variants.',
         ],
         'variants' => [
             'single_default' => 'Only one default variant is allowed per product.',
@@ -242,6 +258,13 @@ return [
         'images' => [
             'single_primary' => 'Only one primary image is allowed per request.',
             'unique_ids' => 'Each image can only appear once in the reorder payload.',
+        ],
+        'import_products' => [
+            'file_required' => 'Please upload a ZIP file.',
+            'file_mimes' => 'The file must be a ZIP archive.',
+            'file_max' => 'The file must not exceed 50MB.',
+            'store_required' => 'A store ID is required to link the imported products.',
+            'store_exists' => 'The specified store does not exist.',
         ],
     ],
 

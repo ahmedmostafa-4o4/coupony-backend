@@ -6,6 +6,11 @@ return [
         'unauthenticated' => 'Unauthenticated.',
         'unauthorized' => 'You are not authorized to access this resource.',
     ],
+    'subscription' => [
+        'not_found' => 'No subscription was found for this store.',
+        'already_cancelled' => 'This subscription is already scheduled for cancellation.',
+        'cannot_cancel' => 'This subscription cannot be cancelled in its current status.',
+    ],
     'locale' => [
         'updated' => 'Language updated successfully.',
     ],

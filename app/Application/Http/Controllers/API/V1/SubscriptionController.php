@@ -11,6 +11,7 @@ use App\Application\Http\Resources\SubscriptionOverviewResource;
 use App\Application\Http\Resources\SubscriptionPlanResource;
 use App\Application\Http\Resources\SubscriptionStatusResource;
 use App\Domain\Store\Models\Store;
+use App\Domain\Subscription\Actions\CancelSubscriptionAtPeriodEndAction;
 use App\Domain\Subscription\Actions\ConfirmPaymentAction;
 use App\Domain\Subscription\Actions\InitiatePaymentAction;
 use App\Domain\Subscription\Enums\HistoryStatus;
@@ -27,12 +28,14 @@ use App\Domain\Subscription\Services\PaymobService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class SubscriptionController extends Controller
 {
     public function __construct(
         private readonly InitiatePaymentAction $initiatePaymentAction,
         private readonly ConfirmPaymentAction $confirmPaymentAction,
+        private readonly CancelSubscriptionAtPeriodEndAction $cancelSubscriptionAtPeriodEndAction,
         private readonly SubscriptionRepository $subscriptionRepository,
         private readonly EntitlementService $entitlementService,
         private readonly PaymobService $paymobService,
@@ -111,6 +114,30 @@ class SubscriptionController extends Controller
                 'error_code' => 'PAYMENT_SESSION_EXPIRED',
             ], 410);
         }
+    }
+
+    /**
+     * Cancel the subscription at the end of the current period.
+     */
+    public function cancel(Request $request, Store $store): JsonResponse
+    {
+        $this->applyAuthenticatedLocale($request);
+        Gate::authorize('manageSubscription', $store);
+
+        $subscription = $this->subscriptionRepository->findByStore($store->id);
+
+        if ($subscription === null) {
+            throw ValidationException::withMessages([
+                'subscription' => __('api.subscription.not_found'),
+            ]);
+        }
+
+        $subscription = $this->cancelSubscriptionAtPeriodEndAction->execute($subscription);
+
+        return $this->localizedJson([
+            'success' => true,
+            'data' => new SubscriptionOverviewResource($subscription->load('plan')),
+        ]);
     }
 
     /**
@@ -200,7 +227,7 @@ class SubscriptionController extends Controller
         Gate::authorize('manageSubscription', $store);
 
         $validated = $request->validate([
-            'status' => ['nullable', 'in:' . implode(',', array_column(HistoryStatus::cases(), 'value'))],
+            'status' => ['nullable', 'in:'.implode(',', array_column(HistoryStatus::cases(), 'value'))],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 

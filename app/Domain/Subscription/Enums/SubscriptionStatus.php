@@ -11,4 +11,14 @@ enum SubscriptionStatus: string
     case DEGRADED = 'degraded';
     case SUSPENDED = 'suspended';
     case ARCHIVED = 'archived';
+
+    public function canCancelAtPeriodEnd(): bool
+    {
+        return in_array($this, [
+            self::TRIAL,
+            self::ACTIVE,
+            self::GRACE,
+            self::DEGRADED,
+        ], true);
+    }
 }

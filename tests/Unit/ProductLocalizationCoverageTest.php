@@ -125,6 +125,83 @@ class ProductLocalizationCoverageTest extends TestCase
         $this->assertSame([], $untranslated);
     }
 
+    public function test_product_request_validation_messages_are_not_hardcoded(): void
+    {
+        $files = [
+            base_path('app/Application/Http/Requests/CreateProductRequest.php'),
+            base_path('app/Application/Http/Requests/UpdateProductRequest.php'),
+            base_path('app/Application/Http/Requests/AdminStoreProductRequest.php'),
+            base_path('app/Application/Http/Requests/AdminUpdateProductRequest.php'),
+            base_path('app/Application/Http/Requests/CreateProductVariantRequest.php'),
+            base_path('app/Application/Http/Requests/UpdateProductVariantRequest.php'),
+            base_path('app/Application/Http/Requests/CreateOfferClaimRequest.php'),
+            base_path('app/Application/Http/Requests/Admin/ImportProductsRequest.php'),
+        ];
+
+        $violations = [];
+
+        foreach ($files as $file) {
+            $source = file_get_contents($file);
+            $patterns = [
+                '/errors\(\)->add\([^,]+,\s*[\'"]([^\'"]+)[\'"]/',
+                '/public function messages\(\): array\s*\{.*?return\s*\[(.*?)\];\s*\}/s',
+            ];
+
+            preg_match_all($patterns[0], $source, $matches, PREG_OFFSET_CAPTURE);
+            foreach ($matches[1] as [$message, $offset]) {
+                $line = substr_count(substr($source, 0, $offset), "\n") + 1;
+                $violations[] = sprintf('%s:%d "%s"', str_replace(base_path().DIRECTORY_SEPARATOR, '', $file), $line, $message);
+            }
+
+            if (preg_match($patterns[1], $source, $messagesMethod)) {
+                preg_match_all('/=>\s*[\'"]([^\'"]*[A-Za-z][^\'"]*)[\'"]/', $messagesMethod[1], $messageLiterals, PREG_OFFSET_CAPTURE);
+
+                foreach ($messageLiterals[1] as [$message, $offset]) {
+                    $absoluteOffset = strpos($source, $messagesMethod[1]) + $offset;
+                    $line = substr_count(substr($source, 0, $absoluteOffset), "\n") + 1;
+                    $violations[] = sprintf('%s:%d "%s"', str_replace(base_path().DIRECTORY_SEPARATOR, '', $file), $line, $message);
+                }
+            }
+        }
+
+        $this->assertSame([], $violations);
+    }
+
+    public function test_product_request_validation_keys_exist_in_english_and_arabic(): void
+    {
+        $files = [
+            base_path('app/Application/Http/Requests/CreateProductRequest.php'),
+            base_path('app/Application/Http/Requests/UpdateProductRequest.php'),
+            base_path('app/Application/Http/Requests/AdminStoreProductRequest.php'),
+            base_path('app/Application/Http/Requests/AdminUpdateProductRequest.php'),
+            base_path('app/Application/Http/Requests/CreateProductVariantRequest.php'),
+            base_path('app/Application/Http/Requests/UpdateProductVariantRequest.php'),
+            base_path('app/Application/Http/Requests/CreateOfferClaimRequest.php'),
+            base_path('app/Application/Http/Requests/Admin/ImportProductsRequest.php'),
+        ];
+        $locales = [
+            'en' => require base_path('lang/en/validation.php'),
+            'ar' => require base_path('lang/ar/validation.php'),
+        ];
+        $missing = [];
+
+        foreach ($files as $file) {
+            $source = file_get_contents($file);
+
+            preg_match_all('/__\(\s*[\'"](validation\.[^\'"]+)[\'"]/', $source, $matches);
+
+            foreach (array_unique($matches[1]) as $key) {
+                foreach ($locales as $locale => $messages) {
+                    if ($this->arrayGet($messages, substr($key, strlen('validation.'))) === null) {
+                        $missing[] = sprintf('%s is missing %s in %s', $key, $locale, str_replace(base_path().DIRECTORY_SEPARATOR, '', $file));
+                    }
+                }
+            }
+        }
+
+        $this->assertSame([], $missing);
+    }
+
     private function arrayGet(array $array, string $key): mixed
     {
         foreach (explode('.', $key) as $segment) {

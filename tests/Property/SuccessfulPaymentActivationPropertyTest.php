@@ -13,6 +13,7 @@ use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\Subscription\Services\PaymobService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -56,9 +57,7 @@ class SuccessfulPaymentActivationPropertyTest extends TestCase
         return $cases;
     }
 
-    /**
-     * @dataProvider randomSuccessfulPaymentProvider
-     */
+    #[DataProvider('randomSuccessfulPaymentProvider')]
     public function test_successful_payment_webhook_activates_subscription(
         string $billingCycle,
         string $orderId,
@@ -121,5 +120,66 @@ class SuccessfulPaymentActivationPropertyTest extends TestCase
             $subscription->status,
             "Subscription must transition to 'active' status after successful payment. Got: {$subscription->status->value}"
         );
+    }
+
+    public function test_successful_payment_webhook_updates_already_active_subscription_plan_and_clears_cancellation(): void
+    {
+        $store = Store::factory()->create();
+        $oldPlan = SubscriptionPlan::factory()->create();
+        $newPlan = SubscriptionPlan::factory()->create([
+            'price_yearly' => 999.99,
+        ]);
+        $orderId = '987654';
+        $transactionId = '7654321';
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $oldPlan->id,
+            'status' => SubscriptionStatus::ACTIVE,
+            'billing_cycle' => BillingCycle::MONTHLY,
+            'current_period_start' => now()->subMonth(),
+            'current_period_end' => now()->addDay(),
+            'cancelled_at' => now()->subDay(),
+        ]);
+
+        $session = PaymentSession::create([
+            'store_id' => $store->id,
+            'plan_id' => $newPlan->id,
+            'billing_cycle' => BillingCycle::YEARLY,
+            'amount' => $newPlan->price_yearly,
+            'currency' => 'EGP',
+            'status' => PaymentSessionStatus::PENDING,
+            'paymob_order_id' => $orderId,
+            'expires_at' => now()->addMinutes(30),
+        ]);
+
+        $payload = [
+            'id' => $transactionId,
+            'success' => true,
+            'order' => [
+                'id' => $orderId,
+            ],
+        ];
+
+        $hmacSignature = 'valid_signature';
+
+        $mockPaymobService = Mockery::mock(PaymobService::class);
+        $mockPaymobService->shouldReceive('validateHmac')
+            ->with($payload, $hmacSignature)
+            ->andReturn(true);
+
+        $this->app->instance(PaymobService::class, $mockPaymobService);
+
+        $action = $this->app->make(ProcessWebhookAction::class);
+        $action->execute($payload, $hmacSignature);
+
+        $session->refresh();
+        $subscription = Subscription::where('store_id', $store->id)->firstOrFail();
+
+        $this->assertEquals(PaymentSessionStatus::PAID, $session->status);
+        $this->assertEquals(SubscriptionStatus::ACTIVE, $subscription->status);
+        $this->assertEquals($newPlan->id, $subscription->plan_id);
+        $this->assertEquals('yearly', $subscription->billing_cycle->value);
+        $this->assertNull($subscription->cancelled_at);
     }
 }

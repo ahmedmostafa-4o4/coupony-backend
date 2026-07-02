@@ -7,6 +7,7 @@ use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -28,6 +29,7 @@ class StoreOwnershipAuthorizationPropertyTest extends TestCase
     private const SUBSCRIPTION_ENDPOINTS = [
         ['POST', '/initiate-payment'],
         ['POST', '/confirm-payment'],
+        ['POST', '/cancel'],
         ['GET', '/overview'],
         ['GET', '/status'],
         ['GET', '/plans'],
@@ -57,9 +59,7 @@ class StoreOwnershipAuthorizationPropertyTest extends TestCase
         return $cases;
     }
 
-    /**
-     * @dataProvider randomNonOwnerAccessProvider
-     */
+    #[DataProvider('randomNonOwnerAccessProvider')]
     public function test_non_owner_user_receives_403_on_subscription_endpoints(
         int $endpointIndex
     ): void {

@@ -76,17 +76,18 @@ class ConfirmPaymentAction
                         SubscriptionStatus::ACTIVE,
                         'Payment confirmed via confirm-payment endpoint'
                     );
-
-                    // Update period dates and plan
-                    $subscription->update([
-                        'plan_id' => $session->plan_id,
-                        'billing_cycle' => $session->billing_cycle,
-                        'current_period_start' => now(),
-                        'current_period_end' => $this->calculatePeriodEnd($session->billing_cycle),
-                    ]);
-
-                    $subscription = $subscription->fresh();
                 }
+
+                // Update period dates and plan
+                $subscription->update([
+                    'plan_id' => $session->plan_id,
+                    'billing_cycle' => $session->billing_cycle,
+                    'current_period_start' => now(),
+                    'current_period_end' => $this->calculatePeriodEnd($session->billing_cycle),
+                    'cancelled_at' => null,
+                ]);
+
+                $subscription = $subscription->fresh();
 
                 // Create SubscriptionHistory entry with active status
                 SubscriptionHistory::create([
