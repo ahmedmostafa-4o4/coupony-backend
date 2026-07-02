@@ -7,6 +7,9 @@ use App\Domain\PonyAI\Repositories\ConversationRepository;
 use App\Domain\PonyAI\Services\GeminiFakeClient;
 use App\Domain\Store\Models\Store;
 use App\Domain\Store\Models\StoreEmployee;
+use App\Domain\Subscription\Enums\SubscriptionStatus;
+use App\Domain\Subscription\Models\Subscription;
+use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,7 +28,21 @@ class SellerChatAuthorizationTest extends TestCase
 
     private function ownedStore(User $owner): Store
     {
-        return Store::factory()->create(['owner_user_id' => $owner->id]);
+        $store = Store::factory()->create(['owner_user_id' => $owner->id]);
+        $plan = SubscriptionPlan::factory()->create([
+            'features' => ['ai_assistant' => true],
+        ]);
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $plan->id,
+            'status' => SubscriptionStatus::ACTIVE,
+            'billing_cycle' => 'monthly',
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+
+        return $store;
     }
 
     private function queueHappyPath(): void
