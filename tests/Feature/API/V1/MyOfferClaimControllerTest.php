@@ -3,6 +3,7 @@
 namespace Tests\Feature\API\V1;
 
 use App\Domain\Product\Enums\OfferClaimStatus;
+use App\Domain\Product\Enums\ProductOfferType;
 use App\Domain\Product\Models\Category;
 use App\Domain\Product\Models\OfferClaim;
 use App\Domain\Product\Models\Product;
@@ -77,7 +78,22 @@ class MyOfferClaimControllerTest extends TestCase
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
         $store = Store::factory()->create();
-        $product = clone Product::factory()->create(['store_id' => $store->id, 'title' => 'Legacy Product']);
+        $product = clone Product::factory()->create([
+            'store_id' => $store->id,
+            'title' => 'Legacy Product',
+            'currency' => 'EGP',
+        ]);
+        $product->offer->update([
+            'type' => ProductOfferType::PERCENTAGE,
+            'label' => '30% off',
+            'terms_en' => ['English term'],
+            'terms_ar' => ['شرط عربي'],
+            'branch_only' => true,
+            'fixed_amount' => null,
+            'percentage_value' => 30,
+            'max_discount' => 100,
+            'claim_expiration_minutes' => 60,
+        ]);
         ProductImage::query()->create([
             'product_id' => $product->id,
             'image_url' => 'products/legacy.jpg',
@@ -97,6 +113,16 @@ class MyOfferClaimControllerTest extends TestCase
             ->assertJsonPath('data.0.customer.name', $user->full_name)
             ->assertJsonPath('data.0.product.id', $product->id)
             ->assertJsonPath('data.0.product.title', 'Legacy Product')
+            ->assertJsonPath('data.0.offer_snapshot.offer.type', ProductOfferType::PERCENTAGE->value)
+            ->assertJsonPath('data.0.offer_snapshot.offer.label', '30% off')
+            ->assertJsonPath('data.0.offer_snapshot.offer.terms_en.0', 'English term')
+            ->assertJsonPath('data.0.offer_snapshot.offer.terms_ar.0', 'شرط عربي')
+            ->assertJsonPath('data.0.offer_snapshot.offer.branch_only', true)
+            ->assertJsonPath('data.0.offer_snapshot.offer.fixed_amount', null)
+            ->assertJsonPath('data.0.offer_snapshot.offer.percentage_value', '30.00')
+            ->assertJsonPath('data.0.offer_snapshot.offer.max_discount', '100.00')
+            ->assertJsonPath('data.0.offer_snapshot.offer.currency', 'EGP')
+            ->assertJsonPath('data.0.offer_snapshot.offer.claim_expiration_minutes', 60)
             ->assertJsonPath('data.0.usage_count', 1);
 
         $this->assertStringContainsString('/storage/products/legacy.jpg', $response->json('data.0.product.image_url'));
@@ -278,11 +304,22 @@ class MyOfferClaimControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $claim = $this->createClaim($user);
+        $claim->offer->update([
+            'type' => ProductOfferType::FIXED,
+            'label' => 'Fixed fallback',
+            'fixed_amount' => 25,
+            'claim_expiration_minutes' => 45,
+        ]);
 
         $response = $this->actingAs($user)->getJson("/api/v1/me/offer-claims/{$claim->id}");
 
         $response->assertOk()
-            ->assertJsonPath('data.id', $claim->id);
+            ->assertJsonPath('data.id', $claim->id)
+            ->assertJsonPath('data.offer_snapshot.offer.type', ProductOfferType::FIXED->value)
+            ->assertJsonPath('data.offer_snapshot.offer.label', 'Fixed fallback')
+            ->assertJsonPath('data.offer_snapshot.offer.fixed_amount', '25.00')
+            ->assertJsonPath('data.offer_snapshot.offer.currency', 'EGP')
+            ->assertJsonPath('data.offer_snapshot.offer.claim_expiration_minutes', 45);
     }
 
     #[Test]

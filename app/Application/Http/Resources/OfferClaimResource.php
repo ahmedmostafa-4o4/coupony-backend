@@ -19,7 +19,7 @@ class OfferClaimResource extends JsonResource
             'status' => $this->status?->value ?? $this->status,
             'claim_token' => $this->claim_token,
             'qr_code_token' => $this->qr_code_token,
-            'offer_snapshot' => $this->offer_snapshot,
+            'offer_snapshot' => $this->normalizedOfferSnapshot(),
             'customer' => $this->customerData(),
             'product' => $this->productData(),
             'store' => $this->storeData(),
@@ -52,6 +52,80 @@ class OfferClaimResource extends JsonResource
             'name' => $this->store->name,
             'logo_url' => $this->publicStorageUrl($this->store->logo_url),
         ];
+    }
+
+    private function normalizedOfferSnapshot(): array
+    {
+        $snapshot = is_array($this->offer_snapshot) ? $this->offer_snapshot : [];
+        $snapshotOffer = data_get($snapshot, 'offer');
+        $fallbackOffer = $this->offerData();
+
+        if ($fallbackOffer !== null) {
+            $snapshot['offer'] = is_array($snapshotOffer)
+                ? array_replace($fallbackOffer, $snapshotOffer)
+                : $fallbackOffer;
+        }
+
+        return $snapshot;
+    }
+
+    private function offerData(): ?array
+    {
+        if (! $this->relationLoaded('offer') || ! $this->offer) {
+            return null;
+        }
+
+        return [
+            'id' => $this->offer->id,
+            'type' => $this->offer->type?->value ?? $this->offer->type,
+            'status' => $this->offer->status?->value ?? $this->offer->status,
+            'label' => $this->offer->label,
+            'terms' => $this->localizedTerms(),
+            'terms_en' => $this->normalizedTerms($this->offer->terms_en),
+            'terms_ar' => $this->normalizedTerms($this->offer->terms_ar),
+            'branch_only' => (bool) $this->offer->branch_only,
+            'fixed_amount' => $this->offer->fixed_amount,
+            'percentage_value' => $this->offer->percentage_value,
+            'max_discount' => $this->offer->max_discount,
+            'currency' => $this->offerCurrency(),
+            'buy_qty' => $this->offer->buy_qty,
+            'get_qty' => $this->offer->get_qty,
+            'starts_at' => $this->offer->starts_at?->toIso8601String(),
+            'ends_at' => $this->offer->ends_at?->toIso8601String(),
+            'claim_expiration_minutes' => $this->offer->claim_expiration_minutes,
+        ];
+    }
+
+    private function localizedTerms(): array
+    {
+        $isArabic = str_starts_with(strtolower(app()->getLocale()), 'ar');
+        $preferred = $isArabic ? $this->offer->terms_ar : $this->offer->terms_en;
+        $fallback = $isArabic ? $this->offer->terms_en : $this->offer->terms_ar;
+
+        return $this->normalizedTerms($preferred ?: $fallback ?: []);
+    }
+
+    private function normalizedTerms(?array $terms): array
+    {
+        return collect($terms ?? [])
+            ->filter(fn ($term) => is_string($term) && $term !== '')
+            ->values()
+            ->all();
+    }
+
+    private function offerCurrency(): ?string
+    {
+        $snapshotCurrency = data_get($this->offer_snapshot, 'product.currency');
+
+        if (is_string($snapshotCurrency) && $snapshotCurrency !== '') {
+            return $snapshotCurrency;
+        }
+
+        if ($this->relationLoaded('product') && $this->product) {
+            return $this->product->currency;
+        }
+
+        return null;
     }
 
     private function customerData(): ?array

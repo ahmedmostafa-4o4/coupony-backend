@@ -99,6 +99,7 @@ class CreateOfferClaim
                 'fixed_amount' => $offer->fixed_amount,
                 'percentage_value' => $offer->percentage_value,
                 'max_discount' => $offer->max_discount,
+                'currency' => $product->currency,
                 'buy_qty' => $offer->buy_qty,
                 'get_qty' => $offer->get_qty,
                 'allow_mix_buy_variants' => $offer->allow_mix_buy_variants,

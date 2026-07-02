@@ -265,6 +265,7 @@ class OfferClaimTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('data.offer_snapshot.offer.type', 'percentage')
             ->assertJsonPath('data.offer_snapshot.offer.percentage_value', '20.00')
+            ->assertJsonPath('data.offer_snapshot.offer.currency', 'EGP')
             ->assertJsonPath('data.offer_snapshot.selected_variants.0.id', $variant->id);
 
         $product->offer()->update([
