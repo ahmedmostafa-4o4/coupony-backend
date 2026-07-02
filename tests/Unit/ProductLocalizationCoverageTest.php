@@ -1,0 +1,140 @@
+<?php
+
+namespace Tests\Unit;
+
+use Tests\TestCase;
+
+class ProductLocalizationCoverageTest extends TestCase
+{
+    public function test_product_response_messages_are_not_hardcoded(): void
+    {
+        $files = [
+            base_path('app/Application/Http/Controllers/API/V1/ProductShareController.php'),
+            base_path('app/Application/Http/Controllers/API/V1/OfferClaimController.php'),
+            base_path('app/Application/Http/Controllers/API/V1/StoreOfferClaimController.php'),
+            base_path('app/Application/Http/Controllers/API/V1/Admin/AdminOfferClaimController.php'),
+            base_path('app/Application/Http/Controllers/API/V1/Admin/ProductManagementController.php'),
+            base_path('app/Application/Http/Controllers/API/V1/Admin/ProductRevisionManagementController.php'),
+        ];
+
+        $violations = [];
+
+        foreach ($files as $file) {
+            $source = file_get_contents($file);
+
+            preg_match_all(
+                '/[\'"]message[\'"]\s*=>\s*[\'"]([^\'"]+)[\'"]/',
+                $source,
+                $matches,
+                PREG_OFFSET_CAPTURE
+            );
+
+            foreach ($matches[1] as [$message, $offset]) {
+                $line = substr_count(substr($source, 0, $offset), "\n") + 1;
+                $violations[] = sprintf('%s:%d "%s"', str_replace(base_path().DIRECTORY_SEPARATOR, '', $file), $line, $message);
+            }
+        }
+
+        $this->assertSame([], $violations);
+    }
+
+    public function test_product_offer_domain_errors_are_not_literal_english(): void
+    {
+        $files = [
+            base_path('app/Application/Http/Controllers/API/V1/Admin/ProductManagementController.php'),
+            base_path('app/Domain/Product/Actions/CreateOfferClaim.php'),
+            base_path('app/Domain/Product/Actions/RedeemOfferClaim.php'),
+        ];
+
+        $disallowedMessages = [
+            'Products retrieved successfully.',
+            'Product details retrieved successfully.',
+            'Product created successfully.',
+            'Failed to create product.',
+            'Product updated successfully.',
+            'Failed to update product.',
+            'Product deleted successfully.',
+            'Failed to delete product.',
+            'Only approved active products can be claimed.',
+            'This product does not have an offer available for claiming.',
+            'This offer is not active.',
+            'This offer is not yet claimable.',
+            'This offer is no longer claimable.',
+            'Claim limit reached.',
+            'Offer claims exhausted.',
+            'At least one active variant must be selected for this claim.',
+            'The selected claim variant is invalid.',
+            'The scanned claim could not be found for this store.',
+            'This claim has already been redeemed.',
+            'This claim is not redeemable.',
+            'One or more claimed variants are no longer redeemable.',
+            'Insufficient stock is available to redeem this claim.',
+            'This claim has expired.',
+        ];
+
+        $violations = [];
+
+        foreach ($files as $file) {
+            $source = file_get_contents($file);
+
+            foreach ($disallowedMessages as $message) {
+                if (str_contains($source, $message)) {
+                    $violations[] = sprintf('%s contains "%s"', str_replace(base_path().DIRECTORY_SEPARATOR, '', $file), $message);
+                }
+            }
+        }
+
+        $this->assertSame([], $violations);
+    }
+
+    public function test_arabic_product_locale_values_are_translated(): void
+    {
+        $locale = require base_path('lang/ar/api.php');
+        $keys = [
+            'variants.created',
+            'variants.create_failed',
+            'variants.retrieved',
+            'variants.details_retrieved',
+            'variants.updated',
+            'variants.update_failed',
+            'variants.deleted',
+            'variants.delete_failed',
+            'attributes.updated',
+            'attributes.update_failed',
+            'images.created',
+            'images.create_failed',
+            'images.retrieved',
+            'images.deleted',
+            'images.delete_failed',
+            'images.reordered',
+            'images.reorder_failed',
+            'images.primary_updated',
+            'images.primary_update_failed',
+        ];
+
+        $untranslated = [];
+
+        foreach ($keys as $key) {
+            $value = $this->arrayGet($locale, $key);
+
+            if (! is_string($value) || ! preg_match('/\p{Arabic}/u', $value)) {
+                $untranslated[$key] = $value;
+            }
+        }
+
+        $this->assertSame([], $untranslated);
+    }
+
+    private function arrayGet(array $array, string $key): mixed
+    {
+        foreach (explode('.', $key) as $segment) {
+            if (! is_array($array) || ! array_key_exists($segment, $array)) {
+                return null;
+            }
+
+            $array = $array[$segment];
+        }
+
+        return $array;
+    }
+}

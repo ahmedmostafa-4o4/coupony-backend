@@ -89,7 +89,7 @@ class StoreOfferClaimController extends Controller
 
             return $this->localizedJson([
                 'success' => true,
-                'message' => 'Offer claim redeemed successfully.',
+                'message' => __('api.offer_claim.redeemed'),
                 'data' => new OfferClaimResource($this->products->loadOfferClaim($claim)),
             ]);
         } catch (\DomainException $exception) {
@@ -100,7 +100,7 @@ class StoreOfferClaimController extends Controller
         } catch (\Throwable $throwable) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => 'Unable to redeem the offer claim.',
+                'message' => __('api.offer_claim.redeem_failed'),
             ], 500);
         }
     }

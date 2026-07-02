@@ -44,7 +44,7 @@ class ProductManagementController extends Controller
 
         return $this->paginatedResponse(
             (new ProductCollection($products->getCollection()))->resolve($request),
-            'Products retrieved successfully.',
+            __('api.product.retrieved'),
             $products
         );
     }
@@ -56,7 +56,7 @@ class ProductManagementController extends Controller
 
         return $this->successResponse(
             new ProductResource($this->products->loadAdminProduct($product)),
-            'Product details retrieved successfully.'
+            __('api.product.details_retrieved')
         );
     }
 
@@ -73,13 +73,13 @@ class ProductManagementController extends Controller
 
             return $this->successResponse(
                 new ProductResource($product),
-                'Product created successfully.',
+                __('api.product.created'),
                 201
             );
         } catch (\InvalidArgumentException | \DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
-            return $this->errorResponse('Failed to create product.', 500);
+            return $this->errorResponse(__('api.product.create_failed'), 500);
         }
     }
 
@@ -94,13 +94,13 @@ class ProductManagementController extends Controller
 
             return $this->successResponse(
                 new ProductResource($updatedProduct),
-                'Product updated successfully.'
+                __('api.product.updated')
             );
         } catch (\InvalidArgumentException | \DomainException $throwable) {
             return $this->errorResponse($throwable->getMessage(), 422);
         } catch (\Throwable $throwable) {
             \Illuminate\Support\Facades\Log::error($throwable);
-            return $this->errorResponse('Failed to update product. ' . $throwable->getMessage(), 500);
+            return $this->errorResponse(__('api.product.update_failed'), 500);
         }
     }
 
@@ -112,9 +112,9 @@ class ProductManagementController extends Controller
         try {
             $this->deleteAdminProduct->execute($product);
 
-            return $this->successResponse(null, 'Product deleted successfully.');
+            return $this->successResponse(null, __('api.product.deleted'));
         } catch (\Throwable $throwable) {
-            return $this->errorResponse('Failed to delete product.', 500);
+            return $this->errorResponse(__('api.product.delete_failed'), 500);
         }
     }
 

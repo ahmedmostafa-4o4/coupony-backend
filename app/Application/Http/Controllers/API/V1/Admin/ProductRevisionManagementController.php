@@ -63,7 +63,7 @@ class ProductRevisionManagementController extends Controller
         if ($revision->status !== ProductRevisionStatus::PENDING) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => 'Only pending revisions can be approved.',
+                'message' => __('api.product_revision.only_pending_approve'),
             ], 400);
         }
 
@@ -84,7 +84,7 @@ class ProductRevisionManagementController extends Controller
         if ($revision->status !== ProductRevisionStatus::PENDING) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => 'Only pending revisions can be rejected.',
+                'message' => __('api.product_revision.only_pending_reject'),
             ], 400);
         }
 

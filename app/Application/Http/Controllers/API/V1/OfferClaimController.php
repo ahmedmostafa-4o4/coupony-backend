@@ -23,7 +23,7 @@ class OfferClaimController extends Controller
 
             return $this->localizedJson([
                 'success' => true,
-                'message' => 'Offer claim created successfully.',
+                'message' => __('api.offer_claim.created'),
                 'data' => new OfferClaimResource($claim),
             ], 201);
         } catch (OfferClaimLimitException $exception) {
@@ -40,7 +40,7 @@ class OfferClaimController extends Controller
         } catch (\Throwable $throwable) {
             return $this->localizedJson([
                 'success' => false,
-                'message' => 'Unable to create the offer claim.',
+                'message' => __('api.offer_claim.create_failed'),
             ], 500);
         }
     }

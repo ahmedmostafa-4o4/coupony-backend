@@ -9,11 +9,14 @@ use App\Domain\Product\Enums\OfferClaimStatus;
 use App\Domain\Product\Events\OfferClaimCancelled;
 use App\Domain\Product\Models\OfferClaim;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AdminOfferClaimController extends Controller
 {
     public function index(AdminClaimFilterRequest $request): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $query = OfferClaim::with(['user', 'store', 'product', 'offer', 'redeemedBy'])
             ->latest();
 
@@ -41,7 +44,7 @@ class AdminOfferClaimController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Offer claims retrieved successfully.',
+            'message' => __('api.offer_claim.retrieved'),
             'data' => $claims->items(),
             'meta' => [
                 'current_page' => $claims->currentPage(),
@@ -52,23 +55,27 @@ class AdminOfferClaimController extends Controller
         ]);
     }
 
-    public function show(OfferClaim $offerClaim): JsonResponse
+    public function show(Request $request, OfferClaim $offerClaim): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $offerClaim->load(['user', 'store', 'product', 'offer', 'redeemedBy']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Offer claim retrieved successfully.',
+            'message' => __('api.offer_claim.details_retrieved'),
             'data' => $offerClaim,
         ]);
     }
 
     public function cancel(CancelClaimRequest $request, OfferClaim $offerClaim): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         if ($offerClaim->status !== OfferClaimStatus::ACTIVE) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only active claims can be cancelled.',
+                'message' => __('api.offer_claim.only_active_cancel'),
             ], 422);
         }
 
@@ -81,7 +88,7 @@ class AdminOfferClaimController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Offer claim cancelled successfully.',
+            'message' => __('api.offer_claim.cancelled'),
             'data' => $offerClaim->fresh()->load(['user', 'store', 'product', 'offer', 'redeemedBy']),
         ]);
     }

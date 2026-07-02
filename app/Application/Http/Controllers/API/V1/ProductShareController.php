@@ -16,6 +16,8 @@ class ProductShareController extends Controller
      */
     public function store(Request $request, Product $product): JsonResponse
     {
+        $this->applyAuthenticatedLocale($request);
+
         $validated = $request->validate([
             'platform' => ['nullable', 'string', 'in:whatsapp,facebook,twitter,instagram,copy_link,other'],
         ]);
@@ -29,6 +31,6 @@ class ProductShareController extends Controller
         AnalyticsCache::invalidateProduct($product->id);
         AnalyticsCache::invalidateSeller($product->store_id);
 
-        return response()->json(['message' => 'Share recorded.'], 201);
+        return $this->localizedJson(['message' => __('api.product.share_recorded')], 201);
     }
 }

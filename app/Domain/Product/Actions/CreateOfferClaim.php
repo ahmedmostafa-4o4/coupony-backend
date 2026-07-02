@@ -35,28 +35,28 @@ class CreateOfferClaim
             $product->status !== ProductStatus::ACTIVE
             || $product->approval_status !== ProductApprovalStatus::APPROVED
         ) {
-            throw new \DomainException('Only approved active products can be claimed.');
+            throw new \DomainException(__('api.offer_claim.only_approved_active_products'));
         }
 
         /** @var ProductOffer|null $offer */
         $offer = $product->offer;
 
         if (! $offer) {
-            throw new \DomainException('This product does not have an offer available for claiming.');
+            throw new \DomainException(__('api.offer_claim.no_offer_available'));
         }
 
         $now = now();
 
         if ($offer->status !== ProductOfferStatus::ACTIVE) {
-            throw new \DomainException('This offer is not active.');
+            throw new \DomainException(__('api.offer_claim.offer_not_active'));
         }
 
         if ($offer->starts_at !== null && $offer->starts_at->isFuture()) {
-            throw new \DomainException('This offer is not yet claimable.');
+            throw new \DomainException(__('api.offer_claim.offer_not_started'));
         }
 
         if ($offer->ends_at !== null && $offer->ends_at->lt($now)) {
-            throw new \DomainException('This offer is no longer claimable.');
+            throw new \DomainException(__('api.offer_claim.offer_ended'));
         }
 
         $this->ensureClaimLimitsAreAvailable($offer, $user);
@@ -159,12 +159,12 @@ class CreateOfferClaim
                 ->count();
 
             if ($userClaims >= (int) $offer->max_claims_per_user) {
-                throw new OfferClaimLimitException('Claim limit reached.', 'claim_limit_reached');
+                throw new OfferClaimLimitException(__('api.offer_claim.claim_limit_reached'), 'claim_limit_reached');
             }
         }
 
         if ($offer->max_total_claims !== null && $baseQuery->count() >= (int) $offer->max_total_claims) {
-            throw new OfferClaimLimitException('Offer claims exhausted.', 'offer_claims_exhausted');
+            throw new OfferClaimLimitException(__('api.offer_claim.offer_claims_exhausted'), 'offer_claims_exhausted');
         }
     }
 
@@ -209,7 +209,7 @@ class CreateOfferClaim
         }
 
         if ($selectedVariantIds === []) {
-            throw new \DomainException('At least one active variant must be selected for this claim.');
+            throw new \DomainException(__('api.offer_claim.active_variant_required'));
         }
 
         return collect($selectedVariantIds)
@@ -218,7 +218,7 @@ class CreateOfferClaim
                 $variant = $variants->get($variantId);
 
                 if (! $variant) {
-                    throw new \DomainException('The selected claim variant is invalid.');
+                    throw new \DomainException(__('api.offer_claim.invalid_claim_variant'));
                 }
 
                 return $this->snapshotVariant($variant);
@@ -240,7 +240,7 @@ class CreateOfferClaim
             ->keyBy('variant_id');
 
         if ($selectedIds->isEmpty()) {
-            throw new \DomainException("The selected {$role->value} variants are required for this offer.");
+            throw new \DomainException(__('api.offer_claim.role_variants_required', ['role' => $role->value]));
         }
 
         $allowMix = $role === ProductOfferTargetRole::BUY
@@ -248,7 +248,7 @@ class CreateOfferClaim
             : $offer->allow_mix_reward_variants;
 
         if (! $allowMix && $selectedIds->unique()->count() > 1) {
-            throw new \DomainException("This offer does not allow mixing {$role->value} variants.");
+            throw new \DomainException(__('api.offer_claim.mixed_role_variants_not_allowed', ['role' => $role->value]));
         }
 
         return $selectedIds
@@ -257,7 +257,7 @@ class CreateOfferClaim
                 $target = $allowedTargets->get($variantId);
 
                 if (! $target || ! $target->variant || $target->variant->product_id !== $product->id) {
-                    throw new \DomainException("The selected {$role->value} variant is not allowed for this offer.");
+                    throw new \DomainException(__('api.offer_claim.role_variant_not_allowed', ['role' => $role->value]));
                 }
 
                 return $this->snapshotVariant($target->variant);

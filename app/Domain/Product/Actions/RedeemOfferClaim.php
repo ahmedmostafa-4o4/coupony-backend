@@ -32,15 +32,15 @@ class RedeemOfferClaim
                 ->first();
 
             if (! $claim || $claim->store_id !== $store->id) {
-                throw new \DomainException('The scanned claim could not be found for this store.');
+                throw new \DomainException(__('api.offer_claim.not_found_for_store'));
             }
 
             if ($claim->status === OfferClaimStatus::REDEEMED) {
-                throw new \DomainException('This claim has already been redeemed.');
+                throw new \DomainException(__('api.offer_claim.already_redeemed'));
             }
 
             if ($claim->status !== OfferClaimStatus::ACTIVE) {
-                throw new \DomainException('This claim is not redeemable.');
+                throw new \DomainException(__('api.offer_claim.not_redeemable'));
             }
 
             if ($claim->isExpired()) {
@@ -70,14 +70,14 @@ class RedeemOfferClaim
                 $variant = $variants->get($variantId);
 
                 if (! $variant || $variant->product_id !== $claim->product_id || ! $variant->is_active) {
-                    throw new \DomainException('One or more claimed variants are no longer redeemable.');
+                    throw new \DomainException(__('api.offer_claim.variants_not_redeemable'));
                 }
 
                 if (
                     $variant->inventory_mode === InventoryMode::TRACKED
                     && (int) ($variant->stock_qty ?? 0) < $quantity
                 ) {
-                    throw new \DomainException('Insufficient stock is available to redeem this claim.');
+                    throw new \DomainException(__('api.offer_claim.insufficient_stock'));
                 }
             }
 
@@ -166,7 +166,7 @@ class RedeemOfferClaim
         });
 
         if ($redemptionOutcome['expired']) {
-            throw new \DomainException('This claim has expired.');
+            throw new \DomainException(__('api.offer_claim.expired'));
         }
 
         OfferClaimRedeemed::dispatch(
