@@ -24,7 +24,7 @@ class RedeemOfferClaim
 
     public function execute(Store $store, string $qrCodeToken, User $redeemedBy, array $revenue = []): OfferClaim
     {
-        $result = DB::transaction(function () use ($store, $qrCodeToken, $redeemedBy, $revenue) {
+        $redemptionOutcome = DB::transaction(function () use ($store, $qrCodeToken, $redeemedBy, $revenue) {
             /** @var OfferClaim|null $claim */
             $claim = OfferClaim::query()
                 ->where('qr_code_token', $qrCodeToken)
@@ -46,7 +46,7 @@ class RedeemOfferClaim
             if ($claim->isExpired()) {
                 $claim->update(['status' => OfferClaimStatus::EXPIRED]);
 
-                throw new \DomainException('This claim has expired.');
+                return ['expired' => true];
             }
 
             $snapshot = $claim->offer_snapshot ?? [];
@@ -156,6 +156,7 @@ class RedeemOfferClaim
             }
 
             return [
+                'expired' => false,
                 'claim' => $claim->fresh(),
                 'user_points_awarded' => $pointsAwarded,
                 'store_points_awarded' => $pointsAwarded,
@@ -164,19 +165,23 @@ class RedeemOfferClaim
             ];
         });
 
+        if ($redemptionOutcome['expired']) {
+            throw new \DomainException('This claim has expired.');
+        }
+
         OfferClaimRedeemed::dispatch(
-            $result['claim'],
+            $redemptionOutcome['claim'],
             $store,
             $redeemedBy,
-            $result['user_points_awarded'],
-            $result['store_points_awarded'],
-            $result['user_points'],
-            $result['store_points'],
+            $redemptionOutcome['user_points_awarded'],
+            $redemptionOutcome['store_points_awarded'],
+            $redemptionOutcome['user_points'],
+            $redemptionOutcome['store_points'],
         );
 
         AnalyticsCache::invalidateSeller($store->id);
 
-        return $result['claim'];
+        return $redemptionOutcome['claim'];
     }
 
     private function hasRedeemPointsAward(OfferClaim $claim): bool

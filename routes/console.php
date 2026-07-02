@@ -25,6 +25,14 @@ Schedule::command('subscription:send-expiring-notifications')->daily();
 
 /*
 |--------------------------------------------------------------------------
+| Offer Claim Lifecycle Scheduled Jobs
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('offer-claims:expire')->everyMinute()->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
 | Notification Scheduled Jobs
 |--------------------------------------------------------------------------
 |

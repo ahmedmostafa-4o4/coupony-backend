@@ -653,6 +653,18 @@ class OfferClaimTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('message', 'This claim has expired.');
 
+        $this->assertDatabaseHas('offer_claims', [
+            'id' => $expiredClaim->id,
+            'status' => OfferClaimStatus::EXPIRED->value,
+            'redeemed_at' => null,
+            'redeemed_by' => null,
+        ]);
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $variant->id,
+            'stock_qty' => 3,
+            'redemption_count' => 0,
+        ]);
+
         $activeClaimResponse = $this->actingAs($customer, 'sanctum')
             ->postJson("/api/v1/products/{$product->id}/claims", [
                 'variant_ids' => [$variant->id],

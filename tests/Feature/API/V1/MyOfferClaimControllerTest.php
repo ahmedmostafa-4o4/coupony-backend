@@ -118,6 +118,24 @@ class MyOfferClaimControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_overdue_claims_in_the_expired_filter_after_synchronization(): void
+    {
+        $user = User::factory()->create();
+        $claim = $this->createClaim($user);
+        $claim->update(['expires_at' => now()->subMinute()]);
+
+        $this->artisan('offer-claims:expire')->assertSuccessful();
+
+        $this->actingAs($user)
+            ->getJson('/api/v1/me/offer-claims?status=expired')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $claim->id)
+            ->assertJsonPath('data.0.status', OfferClaimStatus::EXPIRED->value)
+            ->assertJsonPath('data.0.is_expired', true);
+    }
+
+    #[Test]
     public function it_can_search_claims_by_product_title(): void
     {
         $user = User::factory()->create();
