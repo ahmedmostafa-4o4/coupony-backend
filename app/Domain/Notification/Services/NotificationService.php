@@ -4,6 +4,7 @@ namespace App\Domain\Notification\Services;
 
 use App\Domain\Notification\Contracts\NotifierInterface;
 use App\Domain\Notification\Events\NotificationSent;
+use App\Domain\Notification\Jobs\SendFcmPushNotificationJob;
 use App\Domain\Notification\Mail\notifyMe;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\Notification\Support\NotificationBadgeResolver;
@@ -57,6 +58,8 @@ class NotificationService
             $notification->markAsSent();
 
             event(new NotificationSent($notification, $user));
+
+            $this->dispatchFcmPushIfNeeded($notification, $user, $channel);
         } catch (Throwable $e) {
             $notification->markAsFailed($e->getMessage());
 
@@ -191,6 +194,29 @@ class NotificationService
             'push' => $preferences->push_notifications ?? true,
             default => false,
         };
+    }
+
+    private function dispatchFcmPushIfNeeded(Notification $notification, User $user, string $channel): void
+    {
+        if (! in_array($channel, ['in_app', 'email'], true)) {
+            return;
+        }
+
+        if (! $this->canSendToChannel($user, 'push')) {
+            return;
+        }
+
+        try {
+            SendFcmPushNotificationJob::dispatch($notification->id);
+        } catch (Throwable $e) {
+            Log::error('FCM Push Dispatch Failed', [
+                'notification_id' => $notification->id,
+                'user_id' => $user->id,
+                'channel' => $channel,
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+        }
     }
 
     /**

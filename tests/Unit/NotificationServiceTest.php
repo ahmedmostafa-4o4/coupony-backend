@@ -116,6 +116,89 @@ class NotificationServiceTest extends TestCase
         $this->assertEquals($data['expires_at'], $notification->data['expires_at']);
     }
 
+    public function test_send_dispatches_fcm_job_for_in_app_notifications_when_push_allowed(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $user = User::factory()->create();
+
+        $notification = $this->notificationService->send(
+            user: $user,
+            type: 'test_notification',
+            title: 'Test Title',
+            message: 'Test Message',
+            channel: 'in_app'
+        );
+
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Domain\Notification\Jobs\SendFcmPushNotificationJob::class,
+            fn ($job) => $job->notificationId === $notification->id
+        );
+    }
+
+    public function test_send_dispatches_fcm_job_for_email_notifications_when_push_allowed(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        \Illuminate\Support\Facades\Mail::fake();
+        $user = User::factory()->create(['email' => 'seller@example.com']);
+
+        $notification = $this->notificationService->send(
+            user: $user,
+            type: 'store_approved',
+            title: 'Store approved',
+            message: 'Your store was approved.',
+            channel: 'email'
+        );
+
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Domain\Notification\Jobs\SendFcmPushNotificationJob::class,
+            fn ($job) => $job->notificationId === $notification->id
+        );
+    }
+
+    public function test_send_does_not_dispatch_fcm_job_when_push_preference_is_disabled(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $user = User::factory()->create();
+        \App\Domain\User\Models\UserPreference::factory()->create([
+            'user_id' => $user->id,
+            'push_notifications' => false,
+        ]);
+
+        $this->notificationService->send(
+            user: $user,
+            type: 'test_notification',
+            title: 'Test Title',
+            message: 'Test Message',
+            channel: 'in_app'
+        );
+
+        \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Domain\Notification\Jobs\SendFcmPushNotificationJob::class);
+    }
+
+    public function test_send_does_not_dispatch_fcm_job_for_sms_or_push_channels(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $user = User::factory()->create();
+
+        $this->notificationService->send(
+            user: $user,
+            type: 'sms_test',
+            title: 'SMS',
+            message: 'SMS',
+            channel: 'sms'
+        );
+
+        $this->notificationService->send(
+            user: $user,
+            type: 'push_test',
+            title: 'Push',
+            message: 'Push',
+            channel: 'push'
+        );
+
+        \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Domain\Notification\Jobs\SendFcmPushNotificationJob::class);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();
