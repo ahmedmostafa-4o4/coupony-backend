@@ -17,6 +17,7 @@ use App\Application\Http\Controllers\API\V1\Admin\CategoryController;
 use App\Application\Http\Controllers\API\V1\Admin\StoreCategoryController;
 use App\Application\Http\Controllers\API\V1\ContactUsController;
 use App\Application\Http\Controllers\API\V1\CustomerBannerController;
+use App\Application\Http\Controllers\API\V1\DeviceTokenController;
 use App\Application\Http\Controllers\API\V1\ExploreController;
 use App\Application\Http\Controllers\API\V1\FollowingFeedController;
 use App\Application\Http\Controllers\API\V1\LocaleController;
@@ -183,6 +184,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/stores/{store}/verification-document', [StoreController::class, 'updateVerificationDocument'])->name('stores.updateVerificationDocument');
         Route::get('/me/points', [PointController::class, 'showMyPoints'])->name('me.points.show');
         Route::get('/me/points/transactions', [PointController::class, 'myTransactions'])->name('me.points.transactions');
+        Route::post('/me/device-tokens', [DeviceTokenController::class, 'store'])->name('me.device-tokens.store');
+        Route::delete('/me/device-tokens', [DeviceTokenController::class, 'destroy'])->name('me.device-tokens.destroy');
         Route::prefix('/me/notifications')->name('me.notifications.')->group(function () {
             Route::get('/', [NotificationController::class, 'index'])->name('index');
             Route::get('/unread', [NotificationController::class, 'unread'])->name('unread');
