@@ -100,7 +100,7 @@
             "ext-mbstring": "8.3.0",
             "ext-openssl": "8.3.0",
             "ext-fileinfo": "8.3.0",
-            "ext-zip": "8.3.0"
+            "ext-zip": "1.21.1"
         },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
