@@ -89,8 +89,8 @@ Example response:
       "channel": "in_app",
       "status": "sent",
       "is_read": false,
-      "is_sent": true,
-      "time_ago": "1 minute ago",
+      "image_url": "https://example.com/store-logo.png",
+      "badge_status": "used",
       "reference": {
         "type": "App\\Domain\\Product\\Models\\OfferClaim",
         "id": "uuid"
@@ -279,10 +279,10 @@ Use a Pusher-compatible Flutter package, for example:
 
 ```yaml
 dependencies:
-  pusher_channels_flutter: ^latest
+  pusher_channels_flutter: ^2.6.0
 ```
 
-Use the latest compatible version from `pub.dev`.
+Use a tested compatible version from `pub.dev`; do not use `latest` as a dependency constraint.
 
 Another Pusher-compatible client is also fine as long as it supports:
 
@@ -322,13 +322,11 @@ class RealtimeNotificationService {
       port: reverbPort,
       useTLS: useTls,
       authEndpoint: '$apiBaseUrl/broadcasting/auth',
-      onAuthorizer: (channelName, socketId, options) async {
-        return {
-          'headers': {
-            'Authorization': 'Bearer $accessToken',
-            'Accept': 'application/json',
-          },
-        };
+      authParams: {
+        'headers': {
+          'Authorization': 'Bearer $accessToken',
+          'Accept': 'application/json',
+        },
       },
       onConnectionStateChange: (currentState, previousState) {
         print('Pusher state: $previousState -> $currentState');
@@ -360,7 +358,7 @@ class RealtimeNotificationService {
 }
 ```
 
-Package APIs can differ between versions. If the package supports auth headers directly instead of `onAuthorizer`, configure `Authorization: Bearer <ACCESS_TOKEN>` there.
+Package APIs can differ between versions. If your selected package uses an `onAuthorizer` callback instead of `authParams`, make the callback POST `socket_id` and `channel_name` to `/broadcasting/auth` with `Authorization: Bearer <ACCESS_TOKEN>`, then return the JSON auth response from the backend.
 
 ---
 
@@ -382,6 +380,8 @@ When a notification is sent, Flutter receives:
       "product_id": "uuid",
       "store_id": "uuid"
     },
+    "image_url": null,
+    "badge_status": "earned",
     "channel": "in_app",
     "status": "sent",
     "reference_type": "App\\Domain\\Product\\Models\\OfferClaim",
@@ -404,6 +404,8 @@ Recommended behavior when this event arrives:
 
 ## 10. Notification Types And Tap Actions
 
+These are the current user-facing notification types emitted by the backend. Use unknown types as generic notifications and keep the REST notification detail as the source of truth.
+
 ### `offer_claim_created`
 
 Sent to customer when an offer claim is created.
@@ -420,6 +422,21 @@ Data:
 ```
 
 Tap action: open claim details / QR code screen.
+
+### `new_offer`
+
+Sent to followers when a followed store gets a newly approved active offer.
+
+```json
+{
+  "product_id": "uuid",
+  "store_id": "uuid",
+  "discount_value": "20%",
+  "expires_at": "2026-05-18T12:30:00+00:00"
+}
+```
+
+Tap action: open product / offer details.
 
 ### `new_offer_claim`
 
@@ -527,6 +544,19 @@ Sent to store owner when the store is rejected.
 
 Tap action: open store verification screen.
 
+### `store_pending`
+
+Sent to store owner when a store is submitted for review.
+
+```json
+{
+  "store_id": "uuid",
+  "status": "pending"
+}
+```
+
+Tap action: open store verification/status screen.
+
 ### `product_approved`
 
 Sent to store owner when a product/revision is approved.
@@ -556,6 +586,298 @@ Sent to store owner when a product/revision is rejected.
 
 Tap action: open product edit/revision screen.
 
+### `product_pending`
+
+Sent to store owner when a product revision is submitted for review.
+
+```json
+{
+  "product_id": "uuid",
+  "store_id": "uuid",
+  "revision_id": "uuid"
+}
+```
+
+Tap action: open product revision/status screen.
+
+### `analytics_daily_summary`
+
+Sent to store owner with daily store activity.
+
+```json
+{
+  "store_id": "uuid",
+  "views": 120,
+  "claims": 8,
+  "redemptions": 3,
+  "new_followers": 5
+}
+```
+
+Tap action: open store analytics dashboard.
+
+### `analytics_milestone`
+
+Sent to store owner when an analytics milestone is reached.
+
+```json
+{
+  "store_id": "uuid",
+  "milestone_type": "views",
+  "milestone_value": 1000
+}
+```
+
+Tap action: open store analytics dashboard.
+
+### `employee_invitation_accepted`
+
+Sent to store owner when an invited employee accepts.
+
+```json
+{
+  "invitation_id": "uuid",
+  "store_id": "uuid",
+  "employee_email": "employee@example.com",
+  "role": "manager",
+  "employee_id": "uuid",
+  "employee_avatar_url": "https://example.com/avatar.png"
+}
+```
+
+Tap action: open store employees screen.
+
+### `employee_invitation_rejected`
+
+Sent to store owner when an invited employee declines.
+
+```json
+{
+  "invitation_id": "uuid",
+  "store_id": "uuid",
+  "employee_email": "employee@example.com",
+  "role": "manager"
+}
+```
+
+Tap action: open store invitations screen.
+
+### `new_follower`
+
+Sent to store owner when a customer follows the store.
+
+```json
+{
+  "follower_id": "uuid",
+  "store_id": "uuid"
+}
+```
+
+Tap action: open store followers or customer profile screen.
+
+### `subscription_payment_approved`
+
+Sent to store owner when a subscription payment is approved.
+
+```json
+{
+  "store_id": "uuid",
+  "subscription_id": "uuid",
+  "plan_id": "uuid",
+  "session_id": "uuid"
+}
+```
+
+Tap action: open subscription details.
+
+### `subscription_payment_failed`
+
+Sent to store owner when a subscription payment fails.
+
+```json
+{
+  "store_id": "uuid",
+  "session_id": "uuid",
+  "plan_id": "uuid",
+  "reason": "Payment declined"
+}
+```
+
+Tap action: open subscription payment screen.
+
+### `subscription_expiring_soon`
+
+Sent to store owner when an active subscription is close to its renewal date.
+
+```json
+{
+  "store_id": "uuid",
+  "subscription_id": "uuid",
+  "plan_id": "uuid",
+  "expires_at": "2026-05-18T12:00:00+00:00"
+}
+```
+
+Tap action: open subscription renewal screen.
+
+### `subscription_grace_started`
+
+Sent to store owner when a subscription enters grace period.
+
+```json
+{
+  "store_id": "uuid",
+  "subscription_id": "uuid",
+  "plan_id": "uuid",
+  "grace_period_end": "2026-05-18T12:00:00+00:00"
+}
+```
+
+Tap action: open subscription renewal screen.
+
+### `subscription_degraded`
+
+Sent to store owner when a subscription enters degraded mode.
+
+```json
+{
+  "store_id": "uuid",
+  "subscription_id": "uuid",
+  "plan_id": "uuid",
+  "degraded_period_end": "2026-05-18T12:00:00+00:00"
+}
+```
+
+Tap action: open subscription details.
+
+### `subscription_suspended`
+
+Sent to store owner when a subscription is suspended.
+
+```json
+{
+  "store_id": "uuid",
+  "subscription_id": "uuid",
+  "plan_id": "uuid"
+}
+```
+
+Tap action: open subscription renewal screen.
+
+### `store_invitation`
+
+Sent to invited users when a store invitation is sent or resent.
+
+```json
+{
+  "invitation_id": "uuid",
+  "store_id": "uuid"
+}
+```
+
+Tap action: open received store invitations.
+
+### `store_document_approved`
+
+Sent to store owner when a verification document is approved.
+
+```json
+{
+  "store_id": "uuid",
+  "store_name": "Store name",
+  "verification_id": "uuid",
+  "document_type": "commercial_register",
+  "approved_by": "uuid",
+  "notes": "Looks good"
+}
+```
+
+Tap action: open store verification documents.
+
+### `store_document_rejected`
+
+Sent to store owner when a verification document is rejected.
+
+```json
+{
+  "store_id": "uuid",
+  "store_name": "Store name",
+  "verification_id": "uuid",
+  "document_type": "commercial_register",
+  "rejected_by": "uuid",
+  "rejection_reason": "Missing document page"
+}
+```
+
+Tap action: open store verification documents.
+
+### `import_completed`
+
+Sent to admin users when a store or product import succeeds.
+
+```json
+{
+  "type": "products",
+  "imported_count": 12,
+  "store_id": "uuid"
+}
+```
+
+Tap action: open admin import results or imported resource list.
+
+### `import_failed`
+
+Sent to admin users when a store or product import fails.
+
+```json
+{
+  "type": "stores",
+  "errors": ["Stores Row 2: 'name' is required."]
+}
+```
+
+Tap action: open admin import results.
+
+### `admin_broadcast`
+
+Sent by admin broadcast jobs to targeted users.
+
+```json
+{
+  "broadcast_id": "uuid"
+}
+```
+
+Tap action: show the notification message or open a generic notification detail screen.
+
+### `otp_email`
+
+Sent when an OTP is delivered by email.
+
+```json
+{
+  "code": "123456",
+  "purpose": "login",
+  "expires_at": "12:30",
+  "expires_in_minutes": 10
+}
+```
+
+Tap action: open the OTP entry screen for `purpose`.
+
+### `otp_sms`
+
+Sent when an OTP is delivered by SMS.
+
+```json
+{
+  "code": "123456",
+  "purpose": "login"
+}
+```
+
+Tap action: open the OTP entry screen for `purpose`.
+
 ---
 
 ## 11. Suggested Flutter Model
@@ -567,6 +889,8 @@ class AppNotification {
   final String title;
   final String message;
   final Map<String, dynamic> data;
+  final String? imageUrl;
+  final String badgeStatus;
   final String channel;
   final String status;
   final bool isRead;
@@ -581,6 +905,8 @@ class AppNotification {
     required this.title,
     required this.message,
     required this.data,
+    required this.imageUrl,
+    required this.badgeStatus,
     required this.channel,
     required this.status,
     required this.isRead,
@@ -599,6 +925,8 @@ class AppNotification {
       title: json['title'] as String,
       message: json['message'] as String,
       data: Map<String, dynamic>.from(json['data'] ?? {}),
+      imageUrl: json['image_url'] as String?,
+      badgeStatus: json['badge_status'] as String? ?? 'none',
       channel: json['channel'] as String? ?? 'in_app',
       status: json['status'] as String? ?? 'sent',
       isRead: json['is_read'] as bool? ?? json['read_at'] != null,
@@ -615,6 +943,7 @@ Note:
 
 - REST API uses `reference: { type, id }`.
 - Real-time payload uses `reference_type` and `reference_id`.
+- Both REST and real-time payloads include `image_url` and `badge_status`.
 - The model above supports both shapes.
 
 ---
@@ -642,9 +971,10 @@ On real-time notification:
 
 On logout:
 
-1. Unsubscribe from `private-users.{userId}`.
-2. Disconnect WebSocket.
-3. Clear local notification state.
+1. Call `DELETE /api/v1/me/device-tokens` for the current FCM token.
+2. Unsubscribe from `private-users.{userId}`.
+3. Disconnect WebSocket.
+4. Clear local notification state.
 
 On token refresh:
 
