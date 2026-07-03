@@ -183,6 +183,11 @@ class User extends Authenticatable
         return $this->hasMany(Session::class);
     }
 
+    public function deviceTokens()
+    {
+        return $this->hasMany(UserDeviceToken::class);
+    }
+
     public function points()
     {
         return $this->hasOne(UserPoints::class);
