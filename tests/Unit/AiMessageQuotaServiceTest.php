@@ -11,9 +11,7 @@ use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\User\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Schema;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
@@ -26,12 +24,6 @@ class AiMessageQuotaServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        if (! Schema::hasColumn('subscription_plans', 'max_ai_messages_per_day')) {
-            Schema::table('subscription_plans', function (Blueprint $table): void {
-                $table->unsignedInteger('max_ai_messages_per_day')->nullable();
-            });
-        }
 
         config([
             'app.timezone' => 'Africa/Cairo',

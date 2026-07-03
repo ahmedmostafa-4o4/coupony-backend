@@ -20,6 +20,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'max_products' => 50,
                 'max_employees' => 5,
                 'max_branches' => 3,
+                'max_ai_messages_per_day' => 15,
                 'features' => json_encode([
                     'ai_assistant' => false,
                     'analytics' => false,
@@ -42,6 +43,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'max_products' => 200,
                 'max_employees' => 15,
                 'max_branches' => 10,
+                'max_ai_messages_per_day' => 30,
                 'features' => json_encode([
                     'ai_assistant' => true,
                     'analytics' => true,
@@ -64,6 +66,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'max_products' => 9999,
                 'max_employees' => 50,
                 'max_branches' => 25,
+                'max_ai_messages_per_day' => 60,
                 'features' => json_encode([
                     'ai_assistant' => true,
                     'analytics' => true,
@@ -85,6 +88,6 @@ class SubscriptionPlanSeeder extends Seeder
             );
         }
 
-        $this->command->info(count($plans) . ' subscription plans seeded.');
+        $this->command->info(count($plans).' subscription plans seeded.');
     }
 }

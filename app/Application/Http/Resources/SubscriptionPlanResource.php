@@ -32,6 +32,7 @@ class SubscriptionPlanResource extends JsonResource
                 'max_products' => $this->max_products,
                 'max_employees' => $this->max_employees,
                 'max_branches' => $this->max_branches,
+                'max_ai_messages_per_day' => $this->max_ai_messages_per_day,
             ],
             'features' => $this->features,
             'payment_config' => [

@@ -21,6 +21,7 @@ class SubscriptionPlanFactory extends Factory
             'max_products' => fake()->numberBetween(10, 1000),
             'max_employees' => fake()->numberBetween(1, 50),
             'max_branches' => fake()->numberBetween(1, 20),
+            'max_ai_messages_per_day' => 15,
             'features' => ['ai_assistant' => true, 'analytics' => true],
             'grace_period_days' => 7,
             'degraded_period_days' => 14,

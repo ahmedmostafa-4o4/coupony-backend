@@ -10,7 +10,6 @@ use App\Domain\Subscription\Models\SubscriptionPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class SubscriptionPlanManagementController extends Controller
 {
@@ -69,7 +68,7 @@ class SubscriptionPlanManagementController extends Controller
             $oldSlug = $subscriptionPlan->slug;
             $subscriptionPlan->update([
                 'is_active' => false,
-                'slug' => $oldSlug . '-legacy-' . time(),
+                'slug' => $oldSlug.'-legacy-'.time(),
             ]);
 
             // 2. Create the new plan with the updated details
@@ -77,13 +76,14 @@ class SubscriptionPlanManagementController extends Controller
                 $subscriptionPlan->only([
                     'name', 'slug', 'description', 'price_monthly', 'price_yearly',
                     'currency', 'max_products', 'max_employees', 'max_branches',
-                    'features', 'grace_period_days', 'degraded_period_days', 'sort_order'
+                    'max_ai_messages_per_day', 'features', 'grace_period_days',
+                    'degraded_period_days', 'sort_order',
                 ]),
                 $request->validated()
             );
 
             // Restore the original slug if it wasn't explicitly changed in the request
-            if (!$request->has('slug')) {
+            if (! $request->has('slug')) {
                 $data['slug'] = $oldSlug;
             }
 
@@ -103,7 +103,7 @@ class SubscriptionPlanManagementController extends Controller
         // Soft delete by setting is_active = false
         $subscriptionPlan->update([
             'is_active' => false,
-            'slug' => $subscriptionPlan->slug . '-deleted-' . time(),
+            'slug' => $subscriptionPlan->slug.'-deleted-'.time(),
         ]);
 
         return $this->localizedJson([

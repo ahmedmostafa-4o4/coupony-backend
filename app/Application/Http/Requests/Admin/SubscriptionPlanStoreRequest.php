@@ -23,6 +23,7 @@ class SubscriptionPlanStoreRequest extends FormRequest
             'max_products' => ['nullable', 'integer', 'min:0'],
             'max_employees' => ['nullable', 'integer', 'min:0'],
             'max_branches' => ['nullable', 'integer', 'min:0'],
+            'max_ai_messages_per_day' => ['required', 'integer', 'min:0'],
             'features' => ['nullable', 'array'],
             'grace_period_days' => ['required', 'integer', 'min:0'],
             'degraded_period_days' => ['required', 'integer', 'min:0'],
