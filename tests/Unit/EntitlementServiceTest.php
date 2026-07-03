@@ -2,13 +2,13 @@
 
 namespace Tests\Unit;
 
+use App\Domain\PonyAI\Services\AiMessageQuotaService;
 use App\Domain\Store\Models\Store;
 use App\Domain\Subscription\DTOs\EntitlementData;
 use App\Domain\Subscription\Enums\BillingCycle;
 use App\Domain\Subscription\Enums\SubscriptionStatus;
 use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Subscription\Models\SubscriptionPlan;
-use App\Domain\Subscription\Repositories\SubscriptionRepository;
 use App\Domain\Subscription\Services\EntitlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -35,6 +35,9 @@ class EntitlementServiceTest extends TestCase
         $this->assertEquals(0, $entitlements->limits['products']['limit']);
         $this->assertEquals(0, $entitlements->limits['employees']['limit']);
         $this->assertEquals(0, $entitlements->limits['branches']['limit']);
+        $this->assertEquals(0, $entitlements->limits['ai_messages']['limit']);
+        $this->assertEquals(0, $entitlements->limits['ai_messages']['usage']);
+        $this->assertEquals(0, $entitlements->limits['ai_messages']['remaining']);
         $this->assertEmpty($entitlements->features);
     }
 
@@ -51,6 +54,7 @@ class EntitlementServiceTest extends TestCase
             'max_products' => 100,
             'max_employees' => 10,
             'max_branches' => 5,
+            'max_ai_messages_per_day' => 30,
             'features' => ['ai_assistant' => true, 'analytics' => true],
             'grace_period_days' => 7,
             'degraded_period_days' => 14,
@@ -67,6 +71,9 @@ class EntitlementServiceTest extends TestCase
             'current_period_end' => now()->addMonth(),
         ]);
 
+        app(AiMessageQuotaService::class)->reserveStore($store);
+        app(AiMessageQuotaService::class)->reserveStore($store);
+
         $entitlements = $this->service->getEntitlements($store);
 
         $this->assertInstanceOf(EntitlementData::class, $entitlements);
@@ -75,8 +82,33 @@ class EntitlementServiceTest extends TestCase
         $this->assertEquals(100, $entitlements->limits['products']['remaining']);
         $this->assertEquals(10, $entitlements->limits['employees']['limit']);
         $this->assertEquals(5, $entitlements->limits['branches']['limit']);
+        $this->assertEquals(30, $entitlements->limits['ai_messages']['limit']);
+        $this->assertEquals(2, $entitlements->limits['ai_messages']['usage']);
+        $this->assertEquals(28, $entitlements->limits['ai_messages']['remaining']);
         $this->assertTrue($entitlements->features['ai_assistant']);
         $this->assertTrue($entitlements->features['analytics']);
+    }
+
+    public function test_get_store_entitlements_returns_same_payload_for_middleware_callers(): void
+    {
+        $store = Store::factory()->active()->create();
+        $plan = SubscriptionPlan::factory()->create([
+            'max_ai_messages_per_day' => 15,
+        ]);
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $plan->id,
+            'status' => SubscriptionStatus::ACTIVE,
+            'billing_cycle' => BillingCycle::MONTHLY,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+
+        $this->assertEquals(
+            $this->service->getEntitlements($store)->toArray(),
+            $this->service->getStoreEntitlements($store)->toArray(),
+        );
     }
 
     public function test_check_limit_returns_true_when_under_limit(): void

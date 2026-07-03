@@ -2,15 +2,16 @@
 
 namespace App\Domain\Subscription\Services;
 
+use App\Domain\PonyAI\Services\AiMessageQuotaService;
 use App\Domain\Store\Models\Store;
 use App\Domain\Subscription\DTOs\EntitlementData;
-use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Subscription\Repositories\SubscriptionRepository;
 
 class EntitlementService
 {
     public function __construct(
         private readonly SubscriptionRepository $subscriptionRepository,
+        private readonly AiMessageQuotaService $aiMessageQuotas,
     ) {}
 
     /**
@@ -26,6 +27,7 @@ class EntitlementService
                     'products' => ['limit' => 0, 'usage' => 0, 'remaining' => 0],
                     'employees' => ['limit' => 0, 'usage' => 0, 'remaining' => 0],
                     'branches' => ['limit' => 0, 'usage' => 0, 'remaining' => 0],
+                    'ai_messages' => ['limit' => 0, 'usage' => 0, 'remaining' => 0],
                 ],
                 features: [],
             );
@@ -50,6 +52,7 @@ class EntitlementService
                 'usage' => $usage['branches'],
                 'remaining' => max(0, $plan->max_branches - $usage['branches']),
             ],
+            'ai_messages' => $this->aiMessageLimit($store),
         ];
 
         $features = is_array($plan->features) ? $plan->features : [];
@@ -58,6 +61,11 @@ class EntitlementService
             limits: $limits,
             features: $features,
         );
+    }
+
+    public function getStoreEntitlements(Store $store): EntitlementData
+    {
+        return $this->getEntitlements($store);
     }
 
     /**
@@ -121,6 +129,20 @@ class EntitlementService
             'products' => $store->products()->count(),
             'employees' => $store->employees()->count(),
             'branches' => $store->addresses()->count(),
+        ];
+    }
+
+    /**
+     * @return array{limit: int, usage: int, remaining: int}
+     */
+    private function aiMessageLimit(Store $store): array
+    {
+        $quota = $this->aiMessageQuotas->storeQuota($store);
+
+        return [
+            'limit' => (int) ($quota['limit'] ?? 0),
+            'usage' => $quota['used'],
+            'remaining' => (int) ($quota['remaining'] ?? 0),
         ];
     }
 }

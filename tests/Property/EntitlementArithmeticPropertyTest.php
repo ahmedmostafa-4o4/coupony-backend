@@ -2,6 +2,7 @@
 
 namespace Tests\Property;
 
+use App\Domain\PonyAI\Services\AiMessageQuotaService;
 use App\Domain\Product\Models\Product;
 use App\Domain\Store\Models\Store;
 use App\Domain\Subscription\Enums\BillingCycle;
@@ -10,6 +11,8 @@ use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\Subscription\Services\EntitlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -33,26 +36,24 @@ class EntitlementArithmeticPropertyTest extends TestCase
         $this->entitlementService = app(EntitlementService::class);
     }
 
-    /**
-     * @test
-     * @dataProvider entitlementArithmeticDataProvider
-     *
-     * Property 18: Entitlement arithmetic invariant
-     * Validates: Requirements 8.1
-     */
+    #[Test]
+    #[DataProvider('entitlementArithmeticDataProvider')]
     public function remaining_equals_limit_minus_usage_and_all_values_are_non_negative(
         int $maxProducts,
         int $maxEmployees,
         int $maxBranches,
+        int $maxAiMessages,
         int $productUsage,
         int $employeeUsage,
         int $branchUsage,
+        int $aiMessageUsage,
     ): void {
         // Arrange: Create a plan with the given limits
         $plan = SubscriptionPlan::factory()->create([
             'max_products' => $maxProducts,
             'max_employees' => $maxEmployees,
             'max_branches' => $maxBranches,
+            'max_ai_messages_per_day' => $maxAiMessages,
         ]);
 
         // Create a store with an active subscription
@@ -88,8 +89,14 @@ class EntitlementArithmeticPropertyTest extends TestCase
             }
         }
 
+        for ($message = 0; $message < $aiMessageUsage; $message++) {
+            app(AiMessageQuotaService::class)->reserveStore($store);
+        }
+
         // Act: Get entitlements
         $entitlements = $this->entitlementService->getEntitlements($store);
+
+        $this->assertArrayHasKey('ai_messages', $entitlements->limits);
 
         // Assert: For each numeric entitlement, verify the arithmetic invariant
         foreach ($entitlements->limits as $resourceType => $values) {
@@ -120,8 +127,8 @@ class EntitlementArithmeticPropertyTest extends TestCase
                 $expectedRemaining,
                 $remaining,
                 "Remaining for '{$resourceType}' must equal max(0, limit - usage). "
-                . "Expected: {$expectedRemaining}, Got: {$remaining} "
-                . "(limit={$limit}, usage={$usage})"
+                ."Expected: {$expectedRemaining}, Got: {$remaining} "
+                ."(limit={$limit}, usage={$usage})"
             );
         }
     }
@@ -129,7 +136,7 @@ class EntitlementArithmeticPropertyTest extends TestCase
     /**
      * Data provider generating 100+ random iterations for property-based testing.
      *
-     * @return \Generator<string, array{int, int, int, int, int, int}>
+     * @return \Generator<string, array{int, int, int, int, int, int, int, int}>
      */
     public static function entitlementArithmeticDataProvider(): \Generator
     {
@@ -139,19 +146,23 @@ class EntitlementArithmeticPropertyTest extends TestCase
             $maxProducts = $faker->numberBetween(1, 1000);
             $maxEmployees = $faker->numberBetween(1, 1000);
             $maxBranches = $faker->numberBetween(1, 1000);
+            $maxAiMessages = $faker->numberBetween(1, 100);
 
             // Usage can be 0 to limit+10 (to test over-limit scenarios)
             $productUsage = $faker->numberBetween(0, min($maxProducts + 10, 50));
             $employeeUsage = $faker->numberBetween(0, min($maxEmployees + 10, 20));
             $branchUsage = $faker->numberBetween(0, min($maxBranches + 10, 15));
+            $aiMessageUsage = $faker->numberBetween(0, min($maxAiMessages, 10));
 
-            yield "iteration_{$i}_products({$maxProducts}/{$productUsage})_employees({$maxEmployees}/{$employeeUsage})_branches({$maxBranches}/{$branchUsage})" => [
+            yield "iteration_{$i}_products({$maxProducts}/{$productUsage})_employees({$maxEmployees}/{$employeeUsage})_branches({$maxBranches}/{$branchUsage})_ai({$maxAiMessages}/{$aiMessageUsage})" => [
                 $maxProducts,
                 $maxEmployees,
                 $maxBranches,
+                $maxAiMessages,
                 $productUsage,
                 $employeeUsage,
                 $branchUsage,
+                $aiMessageUsage,
             ];
         }
     }

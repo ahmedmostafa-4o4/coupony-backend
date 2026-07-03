@@ -9,6 +9,7 @@ use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -32,6 +33,8 @@ class SubscriptionEnforcementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
 
         $this->owner = User::factory()->create();
         $this->store = Store::factory()->create(['owner_user_id' => $this->owner->id]);
