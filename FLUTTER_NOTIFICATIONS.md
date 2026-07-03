@@ -1,14 +1,14 @@
-# Flutter Real-Time Notifications Integration
+# Flutter Notifications Integration
 
-This document is for the Flutter developer integrating Coupony in-app and real-time notifications.
+This document is for the Flutter developer integrating Coupony in-app, real-time, and native push notifications.
 
-The backend stores notifications in the database and broadcasts new notifications in real time using Laravel Reverb. Reverb uses the Pusher protocol, so Flutter should use a Pusher-compatible client.
+The backend stores notifications in the database, broadcasts new notifications in real time using Laravel Reverb, and sends Firebase Cloud Messaging push notifications for existing `in_app` and `email` notification rows. Reverb uses the Pusher protocol, so Flutter should use a Pusher-compatible client for foreground realtime updates.
 
 ---
 
 ## 1. What Flutter Needs To Implement
 
-Flutter should support two flows:
+Flutter should support three flows:
 
 1. REST API notifications
    - list notifications
@@ -24,6 +24,13 @@ Flutter should support two flows:
    - subscribe to the current user's channel
    - listen for `notification.sent`
    - update UI immediately
+
+3. Native push notifications
+   - request OS notification permission
+   - register the current FCM token with the backend
+   - re-register when Firebase rotates the token
+   - unregister the token on logout
+   - handle tap navigation from the FCM data payload
 
 ---
 
@@ -693,7 +700,81 @@ Check:
 
 ---
 
-## 15. Backend Local Commands
+## 15. Native Push Notifications
+
+The backend sends Firebase Cloud Messaging push notifications for existing `in_app` and `email` notification rows. Reverb remains the realtime foreground channel; FCM is for OS-level notifications while the app is backgrounded, closed, or outside the foreground experience.
+
+### Register FCM token
+
+```http
+POST /api/v1/me/device-tokens
+Authorization: Bearer <ACCESS_TOKEN>
+Accept: application/json
+Content-Type: application/json
+```
+
+```json
+{
+  "token": "<FCM_TOKEN>",
+  "platform": "android",
+  "device_id": "optional-device-id",
+  "app_version": "1.2.3"
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "token": "<FCM_TOKEN>",
+    "platform": "android",
+    "device_id": "optional-device-id",
+    "app_version": "1.2.3",
+    "last_used_at": "2026-07-03T00:00:00+00:00"
+  }
+}
+```
+
+Supported `platform` values are `ios`, `android`, `web`, and `unknown`.
+
+### Unregister FCM token
+
+```http
+DELETE /api/v1/me/device-tokens
+Authorization: Bearer <ACCESS_TOKEN>
+Accept: application/json
+Content-Type: application/json
+```
+
+```json
+{
+  "token": "<FCM_TOKEN>"
+}
+```
+
+The backend returns `204 No Content`. Flutter should call this during logout for the current token.
+
+### FCM data payload
+
+The push data payload includes string values:
+
+```json
+{
+  "notification_id": "123",
+  "type": "offer_redeemed",
+  "reference_type": "App\\Domain\\Product\\Models\\OfferClaim",
+  "reference_id": "uuid",
+  "channel": "in_app",
+  "data": "{\"claim_id\":\"uuid\",\"product_id\":\"uuid\"}"
+}
+```
+
+Flutter should decode `data` as JSON and use `type`, `reference_type`, and `reference_id` for tap navigation. The existing REST notification APIs remain the source for syncing notification history and unread counts.
+
+---
+
+## 16. Backend Local Commands
 
 Backend developer should run:
 
@@ -702,14 +783,15 @@ php artisan reverb:start
 php artisan queue:listen
 ```
 
-If the queue worker is not running, queued domain notification listeners may not process.
+If the queue worker is not running, queued domain notification listeners and queued FCM push delivery may not process.
 
 ---
 
-## 16. Important Notes
+## 17. Important Notes
 
-- These are in-app notifications, not native push notifications.
+- Database notifications remain the source of truth for notification history and unread counts.
+- FCM push is sent for existing `in_app` and `email` notification rows when the user has push notifications enabled.
 - If the app is killed or offline, fetch missed notifications using REST on next app start.
-- Native mobile push notifications require a separate FCM/APNs integration.
+- Flutter must still configure Firebase Cloud Messaging client-side and request OS notification permission where required.
 - Current real-time event: `notification.sent`.
 - Current private channel: `private-users.{userId}`.
