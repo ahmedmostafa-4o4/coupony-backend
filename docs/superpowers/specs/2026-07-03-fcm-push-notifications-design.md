@@ -14,7 +14,7 @@ Current backend state:
 
 ## Goal
 
-Send native FCM push notifications for every existing in-app notification type without changing the existing notification API, database notification list, unread count behavior, or Reverb realtime behavior.
+Send native FCM push notifications for every existing in-app notification type and existing email notification type without changing the existing notification API, database notification list, unread count behavior, email delivery behavior, or Reverb realtime behavior.
 
 ## Non-Goals
 
@@ -22,12 +22,13 @@ Send native FCM push notifications for every existing in-app notification type w
 - Do not migrate existing notification rows to Laravel's built-in notification tables.
 - Do not introduce a third-party push provider beyond Firebase Cloud Messaging.
 - Do not require changing each existing domain notification trigger to call a separate push channel.
+- Do not convert email-only notification triggers into in-app notifications.
 
 ## Recommended Approach
 
-Use the existing in-app notification row as the source of truth. After a notification is successfully sent through the existing `in_app` channel, dispatch a queued FCM delivery job for the same notification.
+Use the existing notification row as the source of truth. After a notification is successfully sent through the existing `in_app` or `email` channel, dispatch a queued FCM delivery job for the same notification.
 
-This keeps current notification behavior stable while adding native push as a side effect. If FCM fails, the in-app notification remains available through the API and Reverb.
+This keeps current notification behavior stable while adding native push as a side effect. If FCM fails, the original notification behavior remains unchanged: in-app notifications remain available through the API and Reverb, and email notifications keep their existing queued mail flow.
 
 ## Data Model
 
@@ -113,16 +114,19 @@ Behavior:
 
 ## Delivery Flow
 
-1. Domain code calls `NotificationService::send(..., channel: 'in_app')` as it does today.
+1. Domain code calls `NotificationService::send(..., channel: 'in_app')` or `NotificationService::send(..., channel: 'email')` as it does today.
 2. The notification row is created.
-3. The in-app notifier marks the notification as sent and broadcasts the existing `NotificationSent` event.
-4. If the channel is `in_app` and user push preferences allow it, dispatch `SendFcmPushNotificationJob`.
-5. The job loads the notification and active device tokens.
-6. The job sends a multicast FCM message with notification title/body and tap-navigation data.
-7. Invalid or unregistered tokens are revoked.
-8. Temporary FCM failures are logged without changing the in-app notification status.
+3. The selected notifier runs:
+   - `in_app` keeps the existing database/realtime behavior.
+   - `email` keeps the existing queued mail behavior.
+4. `NotificationService` marks the notification as sent and dispatches the existing `NotificationSent` event.
+5. If the channel is `in_app` or `email` and user push preferences allow it, dispatch `SendFcmPushNotificationJob`.
+6. The job loads the notification and active device tokens.
+7. The job sends a multicast FCM message with notification title/body and tap-navigation data.
+8. Invalid or unregistered tokens are revoked.
+9. Temporary FCM failures are logged without changing the original notification status.
 
-Push delivery should not run for notification rows whose channel is already `push`, `email`, or `sms` in this first version. The goal is native push for the existing in-app notification stream.
+Push delivery should not run for notification rows whose channel is already `push` or `sms` in this first version. The goal is native push for the existing in-app and email notification streams.
 
 ## FCM Payload
 
@@ -158,7 +162,7 @@ Respect the existing `user_preferences.push_notifications` flag.
 
 - If no preferences row exists, keep the current default behavior: push allowed.
 - If `push_notifications` is false, do not dispatch the FCM job.
-- In-app notifications remain unaffected by this preference.
+- In-app notifications and email notifications remain unaffected by this preference.
 
 ## Error Handling
 
@@ -166,7 +170,7 @@ Respect the existing `user_preferences.push_notifications` flag.
 - A user with no active device tokens should produce no exception and no failed notification row.
 - Invalid/unregistered FCM tokens should be marked revoked.
 - Temporary send failures should be logged with notification ID, user ID, token count, and exception class.
-- FCM failures must not mark the in-app notification as failed.
+- FCM failures must not mark the original notification as failed.
 
 ## Testing
 
@@ -176,7 +180,9 @@ Feature tests:
 - Registering the same token updates ownership/metadata and clears `revoked_at`.
 - Authenticated user can unregister only their own token.
 - Sending any in-app notification dispatches the FCM job when push preference allows it.
-- Sending an in-app notification does not dispatch FCM when `push_notifications` is false.
+- Sending any email notification dispatches the FCM job when push preference allows it.
+- Sending an in-app or email notification does not dispatch FCM when `push_notifications` is false.
+- Sending an SMS or explicit push-channel notification does not dispatch this automatic FCM fan-out job.
 
 Unit tests:
 
