@@ -31,8 +31,8 @@ class Profile extends Model
             $profile->first_name = ucfirst(strtolower($profile->first_name));
             $profile->last_name = ucfirst(strtolower($profile->last_name));
 
-            // Ensure that gender is either 'male' or 'female'
-            $profile->gender = in_array(strtolower($profile->gender), ['male', 'female']) ? strtolower($profile->gender) : 'male';
+            $gender = strtolower((string) $profile->gender);
+            $profile->gender = in_array($gender, ['male', 'female'], true) ? $gender : null;
 
             // Ensure that date of birth is a valid date
             if ($profile->date_of_birth && ! checkdate($profile->date_of_birth->month, $profile->date_of_birth->day, $profile->date_of_birth->year)) {
