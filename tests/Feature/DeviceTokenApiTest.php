@@ -51,6 +51,7 @@ class DeviceTokenApiTest extends TestCase
         $this->assertDatabaseHas('user_device_tokens', [
             'user_id' => $user->id,
             'token' => 'fcm-token-1',
+            'token_hash' => hash('sha256', 'fcm-token-1'),
             'platform' => 'android',
             'device_id' => 'pixel-8',
             'app_version' => '1.2.3',
@@ -79,6 +80,7 @@ class DeviceTokenApiTest extends TestCase
         $this->assertDatabaseHas('user_device_tokens', [
             'user_id' => $newUser->id,
             'token' => 'shared-token',
+            'token_hash' => hash('sha256', 'shared-token'),
             'platform' => 'android',
             'revoked_at' => null,
         ]);

@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('user_id');
             $table->text('token');
+            $table->char('token_hash', 64);
             $table->string('platform', 20)->default('unknown');
             $table->string('device_id')->nullable();
             $table->string('app_version', 50)->nullable();
@@ -19,7 +20,7 @@ return new class extends Migration
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
 
-            $table->unique('token');
+            $table->unique('token_hash');
             $table->index(['user_id', 'revoked_at'], 'idx_user_device_tokens_active');
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });

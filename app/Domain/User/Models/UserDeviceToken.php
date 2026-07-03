@@ -13,6 +13,7 @@ class UserDeviceToken extends Model
     protected $fillable = [
         'user_id',
         'token',
+        'token_hash',
         'platform',
         'device_id',
         'app_version',
@@ -28,6 +29,20 @@ class UserDeviceToken extends Model
     protected static function newFactory()
     {
         return \Database\Factories\UserDeviceTokenFactory::new();
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (UserDeviceToken $deviceToken): void {
+            if ($deviceToken->isDirty('token')) {
+                $deviceToken->token_hash = self::hashToken($deviceToken->token);
+            }
+        });
+    }
+
+    public static function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
     }
 
     public function user(): BelongsTo

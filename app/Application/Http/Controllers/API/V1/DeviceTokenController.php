@@ -21,9 +21,10 @@ class DeviceTokenController extends Controller
         ]);
 
         $deviceToken = UserDeviceToken::query()->updateOrCreate(
-            ['token' => $validated['token']],
+            ['token_hash' => UserDeviceToken::hashToken($validated['token'])],
             [
                 'user_id' => $request->user()->id,
+                'token' => $validated['token'],
                 'platform' => $validated['platform'] ?? 'unknown',
                 'device_id' => $validated['device_id'] ?? null,
                 'app_version' => $validated['app_version'] ?? null,
@@ -53,7 +54,7 @@ class DeviceTokenController extends Controller
 
         UserDeviceToken::query()
             ->where('user_id', $request->user()->id)
-            ->where('token', $validated['token'])
+            ->where('token_hash', UserDeviceToken::hashToken($validated['token']))
             ->whereNull('revoked_at')
             ->update(['revoked_at' => now()]);
 
