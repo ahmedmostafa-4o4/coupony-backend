@@ -49,6 +49,10 @@ return [
         ],
     ],
 
+    'quotas' => [
+        'customer_daily_limit' => (int) env('PONY_CUSTOMER_DAILY_LIMIT', 15),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Pony AI - Logging

@@ -386,5 +386,6 @@ return [
         'conversation_deleted' => 'Conversation deleted.',
         'chat_failed' => 'Pony AI could not generate a reply. Please try again.',
         'rate_limited' => 'You are sending requests too quickly. Please slow down.',
+        'daily_limit_reached' => 'You have reached your daily AI message limit.',
     ],
 ];

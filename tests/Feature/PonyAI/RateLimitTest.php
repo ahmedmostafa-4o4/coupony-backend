@@ -8,6 +8,9 @@ use App\Domain\Product\Enums\ProductApprovalStatus;
 use App\Domain\Product\Enums\ProductStatus;
 use App\Domain\Product\Models\Product;
 use App\Domain\Store\Models\Store;
+use App\Domain\Subscription\Enums\SubscriptionStatus;
+use App\Domain\Subscription\Models\Subscription;
+use App\Domain\Subscription\Models\SubscriptionPlan;
 use App\Domain\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -44,6 +47,25 @@ class RateLimitTest extends TestCase
             'status' => ProductStatus::ACTIVE,
             'approval_status' => ProductApprovalStatus::APPROVED,
         ]);
+    }
+
+    private function subscribedStore(User $owner): Store
+    {
+        $store = Store::factory()->create(['owner_user_id' => $owner->id]);
+        $plan = SubscriptionPlan::factory()->create([
+            'features' => ['ai_assistant' => true],
+        ]);
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $plan->id,
+            'status' => SubscriptionStatus::ACTIVE,
+            'billing_cycle' => 'monthly',
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+
+        return $store;
     }
 
     public function test_customer_chat_returns_429_after_text_limit_exceeded(): void
@@ -153,7 +175,7 @@ class RateLimitTest extends TestCase
         config()->set('pony.rate_limits.text.max_attempts', 1);
 
         $seller = User::factory()->create();
-        $store = Store::factory()->create(['owner_user_id' => $seller->id]);
+        $store = $this->subscribedStore($seller);
 
         for ($i = 0; $i < 2; $i++) {
             $this->fake()

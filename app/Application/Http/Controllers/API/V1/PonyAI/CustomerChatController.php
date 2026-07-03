@@ -7,9 +7,12 @@ use App\Application\Http\Requests\PonyAI\ChatPromptRequest;
 use App\Application\Http\Requests\PonyAI\ImageSearchRequest;
 use App\Application\Http\Resources\PonyAI\AssistantReplyResource;
 use App\Application\Http\Resources\PonyAI\ConversationResource;
+use App\Domain\PonyAI\DTOs\AiQuotaReservation;
+use App\Domain\PonyAI\Exceptions\AiDailyLimitReachedException;
 use App\Domain\PonyAI\Exceptions\PonyAIException;
 use App\Domain\PonyAI\Models\PonyConversation;
 use App\Domain\PonyAI\Repositories\ConversationRepository;
+use App\Domain\PonyAI\Services\AiMessageQuotaService;
 use App\Domain\PonyAI\Services\CustomerAssistantStrategy;
 use App\Domain\PonyAI\Services\CustomerImageSearchStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -23,6 +26,7 @@ class CustomerChatController extends Controller
         private readonly CustomerAssistantStrategy $strategy,
         private readonly CustomerImageSearchStrategy $imageStrategy,
         private readonly ConversationRepository $conversations,
+        private readonly AiMessageQuotaService $quotas,
     ) {}
 
     public function store(ChatPromptRequest $request): JsonResponse
@@ -39,16 +43,25 @@ class CustomerChatController extends Controller
             }
         }
 
+        $reservation = null;
+
         try {
+            $reservation = $this->quotas->reserveCustomer($user);
             $reply = $this->strategy->handle($user, $request->message(), $conversation);
+        } catch (AiDailyLimitReachedException $exception) {
+            return $this->dailyLimitResponse($exception->quota);
         } catch (PonyAIException $exception) {
+            $this->releaseReservation($reservation);
+
             return $this->errorResponse($exception->getMessage(), 422);
         } catch (Throwable) {
+            $this->releaseReservation($reservation);
+
             return $this->errorResponse(__('api.pony.chat_failed'), 500);
         }
 
         return $this->successResponse(
-            (new AssistantReplyResource($reply))->resolve($request),
+            $this->withQuota((new AssistantReplyResource($reply))->resolve($request), $reservation),
             __('api.pony.reply_generated'),
         );
     }
@@ -67,21 +80,30 @@ class CustomerChatController extends Controller
             }
         }
 
+        $reservation = null;
+
         try {
+            $reservation = $this->quotas->reserveCustomer($user);
             $reply = $this->imageStrategy->handle(
                 $user,
                 $request->uploadedImage(),
                 $request->extraMessage(),
                 $conversation,
             );
+        } catch (AiDailyLimitReachedException $exception) {
+            return $this->dailyLimitResponse($exception->quota);
         } catch (PonyAIException $exception) {
+            $this->releaseReservation($reservation);
+
             return $this->errorResponse($exception->getMessage(), 422);
         } catch (Throwable) {
+            $this->releaseReservation($reservation);
+
             return $this->errorResponse(__('api.pony.chat_failed'), 500);
         }
 
         return $this->successResponse(
-            (new AssistantReplyResource($reply))->resolve($request),
+            $this->withQuota((new AssistantReplyResource($reply))->resolve($request), $reservation),
             __('api.pony.reply_generated'),
         );
     }
@@ -155,6 +177,37 @@ class CustomerChatController extends Controller
             'success' => false,
             'message' => $message,
         ], $status);
+    }
+
+    /**
+     * @param  array{limit: ?int, used: int, remaining: ?int, resets_at: ?string}  $quota
+     */
+    private function dailyLimitResponse(array $quota): JsonResponse
+    {
+        return $this->localizedJson([
+            'success' => false,
+            'message' => __('api.pony.daily_limit_reached'),
+            'error_code' => 'AI_DAILY_LIMIT_REACHED',
+            'quota' => $quota,
+        ], 429);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withQuota(array $data, AiQuotaReservation $reservation): array
+    {
+        $data['quota'] = $reservation->quota;
+
+        return $data;
+    }
+
+    private function releaseReservation(?AiQuotaReservation $reservation): void
+    {
+        if ($reservation !== null) {
+            $this->quotas->release($reservation);
+        }
     }
 
     private function paginatedResponse(mixed $data, string $message, LengthAwarePaginator $paginator): JsonResponse

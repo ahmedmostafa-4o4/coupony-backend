@@ -6,9 +6,12 @@ use App\Application\Http\Controllers\Controller;
 use App\Application\Http\Requests\PonyAI\SellerChatPromptRequest;
 use App\Application\Http\Resources\PonyAI\ConversationResource;
 use App\Application\Http\Resources\PonyAI\SellerAssistantReplyResource;
+use App\Domain\PonyAI\DTOs\AiQuotaReservation;
+use App\Domain\PonyAI\Exceptions\AiDailyLimitReachedException;
 use App\Domain\PonyAI\Exceptions\PonyAIException;
 use App\Domain\PonyAI\Models\PonyConversation;
 use App\Domain\PonyAI\Repositories\ConversationRepository;
+use App\Domain\PonyAI\Services\AiMessageQuotaService;
 use App\Domain\PonyAI\Services\SellerAssistantStrategy;
 use App\Domain\Store\Models\Store;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -22,6 +25,7 @@ class SellerChatController extends Controller
     public function __construct(
         private readonly SellerAssistantStrategy $strategy,
         private readonly ConversationRepository $conversations,
+        private readonly AiMessageQuotaService $quotas,
     ) {}
 
     public function store(SellerChatPromptRequest $request, Store $store): JsonResponse
@@ -46,16 +50,25 @@ class SellerChatController extends Controller
             }
         }
 
+        $reservation = null;
+
         try {
+            $reservation = $this->quotas->reserveStore($store);
             $reply = $this->strategy->handle($user, $store, $request->message(), $conversation);
+        } catch (AiDailyLimitReachedException $exception) {
+            return $this->dailyLimitResponse($exception->quota);
         } catch (PonyAIException $exception) {
+            $this->releaseReservation($reservation);
+
             return $this->errorResponse($exception->getMessage(), 422);
         } catch (Throwable) {
+            $this->releaseReservation($reservation);
+
             return $this->errorResponse(__('api.pony.chat_failed'), 500);
         }
 
         return $this->successResponse(
-            (new SellerAssistantReplyResource($reply))->resolve($request),
+            $this->withQuota((new SellerAssistantReplyResource($reply))->resolve($request), $reservation),
             __('api.pony.reply_generated'),
         );
     }
@@ -153,6 +166,37 @@ class SellerChatController extends Controller
             'success' => false,
             'message' => $message,
         ], $status);
+    }
+
+    /**
+     * @param  array{limit: ?int, used: int, remaining: ?int, resets_at: ?string}  $quota
+     */
+    private function dailyLimitResponse(array $quota): JsonResponse
+    {
+        return $this->localizedJson([
+            'success' => false,
+            'message' => __('api.pony.daily_limit_reached'),
+            'error_code' => 'AI_DAILY_LIMIT_REACHED',
+            'quota' => $quota,
+        ], 429);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withQuota(array $data, AiQuotaReservation $reservation): array
+    {
+        $data['quota'] = $reservation->quota;
+
+        return $data;
+    }
+
+    private function releaseReservation(?AiQuotaReservation $reservation): void
+    {
+        if ($reservation !== null) {
+            $this->quotas->release($reservation);
+        }
     }
 
     private function paginatedResponse(mixed $data, string $message, LengthAwarePaginator $paginator): JsonResponse
