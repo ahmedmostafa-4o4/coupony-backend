@@ -146,7 +146,7 @@ class FeedStore {
 }
 
 class FeedOffer {
-  final String id;
+  final String id; // Product UUID; use it with GET /api/v1/products/{id}
   final String? imageUrl;
   final String title;
   final double originalPrice;

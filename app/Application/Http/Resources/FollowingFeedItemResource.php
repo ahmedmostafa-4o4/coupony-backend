@@ -43,7 +43,7 @@ class FollowingFeedItemResource extends JsonResource
                 'is_followed' => (bool) $this->store_is_followed,
             ],
             'offer' => [
-                'id' => $this->offer_id,
+                'id' => $this->id,
                 'image_url' => $primaryImage ? $primaryImage->image_url : null,
                 'title' => $this->title, // Product name
                 'original_price' => $basePrice,
